@@ -258,7 +258,6 @@ export default function App() {
   const [unexpectedReason, setUnexpectedReason] = useState("");
 
   // progress summary
-  const [weeklyCount, setWeeklyCount] = useState(0);
   const [weeklyAttempts, setWeeklyAttempts] = useState(0);
   const [memberSettings, setMemberSettings] = useState<MemberSettings | null>(null);
   const [historyLogs, setHistoryLogs] = useState<HistoryLog[]>([]);
@@ -389,7 +388,6 @@ export default function App() {
     setPostGateKept(null);
     setPostWithinHypo(null);
     setUnexpectedReason("");
-    setWeeklyCount(0);
     setWeeklyAttempts(0);
     setHistoryLogs([]);
     setHistoryTarget(null);
@@ -463,7 +461,6 @@ export default function App() {
     if (error) return reportError("進捗取得失敗", error);
     const attempts = data?.attempts_week ?? 0;
     setWeeklyAttempts(attempts);
-    setWeeklyCount(attempts);
   };
 
   const loadMemberSettings = async () => {
@@ -1215,48 +1212,52 @@ export default function App() {
                 {adminLogs.length === 0 ? (
                   <div className="text-muted" style={{ textAlign: "center", padding: "40px 0" }}>ログがありません。</div>
                 ) : (
-                  adminLogs.map((l) => (
-                    <button
-                      key={l.id}
-                      onClick={() => {
-                        setAdminSelectedLog(l);
-                        setAdminNoteInput(l.teacher_note ?? "");
-                        if (l.user_id) void loadAdminSettings(l.user_id);
-                      }}
-                      style={{
-                        width: "100%",
-                        textAlign: "left",
-                        padding: "12px 16px",
-                        borderRadius: "var(--radius-md)",
-                        border: "1px solid var(--color-border)",
-                        backgroundColor: adminSelectedLog?.id === l.id ? "rgba(43, 109, 224, 0.05)" : "var(--color-card)",
-                        borderColor: adminSelectedLog?.id === l.id ? "var(--color-accent)" : "var(--color-border)",
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        <div style={{ display: "flex", alignItems: "center" }}>
-                          <NameBadge
-                            name={displayNameFor(l.user_id, l.display_name, l.member_id, l.email)}
-                            userId={l.user_id}
-                          />
-                          <span style={{ fontWeight: 700 }}>{displayNameFor(l.user_id, l.display_name, l.member_id, l.email)}</span>
-                        </div>
-                        <div className="text-muted" style={{ fontSize: 12 }}>
-                          {new Date(l.occurred_at).toLocaleString()}
-                        </div>
-                      </div>
-                      <div style={{ marginTop: 6, display: "flex", gap: 12, fontSize: 12 }} className="text-muted">
-                        <span>種別: {l.log_type}</span>
-                        <span>レビュー: <span style={{ color: l.teacher_review ? "var(--color-accent)" : "inherit", fontWeight: 600 }}>{l.teacher_review ?? "未"}</span></span>
-                      </div>
-                    </button>
-                  ))
-                )}
-              </div>
-            </Card>
-          </>
-        ) : (
-          <Card>
+                    adminLogs.map((l) => {
+                      const selectedId = adminSelectedLog ? ("log_id" in adminSelectedLog ? adminSelectedLog.log_id : adminSelectedLog.id) : null;
+                      const active = selectedId === l.id;
+                      return (
+                        <button
+                          key={l.id}
+                          onClick={() => {
+                            setAdminSelectedLog(l);
+                            setAdminNoteInput(l.teacher_note ?? "");
+                            if (l.user_id) void loadAdminSettings(l.user_id);
+                          }}
+                          style={{
+                            width: "100%",
+                            textAlign: "left",
+                            padding: "12px 16px",
+                            borderRadius: "var(--radius-md)",
+                            border: "1px solid var(--color-border)",
+                            backgroundColor: active ? "rgba(43, 109, 224, 0.05)" : "var(--color-card)",
+                            borderColor: active ? "var(--color-accent)" : "var(--color-border)",
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <div style={{ display: "flex", alignItems: "center" }}>
+                              <NameBadge
+                                name={displayNameFor(l.user_id, l.display_name, l.member_id, l.email)}
+                                userId={l.user_id}
+                              />
+                              <span style={{ fontWeight: 700 }}>{displayNameFor(l.user_id, l.display_name, l.member_id, l.email)}</span>
+                            </div>
+                            <div className="text-muted" style={{ fontSize: 12 }}>
+                              {new Date(l.occurred_at).toLocaleString()}
+                            </div>
+                          </div>
+                          <div style={{ marginTop: 6, display: "flex", gap: 12, fontSize: 12 }} className="text-muted">
+                            <span>種別: {l.log_type}</span>
+                            <span>レビュー: <span style={{ color: l.teacher_review ? "var(--color-accent)" : "inherit", fontWeight: 600 }}>{l.teacher_review ?? "未"}</span></span>
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </Card>
+            </>
+          ) : (
+            <Card>
             <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 20 }}>
               <div>
                 <h3 style={{ marginBottom: 16, fontSize: 18 }}>{labels.adminTodo}</h3>
@@ -1396,7 +1397,8 @@ export default function App() {
                           l.post_gate_kept === null || l.post_within_hypothesis === null
                             ? "未完"
                             : "記録済み";
-                        const active = adminSelectedLog?.id === l.log_id || adminSelectedLog?.id === l.id;
+                        const selectedId = adminSelectedLog ? ("log_id" in adminSelectedLog ? adminSelectedLog.log_id : adminSelectedLog.id) : null;
+                        const active = selectedId === l.log_id;
                         return (
                           <button
                             key={l.log_id}
