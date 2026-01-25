@@ -45,9 +45,8 @@ export default function FXJournalPage({
   onAction,
 }: FXJournalPageProps) {
   return (
-    <main className="min-h-screen bg-background">
-      <div className="mx-auto max-w-md px-4 py-6">
-        <header className="mb-6">
+    <div className="w-full min-h-screen px-4 py-6">
+      <header className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-2xl font-bold text-foreground">FX Journal</h1>
@@ -62,13 +61,12 @@ export default function FXJournalPage({
           />
         </header>
 
-        <div className="space-y-4">
-          <NextActionCard pendingCount={pendingCount} actionLabel={actionLabel} onAction={onAction} />
-          <TodayTasksCard tasks={tasks} />
-          <WeeklyProgressCard usedTrades={usedTrades} maxTrades={maxTrades} quote={quote} />
-          <TeacherDMCard timestamp={dmTimestamp} message={dmMessage} onSendReply={onSendReply} />
-        </div>
+      <div className="space-y-4">
+        <NextActionCard pendingCount={pendingCount} actionLabel={actionLabel} onAction={onAction} />
+        <TodayTasksCard tasks={tasks} />
+        <WeeklyProgressCard usedTrades={usedTrades} maxTrades={maxTrades} quote={quote} />
+        <TeacherDMCard timestamp={dmTimestamp} message={dmMessage} onSendReply={onSendReply} />
       </div>
-    </main>
+    </div>
   );
 }

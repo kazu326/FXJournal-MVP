@@ -6,5 +6,5 @@ type RootLayoutProps = {
 };
 
 export default function RootLayout({ children }: RootLayoutProps) {
-  return <div className="font-sans antialiased">{children}</div>;
+  return <>{children}</>;
 }
