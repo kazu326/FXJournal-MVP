@@ -470,9 +470,15 @@ export default function App() {
       .from("v_weekly_counts")
       .select("attempts_week")
       .eq("user_id", session.user.id)
-      .single();
+      .maybeSingle();
 
-    if (error) return reportError("進捗取得失敗", error);
+    if (error) {
+      if (error.code === "PGRST116" || error.status === 406) {
+        setWeeklyAttempts(0);
+        return;
+      }
+      return reportError("進捗取得失敗", error);
+    }
     const attempts = data?.attempts_week ?? 0;
     setWeeklyAttempts(attempts);
   };

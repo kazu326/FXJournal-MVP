@@ -1,5 +1,6 @@
 import { StreakHeader } from "./components/streak-header";
-import { TodayTasksCard, Task } from "./components/today-tasks-card";
+import { TodayTasksCard } from "./components/today-tasks-card";
+import type { Task } from "./components/today-tasks-card";
 import { WeeklyProgressCard } from "./components/weekly-progress-card";
 import { TeacherDMCard } from "./components/teacher-dm-card";
 import { NextActionCard } from "./components/next-action-card";
