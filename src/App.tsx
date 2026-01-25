@@ -4,6 +4,12 @@ import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./lib/supabase";
 import { labels } from "./ui/labels";
 import { copy } from "./ui/copy.ts";
+import { StreakHeader } from "./components/streak-header";
+import { TodayTasksCard, type Task } from "./components/today-tasks-card";
+import { WeeklyProgressCard } from "./components/weekly-progress-card";
+import { TeacherDMCard } from "./components/teacher-dm-card";
+import { NextActionCard } from "./components/next-action-card";
+import { Card as UiCard, CardContent as UiCardContent } from "./components/ui/card";
 
 type Mode = "home" | "pre" | "post" | "history" | "complete";
 
@@ -679,10 +685,10 @@ export default function App() {
     await loadPending();
   };
 
-  const sendMemberMessage = async () => {
+  const sendMemberMessage = async (message?: string) => {
     setStatus("");
     if (!session?.user?.id) return setStatus("未ログインです。");
-    const body = memberDmInput.trim();
+    const body = (message ?? memberDmInput).trim();
     if (!body) return;
     if (memberThreads.length === 0) {
       return setStatus("先生からのDMが届いたら返信できます。");
@@ -1698,6 +1704,61 @@ export default function App() {
     return true;
   });
 
+  const weeklyLimit = memberSettings?.weekly_limit ?? 2;
+  const hasAnyLogs = weeklyAttempts > 0;
+  const todayTasks: Task[] = [
+    {
+      id: "pre",
+      label: labels.tradePre,
+      duration: "30秒",
+      completed: hasAnyLogs && !pending,
+      xp: 10,
+    },
+    {
+      id: "post",
+      label: labels.tradePost,
+      duration: "60秒",
+      completed: !pending && hasAnyLogs,
+      xp: 15,
+    },
+    {
+      id: "skip",
+      label: labels.skip,
+      duration: "1分",
+      completed: false,
+      xp: 5,
+    },
+  ];
+
+  const latestMessage = [...visibleMessages].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  )[0];
+
+  const nextAction = (() => {
+    if (pending) {
+      return {
+        pendingCount: 1,
+        actionLabel: labels.tradePost,
+        description: copy.nextAction.incomplete,
+        onAction: () => setMode("post"),
+      };
+    }
+    if (weeklyLocked && !isTestMode) {
+      return {
+        pendingCount: 0,
+        actionLabel: "見送りを記録する",
+        description: `今週の取引は上限に達しました。次の取引は ${nextMondayLabel()} です。`,
+        onAction: () => void saveSkipQuick(),
+      };
+    }
+    return {
+      pendingCount: 0,
+      actionLabel: labels.tradePre,
+      description: copy.nextAction.normal,
+      onAction: () => setMode("pre"),
+    };
+  })();
+
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "0 0 var(--space-xl) 0", minHeight: "100vh" }}>
       {/* Header */}
@@ -1830,191 +1891,67 @@ export default function App() {
       )}
 
       {mode === "home" && (
-        <section style={{ display: "flex", flexDirection: "column", gap: "var(--space-lg)" }}>
-          {/* 1. Next Action (Core) */}
-          <Card className="card-accent" style={{ background: "rgba(43, 109, 224, 0.02)", marginTop: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
-              <IconNext />
-              <h3 style={{ margin: 0, fontSize: 18 }}>{labels.nextActionTitle}</h3>
-            </div>
-            
-            {pending ? (
-              <>
-                <div style={{ opacity: 0.85, marginBottom: 16 }}>{copy.nextAction.incomplete}</div>
-                <div>
-                  <PrimaryButton onClick={() => setMode("post")}>{labels.tradePost}</PrimaryButton>
-                </div>
-              </>
-            ) : weeklyLocked && !isTestMode ? (
-              <>
-                <div style={{ opacity: 0.85, marginBottom: 16, lineHeight: 1.6 }}>
-                  今週の取引は上限に達しました。<br />
-                  見送りは上限外で記録できます（1分）<br />
-                  <span style={{ fontWeight: 700, color: "var(--color-accent)" }}>（次の取引は：{nextMondayLabel()}）</span>
-                </div>
-                <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                  <PrimaryButton onClick={() => void saveSkipQuick()}>
-                    見送りを記録する
-                  </PrimaryButton>
-                  <button onClick={() => setMode("history")} style={{ padding: "12px 24px" }}>履歴を見る</button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div style={{ opacity: 0.85, marginBottom: 16 }}>{copy.nextAction.normal}</div>
-                <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                  <PrimaryButton onClick={() => setMode("pre")}>
-                    {labels.tradePre}
-                  </PrimaryButton>
-                  <button
-                    onClick={() => void saveSkipQuick()}
-                    style={{ fontWeight: 700, padding: "14px 24px" }}
-                  >
-                    {labels.skip}
-                  </button>
-                </div>
-              </>
-            )}
-          </Card>
-
-          {/* 2. Today's Stats & Progress */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 0 }}>
-            <BigCard style={{ marginTop: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
-                <IconStats />
-                <h3 style={{ margin: 0, fontSize: 18 }}>今週の進捗</h3>
-              </div>
-              <div className="text-muted" style={{ marginBottom: 16 }}>
-                トレードを「絞る」ことが最大の武器です。
-              </div>
-
-              {memberSettings && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-                    <span style={{ fontSize: 14, fontWeight: 600 }}>
-                      {weeklyAttempts > memberSettings.weekly_limit ? (
-                        <span style={{ color: "#F59E0B" }}>⚠️ 過剰：+{weeklyAttempts - memberSettings.weekly_limit}回</span>
-                      ) : (
-                        <span>記録済み：{weeklyAttempts} / {memberSettings.weekly_limit}回</span>
-                      )}
-                    </span>
-                    <span style={{ fontSize: 12 }} className="text-muted">
-                      {weeklyAttempts >= memberSettings.weekly_limit ? "完了" : `残り ${memberSettings.weekly_limit - weeklyAttempts}回`}
-                    </span>
-                  </div>
-                  
-                  <div className="progress-container">
-                    <div 
-                      className={`progress-bar ${
-                        weeklyAttempts > memberSettings.weekly_limit ? "over" : 
-                        weeklyAttempts === memberSettings.weekly_limit ? "full" : ""
-                      }`}
-                      style={{ width: `${Math.min(100, (weeklyAttempts / memberSettings.weekly_limit) * 100)}%` }}
-                    />
-                  </div>
-
-                  <div style={{ minHeight: 20 }}>
-                    {weeklyAttempts === memberSettings.weekly_limit ? (
-                      <div style={{ fontSize: 13, color: "var(--color-accent)", fontWeight: 700, textAlign: "center", marginTop: 4 }} className="shimmer-text">
-                        ✨ 今週は完璧です！
-                      </div>
-                    ) : weeklyAttempts > memberSettings.weekly_limit ? (
-                      <div style={{ fontSize: 13, color: "#F59E0B", fontWeight: 700, textAlign: "center", marginTop: 4 }}>
-                        ⚠️ 過剰トレード注意
-                      </div>
-                    ) : null}
+        <section>
+          <main className="min-h-screen bg-background">
+            <div className="mx-auto max-w-md px-4 py-6 space-y-4">
+              <header className="mb-2">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h1 className="text-2xl font-bold text-foreground">FX Journal</h1>
+                    <p className="text-sm text-muted-foreground">トレード記録 & 振り返り</p>
                   </div>
                 </div>
-              )}
+                <StreakHeader
+                  streakDays={5}
+                  level={3}
+                  currentXP={75}
+                  nextLevelXP={100}
+                />
+              </header>
 
               {isTestMode && (
-                <div className="alert-danger" style={{ fontSize: 12, textAlign: "center", padding: "8px", marginTop: 12 }}>
+                <div className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning-foreground">
                   テストモード：制限無効
                 </div>
               )}
-            </BigCard>
 
-            <BigCard style={{ marginTop: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
-                <IconHistory />
-                <h3 style={{ margin: 0, fontSize: 18 }}>履歴・振り返り</h3>
-              </div>
-              <div className="text-muted" style={{ marginBottom: 16 }}>
-                過去の記録を確認し、冷静に振り返りましょう。
-              </div>
-              <div style={{ marginTop: "auto" }}>
-                <button onClick={() => setMode("history")} style={{ width: "100%" }}>履歴一覧へ</button>
-              </div>
-            </BigCard>
-          </div>
-
-          <Card style={{ marginTop: 0 }}>
-            <h3 style={{ fontSize: 16, marginBottom: 8 }}>お知らせ</h3>
-            {announcements.length === 0 ? (
-              <div className="text-muted" style={{ padding: "12px 0" }}>まだありません。</div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {announcements.map((a) => (
-                  <div key={a.id} style={{ padding: "12px", background: "rgba(0,0,0,0.02)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)" }}>
-                    <div className="text-muted" style={{ fontSize: 11, marginBottom: 4 }}>
-                      {new Date(a.created_at).toLocaleString()}
-                    </div>
-                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{a.title}</div>
-                    <div style={{ fontSize: 13, opacity: 0.8 }}>{a.body}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-
-          <Card style={{ marginTop: 0 }}>
-            <h3 style={{ fontSize: 16, marginBottom: 8 }}>先生からのDM</h3>
-            {visibleMessages.length === 0 ? (
-              <div className="text-muted" style={{ padding: "12px 0" }}>まだメッセージがありません。</div>
-            ) : (
-              <div style={{ maxHeight: 240, overflow: "auto", display: "flex", flexDirection: "column", gap: 12, padding: "4px" }}>
-                {visibleMessages.map((m) => (
-                  <div key={m.id} style={{ 
-                    alignSelf: m.sender_user_id === session.user.id ? "flex-end" : "flex-start",
-                    maxWidth: "85%",
-                    padding: "10px 14px",
-                    borderRadius: "var(--radius-md)",
-                    background: m.sender_user_id === session.user.id ? "var(--color-accent)" : "rgba(0,0,0,0.04)",
-                    color: m.sender_user_id === session.user.id ? "#fff" : "inherit",
-                    fontSize: 13,
-                    lineHeight: 1.5,
-                    border: m.sender_user_id === session.user.id ? "none" : "1px solid var(--color-border)"
-                  }}>
-                    <div style={{ fontSize: 10, opacity: 0.7, marginBottom: 4 }}>
-                      {new Date(m.created_at).toLocaleString()}
-                    </div>
-                    <div>{m.body}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
-              <input
-                style={{ flex: 1 }}
-                placeholder="返信..."
-                value={memberDmInput}
-                onChange={(e) => setMemberDmInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && void sendMemberMessage()}
+              <NextActionCard
+                pendingCount={nextAction.pendingCount}
+                actionLabel={nextAction.actionLabel}
+                onAction={nextAction.onAction}
+                description={nextAction.description}
               />
-              <button onClick={() => void sendMemberMessage()} style={{ background: "var(--color-accent)", color: "#fff", border: "none", minWidth: 80 }}>送信</button>
+              <TodayTasksCard tasks={todayTasks} />
+              <WeeklyProgressCard usedTrades={weeklyAttempts} maxTrades={weeklyLimit} />
+              <TeacherDMCard
+                timestamp={latestMessage ? new Date(latestMessage.created_at).toLocaleString() : "—"}
+                message={latestMessage?.body ?? "まだメッセージがありません。"}
+                onSendReply={(message) => void sendMemberMessage(message)}
+              />
+              <UiCard>
+                <UiCardContent className="pt-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <h2 className="text-lg font-semibold text-foreground">お知らせ</h2>
+                  </div>
+                  {announcements.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">まだありません。</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {announcements.slice(0, 3).map((a) => (
+                        <div key={a.id} className="rounded-md border border-border bg-card p-3">
+                          <div className="text-xs text-muted-foreground">
+                            {new Date(a.created_at).toLocaleString()}
+                          </div>
+                          <div className="font-semibold text-foreground mt-1">{a.title}</div>
+                          <div className="text-sm text-muted-foreground mt-1">{a.body}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </UiCardContent>
+              </UiCard>
             </div>
-          </Card>
-
-          {/* 3. Safety Mat (Bottom) */}
-          <Card className="card-accent" style={{ background: "rgba(43, 109, 224, 0.03)", marginTop: 0 }}>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-              <IconSafety />
-              <div>
-                <div className="shimmer-text" style={{ fontWeight: 600, fontSize: 15 }}>{copy.banner.user}</div>
-                <div className="text-muted" style={{ marginTop: 4 }}>{copy.banner.userSub}</div>
-              </div>
-            </div>
-          </Card>
+          </main>
         </section>
       )}
 
@@ -2557,14 +2494,6 @@ const IconNext = () => (
   </svg>
 );
 
-const IconStats = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 8, verticalAlign: "middle" }}>
-    <line x1="18" y1="20" x2="18" y2="10" />
-    <line x1="12" y1="20" x2="12" y2="4" />
-    <line x1="6" y1="20" x2="6" y2="14" />
-  </svg>
-);
-
 const IconHistory = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 8, verticalAlign: "middle" }}>
     <circle cx="12" cy="12" r="10" />
@@ -2681,21 +2610,6 @@ function SmallChip(props: { onClick: () => void; children: any }) {
     >
       {props.children}
     </button>
-  );
-}
-
-function BigCard(props: { children: any; className?: string; style?: CSSProperties }) {
-  return (
-    <div
-      className={`card ${props.className ?? ""}`}
-      style={{
-        padding: "var(--space-lg)",
-        minHeight: 180,
-        ...(props.style ?? {}),
-      }}
-    >
-      {props.children}
-    </div>
   );
 }
 
