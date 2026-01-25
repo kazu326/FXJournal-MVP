@@ -1129,7 +1129,7 @@ export default function App() {
   // ----------------------
   if (!session) {
     return (
-      <div style={{ maxWidth: 600, margin: "var(--space-2xl) auto", padding: "0 var(--space-md)" }}>
+      <div style={{ maxWidth: "100%", margin: "0", padding: "0 var(--space-md)" }}>
         <h2 className="shimmer-text" style={{ marginBottom: "var(--space-sm)", textAlign: "center" }}>FX Journal MVP（初心者モード）</h2>
         <p style={{ opacity: 0.85, marginBottom: "var(--space-lg)", textAlign: "center" }}>
           使うのは2つだけ：<b>取引前（30秒）</b> と <b>取引後（15秒）</b>
@@ -1152,7 +1152,7 @@ export default function App() {
 
   if (isAdminRoute && !isTeacher) {
     return (
-      <div style={{ maxWidth: 640, margin: "var(--space-2xl) auto", padding: "0 var(--space-md)" }}>
+      <div style={{ maxWidth: "100%", margin: "0", padding: "0 var(--space-md)" }}>
         <h2 style={{ marginBottom: "var(--space-sm)", textAlign: "center" }}>管理ポータル</h2>
         <p style={{ opacity: 0.85, marginBottom: "var(--space-lg)", textAlign: "center" }}>このアカウントではアクセスできません。</p>
         <div style={{ display: "flex", gap: "var(--space-md)", flexWrap: "wrap", justifyContent: "center" }}>
@@ -1165,7 +1165,7 @@ export default function App() {
 
   if (isAdminRoute && isTeacher) {
     return (
-      <div style={{ maxWidth: 1080, margin: "0 auto", padding: "0 0 var(--space-xl) 0" }}>
+      <div style={{ maxWidth: "100%", margin: "0", padding: "0 16px var(--space-xl) 16px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-md)", flexWrap: "wrap", alignItems: "center", marginBottom: "var(--space-lg)", padding: "var(--space-md)" }}>
           <div>
             <h2 style={{ margin: 0, fontSize: 24 }}>{labels.adminTitle}</h2>
