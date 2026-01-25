@@ -45,9 +45,9 @@ export default function FXJournalPage({
   onAction,
 }: FXJournalPageProps) {
   return (
-    <div className="w-full min-h-screen px-4 py-6">
-      <header className="mb-6">
-          <div className="flex items-center justify-between mb-4">
+    <div>
+      <header>
+          <div>
             <div>
               <h1 className="text-2xl font-bold text-foreground">FX Journal</h1>
               <p className="text-sm text-muted-foreground">トレード記録 & 振り返り</p>
@@ -61,7 +61,7 @@ export default function FXJournalPage({
           />
         </header>
 
-      <div className="space-y-4">
+      <div>
         <NextActionCard pendingCount={pendingCount} actionLabel={actionLabel} onAction={onAction} />
         <TodayTasksCard tasks={tasks} />
         <WeeklyProgressCard usedTrades={usedTrades} maxTrades={maxTrades} quote={quote} />
