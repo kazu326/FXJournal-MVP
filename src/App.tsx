@@ -1899,6 +1899,9 @@ export default function App() {
       {mode === "home" && (
         <section>
           <main className="min-h-screen bg-slate-50 px-4 py-6">
+            <h1 className="text-4xl font-bold text-red-600 bg-yellow-300 p-10 border-4 border-black z-50 fixed top-0 left-0">
+              TEST TEST TEST 変更反映されていますか？
+            </h1>
             <div className="space-y-6 text-left">
               <header className="mb-2">
                 <div className="flex items-center justify-between mb-4">
