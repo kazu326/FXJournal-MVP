@@ -18,6 +18,11 @@ body {
   min-height: 100vh;
   background: var(--color-bg);
   color: var(--color-text);
+  overflow-x: hidden; /* Prevent horizontal scroll */
+}
+
+* {
+  box-sizing: border-box;
 }
 
 h1, h2, h3, h4 {
@@ -86,6 +91,8 @@ input:focus, select:focus, textarea:focus {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+  margin: var(--space-md) 16px;
+  width: auto; /* Stretches to fill container minus margins */
 }
 
 .card-accent {

@@ -1109,33 +1109,33 @@ export default function App() {
   // ----------------------
   if (!session) {
     return (
-      <div style={{ maxWidth: 520, margin: "var(--space-2xl) auto", padding: "var(--space-md)" }}>
-        <h2 className="shimmer-text" style={{ marginBottom: "var(--space-sm)" }}>FX Journal MVP（初心者モード）</h2>
-        <p style={{ opacity: 0.85, marginBottom: "var(--space-lg)" }}>
+      <div style={{ maxWidth: 600, margin: "var(--space-2xl) auto", padding: "0 var(--space-md)" }}>
+        <h2 className="shimmer-text" style={{ marginBottom: "var(--space-sm)", textAlign: "center" }}>FX Journal MVP（初心者モード）</h2>
+        <p style={{ opacity: 0.85, marginBottom: "var(--space-lg)", textAlign: "center" }}>
           使うのは2つだけ：<b>取引前（30秒）</b> と <b>取引後（15秒）</b>
         </p>
 
-        <div style={{ display: "flex", gap: "var(--space-md)" }}>
+        <div style={{ display: "flex", gap: "var(--space-md)", flexDirection: "column", alignItems: "center" }}>
           <input
-            style={{ flex: 1 }}
+            style={{ width: "100%" }}
             placeholder="メールアドレス"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-          <PrimaryButton onClick={sendMagicLink} style={{ minWidth: 120 }}>ログイン</PrimaryButton>
+          <PrimaryButton onClick={sendMagicLink} style={{ width: "100%" }}>ログイン</PrimaryButton>
         </div>
 
-        {status && <p style={{ marginTop: "var(--space-md)", color: "var(--color-accent)", fontWeight: 600 }}>{status}</p>}
+        {status && <p style={{ marginTop: "var(--space-md)", color: "var(--color-accent)", fontWeight: 600, textAlign: "center" }}>{status}</p>}
       </div>
     );
   }
 
   if (isAdminRoute && !isTeacher) {
     return (
-      <div style={{ maxWidth: 640, margin: "var(--space-2xl) auto", padding: "var(--space-md)" }}>
-        <h2 style={{ marginBottom: "var(--space-sm)" }}>管理ポータル</h2>
-        <p style={{ opacity: 0.85, marginBottom: "var(--space-lg)" }}>このアカウントではアクセスできません。</p>
-        <div style={{ display: "flex", gap: "var(--space-md)", flexWrap: "wrap" }}>
+      <div style={{ maxWidth: 640, margin: "var(--space-2xl) auto", padding: "0 var(--space-md)" }}>
+        <h2 style={{ marginBottom: "var(--space-sm)", textAlign: "center" }}>管理ポータル</h2>
+        <p style={{ opacity: 0.85, marginBottom: "var(--space-lg)", textAlign: "center" }}>このアカウントではアクセスできません。</p>
+        <div style={{ display: "flex", gap: "var(--space-md)", flexWrap: "wrap", justifyContent: "center" }}>
           <button onClick={() => { window.location.href = "/"; }}>ユーザー画面へ戻る</button>
           <button onClick={signOut} style={{ color: "var(--color-danger)" }}>ログアウト</button>
         </div>
@@ -1145,8 +1145,8 @@ export default function App() {
 
   if (isAdminRoute && isTeacher) {
     return (
-      <div style={{ maxWidth: 980, margin: "var(--space-lg) auto", padding: "var(--space-md)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-md)", flexWrap: "wrap", alignItems: "center", marginBottom: "var(--space-lg)" }}>
+      <div style={{ maxWidth: 1080, margin: "0 auto", padding: "0 0 var(--space-xl) 0" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-md)", flexWrap: "wrap", alignItems: "center", marginBottom: "var(--space-lg)", padding: "var(--space-md)" }}>
           <div>
             <h2 style={{ margin: 0, fontSize: 24 }}>{labels.adminTitle}</h2>
             <div className="text-muted" style={{ marginTop: 4 }}>
@@ -1691,13 +1691,13 @@ export default function App() {
   });
 
   return (
-    <div style={{ maxWidth: 880, margin: "0 auto", padding: "var(--space-md)", minHeight: "100vh" }}>
+    <div style={{ maxWidth: 960, margin: "0 auto", padding: "0 0 var(--space-xl) 0", minHeight: "100vh" }}>
       {/* Header */}
       <header style={{ 
         display: "flex", 
         justifyContent: "space-between", 
         alignItems: "center", 
-        padding: "var(--space-md) 0",
+        padding: "var(--space-md) var(--space-md)",
         marginBottom: "var(--space-lg)",
         borderBottom: "1px solid var(--color-border)"
       }}>
@@ -1866,7 +1866,7 @@ export default function App() {
           </Card>
 
           {/* 2. Today's Stats & Progress */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "var(--space-lg)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 0 }}>
             <BigCard style={{ marginTop: 0 }}>
               <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
                 <IconStats />
@@ -2007,8 +2007,8 @@ export default function App() {
       )}
 
       {mode === "history" && (
-        <section style={{ marginTop: 24 }}>
-          <Card>
+        <section>
+          <Card style={{ marginTop: 0 }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center", marginBottom: 20 }}>
               <div style={{ display: "flex", alignItems: "center" }}>
                 <IconHistory />
@@ -2170,8 +2170,8 @@ export default function App() {
       )}
 
       {mode === "complete" && (
-        <section style={{ marginTop: 14 }}>
-          <Card>
+        <section>
+          <Card style={{ marginTop: 0 }}>
             <h3 style={{ marginTop: 0 }}>取引後を完了する（60秒）</h3>
             {!completeLog ? (
               <div style={{ opacity: 0.85 }}>読み込み中…</div>
@@ -2255,8 +2255,8 @@ export default function App() {
       )}
 
       {mode === "pre" && (
-        <section style={{ marginTop: 24 }}>
-          <Card className="card-accent">
+        <section>
+          <Card className="card-accent" style={{ marginTop: 0 }}>
             <h3 style={{ marginBottom: 20 }}>{labels.tradePre}</h3>
             
             {memberSettings && !memberSettings.unlocked && weeklyAttempts >= memberSettings.weekly_limit && !isTestMode && (
@@ -2447,8 +2447,8 @@ export default function App() {
       )}
 
       {mode === "post" && (
-        <section style={{ marginTop: 14 }}>
-          <Card>
+        <section>
+          <Card style={{ marginTop: 0 }}>
             <h3 style={{ marginBottom: 20 }}>{labels.tradePost}</h3>
 
             {!pending ? (
