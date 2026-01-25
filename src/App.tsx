@@ -218,8 +218,11 @@ export default function App() {
     !isAdminRoute && window.location.pathname.startsWith("/complete/")
       ? decodeURIComponent(window.location.pathname.replace("/complete/", ""))
       : null;
-  const [testMode, setTestMode] = useState(false);
-  const isTestMode = import.meta.env.DEV && testMode;
+  const [testMode, setTestMode] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("fxj_test_mode") === "1";
+  });
+  const isTestMode = testMode;
 
   // login
   const [email, setEmail] = useState("");
@@ -317,6 +320,11 @@ export default function App() {
     });
     return () => sub.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("fxj_test_mode", testMode ? "1" : "0");
+  }, [testMode]);
 
   // --- load pending when logged in ---
   useEffect(() => {
@@ -1759,17 +1767,21 @@ export default function App() {
                     <IconGear /> 管理
                   </button>
                 )}
-                {import.meta.env.DEV && (
-                  <button 
-                    onClick={() => { setTestMode((v) => !v); setShowMenu(false); }}
-                    style={{ 
-                      width: "100%", border: "none", borderRadius: 0, justifyContent: "flex-start", padding: "16px 20px",
-                      color: isTestMode ? "var(--color-danger)" : "inherit"
-                    }}
-                  >
-                    テストモード：{isTestMode ? "ON" : "OFF"}
-                  </button>
-                )}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 20px" }}>
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>テストモード</span>
+                  <label style={{ display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                    <input
+                      type="checkbox"
+                      checked={isTestMode}
+                      onChange={(e) => setTestMode(e.target.checked)}
+                      style={{ width: 18, height: 18 }}
+                      aria-label="テストモード切替"
+                    />
+                    <span style={{ fontSize: 12, color: isTestMode ? "var(--color-danger)" : "inherit" }}>
+                      {isTestMode ? "ON" : "OFF"}
+                    </span>
+                  </label>
+                </div>
                 <div style={{ height: "1px", background: "var(--color-border)" }} />
                 <button 
                   onClick={signOut}
