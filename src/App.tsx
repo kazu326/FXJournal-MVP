@@ -1766,7 +1766,7 @@ export default function App() {
   })();
 
   return (
-    <div style={{ maxWidth: 960, margin: "0 auto", padding: "0 0 var(--space-xl) 0", minHeight: "100vh" }}>
+    <div style={{ maxWidth: "100%", margin: "0", padding: "0 16px var(--space-xl) 16px", minHeight: "100vh" }}>
       {/* Header */}
       <header style={{ 
         display: "flex", 
