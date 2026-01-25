@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #F5F7FA;
+  --background: #F8FAFC;
   --foreground: #333333;
   --card: #FFFFFF;
   --card-foreground: #333333;
@@ -129,5 +129,11 @@
   }
   body {
     @apply bg-background text-foreground;
+    text-align: left;
   }
+}
+
+.card,
+.card-content {
+  text-align: left;
 }

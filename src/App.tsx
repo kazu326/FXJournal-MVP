@@ -1899,7 +1899,7 @@ export default function App() {
       {mode === "home" && (
         <section>
           <main className="min-h-screen bg-background">
-            <div className="mx-auto max-w-md px-4 py-6 space-y-4">
+            <div className="mx-auto w-full max-w-[600px] px-4 py-6 space-y-4 text-left">
               <header className="mb-2">
                 <div className="flex items-center justify-between mb-4">
                   <div>

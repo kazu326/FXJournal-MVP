@@ -6,14 +6,14 @@ type CardProps = React.HTMLAttributes<HTMLDivElement>;
 const Card = React.forwardRef<HTMLDivElement, CardProps>(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("rounded-lg border border-border bg-card text-card-foreground shadow-sm", className)}
+    className={cn("w-full rounded-lg border border-border bg-card text-card-foreground shadow-sm", className)}
     {...props}
   />
 ));
 Card.displayName = "Card";
 
 const CardContent = React.forwardRef<HTMLDivElement, CardProps>(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("p-4", className)} {...props} />
+  <div ref={ref} className={cn("card-content p-4", className)} {...props} />
 ));
 CardContent.displayName = "CardContent";
 
