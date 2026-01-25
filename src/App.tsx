@@ -473,7 +473,7 @@ export default function App() {
       .maybeSingle();
 
     if (error) {
-      if (error.code === "PGRST116" || error.status === 406) {
+      if (error.code === "PGRST116") {
         setWeeklyAttempts(0);
         return;
       }
