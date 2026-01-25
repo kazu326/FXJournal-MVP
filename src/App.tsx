@@ -1879,24 +1879,39 @@ export default function App() {
               {memberSettings && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-                    <span style={{ fontSize: 14, fontWeight: 600 }}>記録済み：{weeklyAttempts} / {memberSettings.weekly_limit} 回</span>
+                    <span style={{ fontSize: 14, fontWeight: 600 }}>
+                      {weeklyAttempts > memberSettings.weekly_limit ? (
+                        <span style={{ color: "#F59E0B" }}>⚠️ 過剰：+{weeklyAttempts - memberSettings.weekly_limit}回</span>
+                      ) : (
+                        <span>記録済み：{weeklyAttempts} / {memberSettings.weekly_limit}回</span>
+                      )}
+                    </span>
                     <span style={{ fontSize: 12 }} className="text-muted">
-                      残り {Math.max(0, memberSettings.weekly_limit - weeklyAttempts)} 回
+                      {weeklyAttempts >= memberSettings.weekly_limit ? "完了" : `残り ${memberSettings.weekly_limit - weeklyAttempts}回`}
                     </span>
                   </div>
                   
                   <div className="progress-container">
                     <div 
-                      className={`progress-bar ${weeklyAttempts >= memberSettings.weekly_limit ? "full" : ""}`}
+                      className={`progress-bar ${
+                        weeklyAttempts > memberSettings.weekly_limit ? "over" : 
+                        weeklyAttempts === memberSettings.weekly_limit ? "full" : ""
+                      }`}
                       style={{ width: `${Math.min(100, (weeklyAttempts / memberSettings.weekly_limit) * 100)}%` }}
                     />
                   </div>
 
-                  {weeklyAttempts >= memberSettings.weekly_limit && (
-                    <div style={{ fontSize: 13, color: "var(--color-accent)", fontWeight: 700, textAlign: "center", marginTop: 4 }} className="shimmer-text">
-                      ✨ 今週の目標達成！見送りに徹しましょう
-                    </div>
-                  )}
+                  <div style={{ minHeight: 20 }}>
+                    {weeklyAttempts === memberSettings.weekly_limit ? (
+                      <div style={{ fontSize: 13, color: "var(--color-accent)", fontWeight: 700, textAlign: "center", marginTop: 4 }} className="shimmer-text">
+                        ✨ 今週は完璧です！
+                      </div>
+                    ) : weeklyAttempts > memberSettings.weekly_limit ? (
+                      <div style={{ fontSize: 13, color: "#F59E0B", fontWeight: 700, textAlign: "center", marginTop: 4 }}>
+                        ⚠️ 過剰トレード注意
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
               )}
 
