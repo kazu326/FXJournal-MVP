@@ -3,17 +3,26 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        background: "var(--background)",
+        foreground: "var(--foreground)",
+        card: "var(--card)",
+        "card-foreground": "var(--card-foreground)",
+        muted: "var(--muted)",
+        "muted-foreground": "var(--muted-foreground)",
+        border: "var(--border)",
+        input: "var(--input)",
+        ring: "var(--ring)",
         primary: {
-          DEFAULT: "#3B82F6",
-          foreground: "#FFFFFF",
+          DEFAULT: "var(--primary)",
+          foreground: "var(--primary-foreground)",
         },
         success: {
-          DEFAULT: "#10B981",
-          foreground: "#FFFFFF",
+          DEFAULT: "var(--success)",
+          foreground: "var(--success-foreground)",
         },
         warning: {
-          DEFAULT: "#F59E0B",
-          foreground: "#FFFFFF",
+          DEFAULT: "var(--warning)",
+          foreground: "var(--warning-foreground)",
         },
       },
     },
