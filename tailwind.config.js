@@ -3,26 +3,28 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
-        card: "var(--card)",
-        "card-foreground": "var(--card-foreground)",
-        muted: "var(--muted)",
-        "muted-foreground": "var(--muted-foreground)",
-        border: "var(--border)",
-        input: "var(--input)",
-        ring: "var(--ring)",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        border: "hsl(214, 32%, 91%)",
+        card: {
+          DEFAULT: "hsl(0, 0%, 100%)",
+          foreground: "hsl(222, 47%, 11%)",
+        },
         primary: {
-          DEFAULT: "var(--primary)",
-          foreground: "var(--primary-foreground)",
+          DEFAULT: "hsl(221, 83%, 53%)",
+          foreground: "hsl(210, 40%, 98%)",
+        },
+        muted: {
+          DEFAULT: "hsl(210, 40%, 96%)",
+          foreground: "hsl(215, 16%, 47%)",
         },
         success: {
-          DEFAULT: "var(--success)",
-          foreground: "var(--success-foreground)",
+          DEFAULT: "hsl(142, 76%, 36%)",
+          foreground: "hsl(0, 0%, 100%)",
         },
         warning: {
-          DEFAULT: "var(--warning)",
-          foreground: "var(--warning-foreground)",
+          DEFAULT: "hsl(38, 92%, 50%)",
+          foreground: "hsl(0, 0%, 100%)",
         },
       },
     },
