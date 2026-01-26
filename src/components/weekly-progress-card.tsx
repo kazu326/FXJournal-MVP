@@ -52,11 +52,11 @@ export function WeeklyProgressCard({
       <CardContent className="pt-6">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <TrendingDown className="size-5 text-primary" />
+            <TrendingDown className="size-6 text-primary" />
             <h2 className="text-lg font-bold text-foreground">今週のトレード枠</h2>
           </div>
           <div className={`flex items-center justify-center size-8 rounded-full ${status.badge}`}>
-            <StatusIcon className={`size-4 ${status.iconColor}`} />
+            <StatusIcon className={`size-5 ${status.iconColor}`} />
           </div>
         </div>
 
@@ -101,7 +101,7 @@ export function WeeklyProgressCard({
         >
           {isOverTrading ? (
             <>
-              <AlertTriangle className="size-5 text-warning shrink-0 mt-0.5" />
+              <AlertTriangle className="size-6 text-warning shrink-0 mt-0.5" />
               <div>
                 <p className="font-bold text-warning-foreground">過剰トレード警告</p>
                 <p className="text-sm text-warning-foreground/80 mt-1">
@@ -111,7 +111,7 @@ export function WeeklyProgressCard({
             </>
           ) : isAtLimit ? (
             <>
-              <ShieldCheck className="size-5 text-success shrink-0 mt-0.5" />
+              <ShieldCheck className="size-6 text-success shrink-0 mt-0.5" />
               <div>
                 <p className="font-bold text-success-foreground">今週の枠を使い切りました</p>
                 <p className="text-sm text-success-foreground/80 mt-1">
@@ -121,7 +121,7 @@ export function WeeklyProgressCard({
             </>
           ) : (
             <>
-              <Shield className="size-5 text-primary shrink-0 mt-0.5" />
+              <Shield className="size-6 text-primary shrink-0 mt-0.5" />
               <div>
                 <p className="font-bold text-foreground">残り {remaining} 回</p>
                 <p className="text-sm text-muted-foreground mt-1">

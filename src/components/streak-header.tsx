@@ -19,7 +19,7 @@ export function StreakHeader({
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-2">
         <div className="flex items-center justify-center size-10 rounded-full bg-orange-100">
-          <Flame className="size-5 text-orange-500" />
+          <Flame className="size-6 text-orange-500" />
         </div>
         <div>
           <div className="flex items-baseline gap-1">
@@ -31,12 +31,15 @@ export function StreakHeader({
 
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1.5">
-          <Zap className="size-4 text-primary" />
+          <Zap className="size-5 text-primary" />
           <span className="text-xl font-semibold text-foreground">
             {currentXP}/{nextLevelXP} XP
           </span>
         </div>
-        <div className="flex items-center justify-center size-10 rounded-full bg-primary text-primary-foreground font-bold text-sm">
+        <div
+          className="flex items-center justify-center size-10 rounded-full bg-primary font-bold text-sm"
+          style={{ color: "var(--color-bg)" }}
+        >
           Lv.{level}
         </div>
       </div>

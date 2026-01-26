@@ -10,6 +10,7 @@ import { WeeklyProgressCard } from "./components/weekly-progress-card";
 import { TeacherDMCard } from "./components/teacher-dm-card";
 import { NextActionCard } from "./components/next-action-card";
 import { Card as UiCard, CardContent as UiCardContent } from "./components/ui/card";
+import { AdminHeader } from "./components/admin-header";
 
 type Mode = "home" | "pre" | "post" | "history" | "complete";
 
@@ -215,6 +216,7 @@ export default function App() {
   const [status, setStatus] = useState("");
   const [mode, setMode] = useState<Mode>("home");
   const [showMenu, setShowMenu] = useState(false);
+  const [showAdminMenu, setShowAdminMenu] = useState(false);
   const isAdminRoute =
     window.location.pathname.startsWith("/admin") || window.location.pathname.startsWith("/staff");
   const isAdminLogsRoute =
@@ -1130,7 +1132,7 @@ export default function App() {
   if (!session) {
     return (
       <div style={{ maxWidth: "100%", margin: "0", padding: "0 var(--space-md)" }}>
-        <h2 className="shimmer-text" style={{ marginBottom: "var(--space-sm)", textAlign: "center" }}>FX Journal MVP（初心者モード）</h2>
+        <h1 className="shimmer-text" style={{ marginBottom: "var(--space-sm)", textAlign: "center" }}>FX Journal</h1>
         <p style={{ opacity: 0.85, marginBottom: "var(--space-lg)", textAlign: "center" }}>
           使うのは2つだけ：<b>取引前（30秒）</b> と <b>取引後（15秒）</b>
         </p>
@@ -1165,20 +1167,26 @@ export default function App() {
 
   if (isAdminRoute && isTeacher) {
     return (
-      <div style={{ maxWidth: "100%", margin: "0", padding: "0 16px var(--space-xl) 16px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-md)", flexWrap: "wrap", alignItems: "center", marginBottom: "var(--space-lg)", padding: "var(--space-md)" }}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: 24 }}>{labels.adminTitle}</h2>
-            <div className="text-muted" style={{ marginTop: 4 }}>
-              Staff: {profileDisplayName ?? session.user.email}
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: "var(--space-md)", flexWrap: "wrap", alignItems: "center" }}>
-            <button onClick={() => { window.location.href = "/admin"; }}>先生ホーム</button>
-            <button onClick={() => { window.location.href = "/admin/logs"; }}>{labels.adminLogs}</button>
-            <button onClick={() => { window.location.href = "/"; }}>ユーザー画面</button>
-            <button onClick={signOut} style={{ color: "var(--color-danger)" }}>ログアウト</button>
-          </div>
+      <div className="w-full px-4 pb-8">
+        <div className="mb-6">
+          <AdminHeader
+            title={labels.adminTitle}
+            staffName={profileDisplayName ?? session.user.email}
+            logsLabel={labels.adminLogs}
+            showMenu={showAdminMenu}
+            onToggleMenu={() => setShowAdminMenu((prev) => !prev)}
+            onCloseMenu={() => setShowAdminMenu(false)}
+            onGoTeacherHome={() => {
+              window.location.href = "/admin";
+            }}
+            onGoLogs={() => {
+              window.location.href = "/admin/logs";
+            }}
+            onGoUserView={() => {
+              window.location.href = "/";
+            }}
+            onLogout={signOut}
+          />
         </div>
 
         {status && (
@@ -1777,7 +1785,20 @@ export default function App() {
         borderBottom: "1px solid var(--color-border)"
       }}>
         <div onClick={() => setMode("home")} style={{ cursor: "pointer" }}>
-          <h2 className="shimmer-text" style={{ margin: 0, fontSize: 24 }}>{labels.appTitle}</h2>
+          <h2
+            className="shimmer-text"
+            style={{
+              margin: 0,
+              fontSize: 24,
+              fontWeight: 900,
+              borderWidth: "0px",
+              borderStyle: "none",
+              borderColor: "rgba(0, 0, 0, 0)",
+              borderImage: "none",
+            }}
+          >
+            {labels.appTitle}
+          </h2>
           <div className="text-muted" style={{ fontSize: 13 }}>
             {profileDisplayName ?? session.user.email}
           </div>
@@ -1816,20 +1837,20 @@ export default function App() {
               <div style={{ display: "flex", flexDirection: "column" }}>
                 <button 
                   onClick={() => { setMode("home"); setStatus(""); setShowMenu(false); }}
-                  style={{ width: "100%", border: "none", borderRadius: 0, justifyContent: "flex-start", padding: "16px 20px" }}
+                  style={{ width: "100%", border: "none", borderRadius: 0, display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-start", padding: "16px 20px" }}
                 >
                   <IconNext /> ホーム
                 </button>
                 <button 
                   onClick={() => { setMode("history"); setShowMenu(false); }}
-                  style={{ width: "100%", border: "none", borderRadius: 0, justifyContent: "flex-start", padding: "16px 20px" }}
+                  style={{ width: "100%", border: "none", borderRadius: 0, display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-start", padding: "16px 20px" }}
                 >
                   <IconHistory /> 履歴
                 </button>
                 {isTeacher && (
                   <button 
                     onClick={() => { window.location.href = "/admin"; }}
-                    style={{ width: "100%", border: "none", borderRadius: 0, justifyContent: "flex-start", padding: "16px 20px" }}
+                    style={{ width: "100%", border: "none", borderRadius: 0, display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-start", padding: "16px 20px" }}
                   >
                     <IconGear /> 管理
                   </button>
@@ -1852,7 +1873,7 @@ export default function App() {
                 <div style={{ height: "1px", background: "var(--color-border)" }} />
                 <button 
                   onClick={signOut}
-                  style={{ width: "100%", border: "none", borderRadius: 0, justifyContent: "flex-start", padding: "16px 20px", color: "var(--color-danger)" }}
+                  style={{ width: "100%", border: "none", borderRadius: 0, display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-start", padding: "16px 20px", color: "var(--color-danger)" }}
                 >
                   ログアウト
                 </button>
@@ -1903,7 +1924,6 @@ export default function App() {
               <header className="mb-2">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h1 className="text-2xl font-bold text-foreground">FX Journal</h1>
                     <p className="text-sm text-muted-foreground">トレード記録 & 振り返り</p>
                   </div>
                 </div>
