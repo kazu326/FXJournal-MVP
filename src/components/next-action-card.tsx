@@ -24,10 +24,13 @@ export function NextActionCard({
           <AlertCircle className="size-5 text-primary" />
           <h2 className="text-lg font-bold text-foreground">次にやること</h2>
         </div>
-        <p className="text-muted-foreground leading-relaxed mb-4">
+        <p className="text-sm text-slate-600 leading-relaxed mb-4">
           {description ?? `未完が${pendingCount}件あります。完了すると記録が締まります。`}
         </p>
-        <Button className="w-full h-12 text-base font-medium" onClick={onAction}>
+        <Button
+          className="w-full h-12 text-base font-semibold text-white hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary/40"
+          onClick={onAction}
+        >
           {actionLabel}
         </Button>
       </CardContent>

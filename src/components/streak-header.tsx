@@ -23,7 +23,7 @@ export function StreakHeader({
         </div>
         <div>
           <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-bold text-foreground">{streakDays}</span>
+            <span className="text-3xl font-bold leading-none text-foreground">{streakDays}</span>
             <span className="text-sm text-muted-foreground">日連続</span>
           </div>
         </div>
@@ -32,7 +32,7 @@ export function StreakHeader({
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1.5">
           <Zap className="size-4 text-primary" />
-          <span className="text-sm font-medium text-muted-foreground">
+          <span className="text-xl font-semibold text-foreground">
             {currentXP}/{nextLevelXP} XP
           </span>
         </div>

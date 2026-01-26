@@ -61,7 +61,7 @@ export function TodayTasksCard({ tasks: initialTasks, onTaskComplete }: TodayTas
             <Button
               key={task.id}
               variant={task.completed ? "secondary" : "outline"}
-              className={`w-full h-14 justify-between px-4 transition-all duration-300 ${
+              className={`w-full h-14 justify-start px-4 transition-all duration-300 ${
                 task.completed
                   ? "bg-primary/10 border-primary/20"
                   : "hover:border-primary hover:bg-primary/5"
@@ -69,7 +69,7 @@ export function TodayTasksCard({ tasks: initialTasks, onTaskComplete }: TodayTas
               onClick={() => handleTaskClick(task.id)}
               disabled={task.completed}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 w-full">
                 <div
                   className={`flex items-center justify-center size-6 rounded-full transition-all duration-300 ${
                     task.completed
@@ -83,26 +83,21 @@ export function TodayTasksCard({ tasks: initialTasks, onTaskComplete }: TodayTas
                     <Circle className="size-4 opacity-0" />
                   )}
                 </div>
-                <div className="text-left">
-                  <span
+                <div className="min-w-0 text-left">
+                  <div
                     className={`font-medium ${
                       task.completed ? "text-muted-foreground line-through" : "text-foreground"
                     }`}
                   >
                     {task.label}
-                  </span>
-                  <span className="text-xs text-muted-foreground ml-2">({task.duration})</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    ({task.duration}) +{task.xp} XP
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span
-                  className={`text-xs font-medium ${
-                    task.completed ? "text-primary" : "text-muted-foreground"
-                  }`}
-                >
-                  +{task.xp} XP
-                </span>
-                {!task.completed && <ChevronRight className="size-4 text-muted-foreground" />}
+                <div className="ml-auto flex items-center gap-2">
+                  {!task.completed && <ChevronRight className="size-4 text-muted-foreground" />}
+                </div>
               </div>
             </Button>
           ))}
