@@ -1171,8 +1171,8 @@ export default function App() {
         <div className="mb-6">
           <AdminHeader
             title={labels.adminTitle}
-            staffName={profileDisplayName ?? session.user.email}
-            logsLabel={labels.adminLogs}
+            staffName={profileDisplayName ?? session.user.email ?? ""}
+            logsLabel={labels.adminLogs ?? "ログ閲覧"}
             showMenu={showAdminMenu}
             onToggleMenu={() => setShowAdminMenu((prev) => !prev)}
             onCloseMenu={() => setShowAdminMenu(false)}
@@ -1919,7 +1919,7 @@ export default function App() {
 
       {mode === "home" && (
         <section>
-          <main className="min-h-screen bg-slate-50 px-4 py-6">
+          <main className="min-h-screen bg-zinc-50 px-4 py-6">
             <div className="space-y-6 text-left">
               <header className="mb-2">
                 <div className="flex items-center justify-between mb-4">

@@ -1,4 +1,3 @@
-import React from "react";
 import { Menu, Home, FileText, Users, LogOut } from "lucide-react";
 
 type AdminHeaderProps = {
