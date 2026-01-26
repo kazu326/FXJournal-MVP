@@ -1,5 +1,5 @@
 export const labels = {
-  appTitle: "FX Journal MVP（初心者モード）",
+  appTitle: "FX Journal MVP",
   nextActionTitle: "次にやること",
   tradePre: "取引前（30秒）",
   tradePost: "取引後（60秒）",

@@ -1203,46 +1203,49 @@ export default function App() {
         )}
 
         {isAdminLogsRoute ? (
-          <>
-            <Card>
-              <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
-                <IconHistory />
-                <h3 style={{ margin: 0 }}>{labels.adminLogs}</h3>
-              </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-                <input
-                  style={{ flex: 1, padding: 10, minWidth: 200 }}
-                  placeholder="ID / Email / 名前..."
-                  value={filterMemberQuery}
-                  onChange={(e) => setFilterMemberQuery(e.target.value)}
-                />
-                <select style={{ padding: "8px 12px" }} value={filterPeriod} onChange={(e) => setFilterPeriod(e.target.value as any)}>
-                  <option value="7">直近7日</option>
-                  <option value="30">直近30日</option>
-                  <option value="all">全期間</option>
-                </select>
-                <select style={{ padding: "8px 12px" }} value={filterLogType} onChange={(e) => setFilterLogType(e.target.value as any)}>
-                  <option value="all">全種別</option>
-                  <option value="valid">valid</option>
-                  <option value="skip">skip</option>
-                  <option value="invalid">invalid</option>
-                </select>
-                <select style={{ padding: "8px 12px" }} value={filterReview} onChange={(e) => setFilterReview(e.target.value as any)}>
-                  <option value="all">レビュー全て</option>
-                  <option value="none">未レビュー</option>
-                  <option value="ok">ok</option>
-                  <option value="warn">warn</option>
-                  <option value="inspect">inspect</option>
-                </select>
-                <PrimaryButton onClick={() => void loadAdminLogs()} style={{ minWidth: 100, padding: "10px 20px" }}>検索</PrimaryButton>
-              </div>
-              <div style={{ maxHeight: 400, overflow: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
-                {adminLogs.length === 0 ? (
-                  <div className="text-muted" style={{ textAlign: "center", padding: "40px 0" }}>ログがありません。</div>
-                ) : (
+          <div className="md:flex md:gap-4">
+            {/* 左：一覧（md以上で常時表示、md未満は未選択時のみ表示） */}
+            <div className={`${adminSelectedLog ? "hidden md:block" : "block"} md:w-[360px] md:flex-shrink-0`}>
+              <Card>
+                <div className="flex items-center gap-2 mb-4">
+                  <IconHistory />
+                  <h3 className="m-0 text-base font-bold">{labels.adminLogs}</h3>
+                </div>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <input
+                    className="flex-1 min-w-[200px] rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm"
+                    placeholder="ID / Email / 名前..."
+                    value={filterMemberQuery}
+                    onChange={(e) => setFilterMemberQuery(e.target.value)}
+                  />
+                  <select className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm" value={filterPeriod} onChange={(e) => setFilterPeriod(e.target.value as any)}>
+                    <option value="7">直近7日</option>
+                    <option value="30">直近30日</option>
+                    <option value="all">全期間</option>
+                  </select>
+                  <select className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm" value={filterLogType} onChange={(e) => setFilterLogType(e.target.value as any)}>
+                    <option value="all">全種別</option>
+                    <option value="valid">valid</option>
+                    <option value="skip">skip</option>
+                    <option value="invalid">invalid</option>
+                  </select>
+                  <select className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm" value={filterReview} onChange={(e) => setFilterReview(e.target.value as any)}>
+                    <option value="all">レビュー全て</option>
+                    <option value="none">未レビュー</option>
+                    <option value="ok">ok</option>
+                    <option value="warn">warn</option>
+                    <option value="inspect">inspect</option>
+                  </select>
+                  <PrimaryButton onClick={() => void loadAdminLogs()} style={{ minWidth: 100, padding: "10px 20px" }}>検索</PrimaryButton>
+                </div>
+                <div className="max-h-[400px] overflow-auto flex flex-col gap-2">
+                  {adminLogs.length === 0 ? (
+                    <div className="text-muted text-center py-10">ログがありません。</div>
+                  ) : (
                     adminLogs.map((l) => {
                       const selectedId = adminSelectedLog ? ("log_id" in adminSelectedLog ? adminSelectedLog.log_id : adminSelectedLog.id) : null;
                       const active = selectedId === l.id;
+                      const isComplete = l.post_gate_kept !== null;
                       return (
                         <button
                           key={l.id}
@@ -1251,31 +1254,33 @@ export default function App() {
                             setAdminNoteInput(l.teacher_note ?? "");
                             if (l.user_id) void loadAdminSettings(l.user_id);
                           }}
-                          style={{
-                            width: "100%",
-                            textAlign: "left",
-                            padding: "12px 16px",
-                            borderRadius: "var(--radius-md)",
-                            border: "1px solid var(--color-border)",
-                            backgroundColor: active ? "rgba(43, 109, 224, 0.05)" : "var(--color-card)",
-                            borderColor: active ? "var(--color-accent)" : "var(--color-border)",
-                          }}
+                          className={`w-full text-left p-4 rounded-2xl border shadow-sm flex items-center gap-3 transition-colors ${
+                            active
+                              ? "border-blue-500 bg-blue-50"
+                              : "border-zinc-200 bg-white hover:bg-zinc-50"
+                          }`}
                         >
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <div style={{ display: "flex", alignItems: "center" }}>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
                               <NameBadge
                                 name={displayNameFor(l.user_id, l.display_name, l.member_id, l.email)}
                                 userId={l.user_id}
                               />
-                              <span style={{ fontWeight: 700 }}>{displayNameFor(l.user_id, l.display_name, l.member_id, l.email)}</span>
+                              <span className="font-bold truncate">{displayNameFor(l.user_id, l.display_name, l.member_id, l.email)}</span>
                             </div>
-                            <div className="text-muted" style={{ fontSize: 12 }}>
+                            <div className="mt-1 text-xs text-zinc-500">
                               {new Date(l.occurred_at).toLocaleString()}
                             </div>
                           </div>
-                          <div style={{ marginTop: 6, display: "flex", gap: 12, fontSize: 12 }} className="text-muted">
-                            <span>種別: {l.log_type}</span>
-                            <span>レビュー: <span style={{ color: l.teacher_review ? "var(--color-accent)" : "inherit", fontWeight: 600 }}>{l.teacher_review ?? "未"}</span></span>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ring-1 ${
+                              isComplete
+                                ? "bg-blue-50 text-blue-700 ring-blue-200"
+                                : "bg-zinc-50 text-zinc-700 ring-zinc-200"
+                            }`}>
+                              {isComplete ? "完了" : "未完"}
+                            </span>
+                            <span className="text-zinc-400">→</span>
                           </div>
                         </button>
                       );
@@ -1283,8 +1288,149 @@ export default function App() {
                   )}
                 </div>
               </Card>
-            </>
-          ) : (
+            </div>
+
+            {/* 右：詳細（md以上で常時表示、md未満は選択時のみ表示） */}
+            <div className={`${adminSelectedLog ? "block" : "hidden"} md:block md:flex-1`}>
+              {/* モバイル用：戻るボタン */}
+              <div className="mb-3 md:hidden">
+                <button
+                  type="button"
+                  onClick={() => setAdminSelectedLog(null)}
+                  className="inline-flex items-center rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-900 shadow-sm hover:bg-zinc-50 active:bg-zinc-100 transition-colors"
+                >
+                  ← 一覧に戻る
+                </button>
+              </div>
+
+              <Card className="card-accent">
+                <h3 style={{ marginBottom: 20 }}>詳細パネル</h3>
+                {!adminSelectedLog ? (
+                  <div className="text-muted text-center py-10">左の一覧からログを選んでください。</div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                    <div style={{ padding: 16, background: "rgba(0,0,0,0.03)", borderRadius: "var(--radius-md)" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <NameBadge
+                            name={displayNameFor(adminSelectedLog.user_id ?? null, adminSelectedLog.display_name, adminSelectedLog.member_id, adminSelectedLog.email)}
+                            userId={adminSelectedLog.user_id}
+                          />
+                          <span style={{ fontWeight: 700 }}>{displayNameFor(adminSelectedLog.user_id ?? null, adminSelectedLog.display_name, adminSelectedLog.member_id, adminSelectedLog.email)}</span>
+                        </div>
+                        <div className="text-muted" style={{ fontSize: 12 }}>{new Date(adminSelectedLog.occurred_at).toLocaleString()}</div>
+                      </div>
+                      <div className="text-muted" style={{ marginTop: 6, marginLeft: 30, fontSize: 13 }}>種別: {adminSelectedLog.log_type}</div>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8, color: "var(--color-text-muted)" }}>前提（Gate）</div>
+                      <div style={{ fontSize: 13, background: "rgba(0,0,0,0.03)", padding: 12, borderRadius: "var(--radius-sm)" }}>
+                        {` 回数:${adminSelectedLog.gate_trade_count_ok ? "○" : "×"} / ` +
+                          `RR:${adminSelectedLog.gate_rr_ok ? "○" : "×"} / ` +
+                          `リスク:${adminSelectedLog.gate_risk_ok ? "○" : "×"} / ` +
+                          `ルール:${adminSelectedLog.gate_rule_ok ? "○" : "×"}`}
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4, color: "var(--color-text-muted)" }}>成功確率</div>
+                        <div style={{ fontSize: 14 }}>{labelProb(adminSelectedLog.success_prob)}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4, color: "var(--color-text-muted)" }}>期待値</div>
+                        <div style={{ fontSize: 14 }}>{labelEV(adminSelectedLog.expected_value)}</div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4, color: "var(--color-text-muted)" }}>事後チェック</div>
+                      <div style={{ fontSize: 14 }}>
+                        {adminSelectedLog.post_gate_kept === null ? "未完" : adminSelectedLog.post_gate_kept ? "✅ 守れた" : "❌ 破った"} /
+                        {adminSelectedLog.post_within_hypothesis === null ? "未完" : adminSelectedLog.post_within_hypothesis ? "🎯 想定内" : "❓ 想定外"}
+                      </div>
+                    </div>
+
+                    {adminSelectedLog.unexpected_reason && (
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4, color: "var(--color-text-muted)" }}>想定外の原因</div>
+                        <div style={{ fontSize: 13, fontStyle: "italic", borderLeft: "2px solid var(--color-danger)", paddingLeft: 10, color: "var(--color-danger)" }}>
+                          {adminSelectedLog.unexpected_reason}
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{ paddingTop: 16, borderTop: "1px dashed var(--color-border)" }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8, color: "var(--color-text-muted)" }}>先生レビュー（スタンプ）</div>
+                      <textarea
+                        style={{ width: "100%", minHeight: 80, padding: 12, marginBottom: 12 }}
+                        maxLength={200}
+                        placeholder="フィードバックを入力..."
+                        value={adminNoteInput}
+                        onChange={(e) => setAdminNoteInput(e.target.value)}
+                      />
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <button onClick={() => void saveTeacherReview("ok")} style={{ flex: 1, padding: "10px" }}>👍 構造OK</button>
+                        <button onClick={() => void saveTeacherReview("warn")} style={{ flex: 1, padding: "10px" }}>⚠️ 構造ズレ</button>
+                        <button onClick={() => void saveTeacherReview("inspect")} style={{ flex: 1, padding: "10px" }}>🔍 検証対象</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </Card>
+
+              {adminSelectedLog && adminSelectedLog.user_id && (
+                <Card className="mt-4">
+                  <h3 style={{ marginBottom: 16, fontSize: 16 }}>個別設定</h3>
+                  <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 16 }}>
+                    <div style={{ flex: 1, minWidth: 120 }}>
+                      <label className="text-muted" style={{ display: "block", marginBottom: 6 }}>週上限</label>
+                      <input
+                        style={{ width: "100%" }}
+                        type="number"
+                        value={adminWeeklyLimit}
+                        onChange={(e) => setAdminWeeklyLimit(Number(e.target.value))}
+                      />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 120 }}>
+                      <label className="text-muted" style={{ display: "block", marginBottom: 6 }}>最大リスク%</label>
+                      <input
+                        style={{ width: "100%" }}
+                        type="number"
+                        value={adminMaxRisk}
+                        onChange={(e) => setAdminMaxRisk(Number(e.target.value))}
+                      />
+                    </div>
+                    <div style={{ display: "flex", alignItems: "flex-end", paddingBottom: 8 }}>
+                      <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 14 }}>
+                        <input
+                          type="checkbox"
+                          checked={adminUnlocked}
+                          onChange={(e) => setAdminUnlocked(e.target.checked)}
+                          style={{ width: 18, height: 18 }}
+                        />
+                        制限を解放
+                      </label>
+                    </div>
+                  </div>
+                  <div style={{ marginBottom: 16 }}>
+                    <label className="text-muted" style={{ display: "block", marginBottom: 6 }}>スタッフ用メモ（任意）</label>
+                    <textarea
+                      style={{ width: "100%", minHeight: 60 }}
+                      placeholder="..."
+                      value={adminSettingsNote}
+                      onChange={(e) => setAdminSettingsNote(e.target.value)}
+                    />
+                  </div>
+                  <PrimaryButton onClick={() => void saveAdminSettings(adminSelectedLog.user_id!)} style={{ width: "100%" }}>
+                    設定を保存する
+                  </PrimaryButton>
+                </Card>
+              )}
+            </div>
+          </div>
+        ) : (
             <Card>
             <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 20 }}>
               <div>
@@ -1577,130 +1723,135 @@ export default function App() {
           </Card>
         )}
 
-        <Card className="card-accent">
-          <h3 style={{ marginBottom: 20 }}>詳細パネル</h3>
-          {!adminSelectedLog ? (
-            <div className="text-muted" style={{ textAlign: "center", padding: "40px 0" }}>左のキュー/一覧からログを選んでください。</div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              <div style={{ padding: 16, background: "rgba(0,0,0,0.03)", borderRadius: "var(--radius-md)" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <NameBadge
-                      name={displayNameFor(adminSelectedLog.user_id ?? null, adminSelectedLog.display_name, adminSelectedLog.member_id, adminSelectedLog.email)}
-                      userId={adminSelectedLog.user_id}
-                    />
-                    <span style={{ fontWeight: 700 }}>{displayNameFor(adminSelectedLog.user_id ?? null, adminSelectedLog.display_name, adminSelectedLog.member_id, adminSelectedLog.email)}</span>
+        {/* 詳細パネル：ダッシュボード（!isAdminLogsRoute）のときのみ表示 */}
+        {!isAdminLogsRoute && (
+          <>
+            <Card className="card-accent">
+              <h3 style={{ marginBottom: 20 }}>詳細パネル</h3>
+              {!adminSelectedLog ? (
+                <div className="text-muted" style={{ textAlign: "center", padding: "40px 0" }}>左のキュー/一覧からログを選んでください。</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                  <div style={{ padding: 16, background: "rgba(0,0,0,0.03)", borderRadius: "var(--radius-md)" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <NameBadge
+                          name={displayNameFor(adminSelectedLog.user_id ?? null, adminSelectedLog.display_name, adminSelectedLog.member_id, adminSelectedLog.email)}
+                          userId={adminSelectedLog.user_id}
+                        />
+                        <span style={{ fontWeight: 700 }}>{displayNameFor(adminSelectedLog.user_id ?? null, adminSelectedLog.display_name, adminSelectedLog.member_id, adminSelectedLog.email)}</span>
+                      </div>
+                      <div className="text-muted" style={{ fontSize: 12 }}>{new Date(adminSelectedLog.occurred_at).toLocaleString()}</div>
+                    </div>
+                    <div className="text-muted" style={{ marginTop: 6, marginLeft: 30, fontSize: 13 }}>種別: {adminSelectedLog.log_type}</div>
                   </div>
-                  <div className="text-muted" style={{ fontSize: 12 }}>{new Date(adminSelectedLog.occurred_at).toLocaleString()}</div>
-                </div>
-                <div className="text-muted" style={{ marginTop: 6, marginLeft: 30, fontSize: 13 }}>種別: {adminSelectedLog.log_type}</div>
-              </div>
 
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8, color: "var(--color-text-muted)" }}>前提（Gate）</div>
-                <div style={{ fontSize: 13, background: "rgba(0,0,0,0.03)", padding: 12, borderRadius: "var(--radius-sm)" }}>
-                  {` 回数:${adminSelectedLog.gate_trade_count_ok ? "○" : "×"} / ` +
-                    `RR:${adminSelectedLog.gate_rr_ok ? "○" : "×"} / ` +
-                    `リスク:${adminSelectedLog.gate_risk_ok ? "○" : "×"} / ` +
-                    `ルール:${adminSelectedLog.gate_rule_ok ? "○" : "×"}`}
-                </div>
-              </div>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8, color: "var(--color-text-muted)" }}>前提（Gate）</div>
+                    <div style={{ fontSize: 13, background: "rgba(0,0,0,0.03)", padding: 12, borderRadius: "var(--radius-sm)" }}>
+                      {` 回数:${adminSelectedLog.gate_trade_count_ok ? "○" : "×"} / ` +
+                        `RR:${adminSelectedLog.gate_rr_ok ? "○" : "×"} / ` +
+                        `リスク:${adminSelectedLog.gate_risk_ok ? "○" : "×"} / ` +
+                        `ルール:${adminSelectedLog.gate_rule_ok ? "○" : "×"}`}
+                    </div>
+                  </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4, color: "var(--color-text-muted)" }}>成功確率</div>
-                  <div style={{ fontSize: 14 }}>{labelProb(adminSelectedLog.success_prob)}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4, color: "var(--color-text-muted)" }}>期待値</div>
-                  <div style={{ fontSize: 14 }}>{labelEV(adminSelectedLog.expected_value)}</div>
-                </div>
-              </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4, color: "var(--color-text-muted)" }}>成功確率</div>
+                      <div style={{ fontSize: 14 }}>{labelProb(adminSelectedLog.success_prob)}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4, color: "var(--color-text-muted)" }}>期待値</div>
+                      <div style={{ fontSize: 14 }}>{labelEV(adminSelectedLog.expected_value)}</div>
+                    </div>
+                  </div>
 
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4, color: "var(--color-text-muted)" }}>事後チェック</div>
-                <div style={{ fontSize: 14 }}>
-                  {adminSelectedLog.post_gate_kept === null ? "未完" : adminSelectedLog.post_gate_kept ? "✅ 守れた" : "❌ 破った"} /
-                  {adminSelectedLog.post_within_hypothesis === null ? "未完" : adminSelectedLog.post_within_hypothesis ? "🎯 想定内" : "❓ 想定外"}
-                </div>
-              </div>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4, color: "var(--color-text-muted)" }}>事後チェック</div>
+                    <div style={{ fontSize: 14 }}>
+                      {adminSelectedLog.post_gate_kept === null ? "未完" : adminSelectedLog.post_gate_kept ? "✅ 守れた" : "❌ 破った"} /
+                      {adminSelectedLog.post_within_hypothesis === null ? "未完" : adminSelectedLog.post_within_hypothesis ? "🎯 想定内" : "❓ 想定外"}
+                    </div>
+                  </div>
 
-              {adminSelectedLog.unexpected_reason && (
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4, color: "var(--color-text-muted)" }}>想定外の原因</div>
-                  <div style={{ fontSize: 13, fontStyle: "italic", borderLeft: "2px solid var(--color-danger)", paddingLeft: 10, color: "var(--color-danger)" }}>
-                    {adminSelectedLog.unexpected_reason}
+                  {adminSelectedLog.unexpected_reason && (
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4, color: "var(--color-text-muted)" }}>想定外の原因</div>
+                      <div style={{ fontSize: 13, fontStyle: "italic", borderLeft: "2px solid var(--color-danger)", paddingLeft: 10, color: "var(--color-danger)" }}>
+                        {adminSelectedLog.unexpected_reason}
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{ paddingTop: 16, borderTop: "1px dashed var(--color-border)" }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8, color: "var(--color-text-muted)" }}>先生レビュー（スタンプ）</div>
+                    <textarea
+                      style={{ width: "100%", minHeight: 80, padding: 12, marginBottom: 12 }}
+                      maxLength={200}
+                      placeholder="フィードバックを入力..."
+                      value={adminNoteInput}
+                      onChange={(e) => setAdminNoteInput(e.target.value)}
+                    />
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <button onClick={() => void saveTeacherReview("ok")} style={{ flex: 1, padding: "10px" }}>👍 構造OK</button>
+                      <button onClick={() => void saveTeacherReview("warn")} style={{ flex: 1, padding: "10px" }}>⚠️ 構造ズレ</button>
+                      <button onClick={() => void saveTeacherReview("inspect")} style={{ flex: 1, padding: "10px" }}>🔍 検証対象</button>
+                    </div>
                   </div>
                 </div>
               )}
+            </Card>
 
-              <div style={{ paddingTop: 16, borderTop: "1px dashed var(--color-border)" }}>
-                <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8, color: "var(--color-text-muted)" }}>先生レビュー（スタンプ）</div>
-                <textarea
-                  style={{ width: "100%", minHeight: 80, padding: 12, marginBottom: 12 }}
-                  maxLength={200}
-                  placeholder="フィードバックを入力..."
-                  value={adminNoteInput}
-                  onChange={(e) => setAdminNoteInput(e.target.value)}
-                />
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <button onClick={() => void saveTeacherReview("ok")} style={{ flex: 1, padding: "10px" }}>👍 構造OK</button>
-                  <button onClick={() => void saveTeacherReview("warn")} style={{ flex: 1, padding: "10px" }}>⚠️ 構造ズレ</button>
-                  <button onClick={() => void saveTeacherReview("inspect")} style={{ flex: 1, padding: "10px" }}>🔍 検証対象</button>
+            {adminSelectedLog && adminSelectedLog.user_id && (
+              <Card>
+                <h3 style={{ marginBottom: 16, fontSize: 16 }}>個別設定</h3>
+                <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 16 }}>
+                  <div style={{ flex: 1, minWidth: 120 }}>
+                    <label className="text-muted" style={{ display: "block", marginBottom: 6 }}>週上限</label>
+                    <input
+                      style={{ width: "100%" }}
+                      type="number"
+                      value={adminWeeklyLimit}
+                      onChange={(e) => setAdminWeeklyLimit(Number(e.target.value))}
+                    />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 120 }}>
+                    <label className="text-muted" style={{ display: "block", marginBottom: 6 }}>最大リスク%</label>
+                    <input
+                      style={{ width: "100%" }}
+                      type="number"
+                      value={adminMaxRisk}
+                      onChange={(e) => setAdminMaxRisk(Number(e.target.value))}
+                    />
+                  </div>
+                  <div style={{ display: "flex", alignItems: "flex-end", paddingBottom: 8 }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 14 }}>
+                      <input
+                        type="checkbox"
+                        checked={adminUnlocked}
+                        onChange={(e) => setAdminUnlocked(e.target.checked)}
+                        style={{ width: 18, height: 18 }}
+                      />
+                      制限を解放
+                    </label>
+                  </div>
                 </div>
-              </div>
-            </div>
-          )}
-        </Card>
-
-        {adminSelectedLog && adminSelectedLog.user_id && (
-          <Card>
-            <h3 style={{ marginBottom: 16, fontSize: 16 }}>個別設定</h3>
-            <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 16 }}>
-              <div style={{ flex: 1, minWidth: 120 }}>
-                <label className="text-muted" style={{ display: "block", marginBottom: 6 }}>週上限</label>
-                <input
-                  style={{ width: "100%" }}
-                  type="number"
-                  value={adminWeeklyLimit}
-                  onChange={(e) => setAdminWeeklyLimit(Number(e.target.value))}
-                />
-              </div>
-              <div style={{ flex: 1, minWidth: 120 }}>
-                <label className="text-muted" style={{ display: "block", marginBottom: 6 }}>最大リスク%</label>
-                <input
-                  style={{ width: "100%" }}
-                  type="number"
-                  value={adminMaxRisk}
-                  onChange={(e) => setAdminMaxRisk(Number(e.target.value))}
-                />
-              </div>
-              <div style={{ display: "flex", alignItems: "flex-end", paddingBottom: 8 }}>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 14 }}>
-                  <input
-                    type="checkbox"
-                    checked={adminUnlocked}
-                    onChange={(e) => setAdminUnlocked(e.target.checked)}
-                    style={{ width: 18, height: 18 }}
+                <div style={{ marginBottom: 16 }}>
+                  <label className="text-muted" style={{ display: "block", marginBottom: 6 }}>スタッフ用メモ（任意）</label>
+                  <textarea
+                    style={{ width: "100%", minHeight: 60 }}
+                    placeholder="..."
+                    value={adminSettingsNote}
+                    onChange={(e) => setAdminSettingsNote(e.target.value)}
                   />
-                  制限を解放
-                </label>
-              </div>
-            </div>
-            <div style={{ marginBottom: 16 }}>
-              <label className="text-muted" style={{ display: "block", marginBottom: 6 }}>スタッフ用メモ（任意）</label>
-              <textarea
-                style={{ width: "100%", minHeight: 60 }}
-                placeholder="..."
-                value={adminSettingsNote}
-                onChange={(e) => setAdminSettingsNote(e.target.value)}
-              />
-            </div>
-            <PrimaryButton onClick={() => void saveAdminSettings(adminSelectedLog.user_id!)} style={{ width: "100%" }}>
-              設定を保存する
-            </PrimaryButton>
-          </Card>
+                </div>
+                <PrimaryButton onClick={() => void saveAdminSettings(adminSelectedLog.user_id!)} style={{ width: "100%" }}>
+                  設定を保存する
+                </PrimaryButton>
+              </Card>
+            )}
+          </>
         )}
       </div>
     );
