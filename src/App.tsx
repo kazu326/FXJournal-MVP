@@ -3005,6 +3005,7 @@ export default function App() {
         </section>
       )}
 
+      {session && !isAdminRoute && <InstallPrompt />}
     </div>
   );
 }
@@ -3047,52 +3048,6 @@ const IconHistory = () => (
     <polyline points="12 6 12 12 16 14" />
   </svg>
 );
-
-// 取引アイコン（TrendingUp）
-const IconTrade = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-    <polyline points="17 6 23 6 23 12" />
-  </svg>
-);
-
-// 見送りアイコン（Pause）
-const IconSkip = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="6" y="4" width="4" height="16" />
-    <rect x="14" y="4" width="4" height="16" />
-  </svg>
-);
-
-// ログ種別バッジ（取引/見送り）
-function LogTypeBadge({ logType }: { logType: string | null | undefined }) {
-  if (!logType) return null;
-  
-  if (logType === "valid") {
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
-        <IconTrade />
-        取引
-      </span>
-    );
-  }
-  
-  if (logType === "skip") {
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-zinc-100 text-zinc-600">
-        <IconSkip />
-        見送り
-      </span>
-    );
-  }
-  
-  // 未知の値はそのまま表示
-  return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-zinc-100 text-zinc-600">
-      {logType}
-    </span>
-  );
-}
 
 function Card(props: { children: any; style?: CSSProperties; className?: string }) {
   return (
