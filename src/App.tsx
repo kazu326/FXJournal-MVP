@@ -359,6 +359,7 @@ export default function App() {
   const isAdminLogsRoute =
     window.location.pathname.startsWith("/admin/logs") ||
     window.location.pathname.startsWith("/staff/logs");
+  const isAuthCallback = window.location.pathname === "/auth/callback";
   const completeLogId =
     !isAdminRoute && window.location.pathname.startsWith("/complete/")
       ? decodeURIComponent(window.location.pathname.replace("/complete/", ""))
@@ -411,6 +412,15 @@ export default function App() {
   const [memberThreads, setMemberThreads] = useState<DmThread[]>([]);
   const [memberMessages, setMemberMessages] = useState<DmMessage[]>([]);
   const [memberDmInput, setMemberDmInput] = useState("");
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+
+  useEffect(() => {
+    // session が確立し、かつ初回表示でない場合のみ
+    if (session && !localStorage.getItem("hasSeenInstallPrompt")) {
+      setShowInstallPrompt(true);
+      localStorage.setItem("hasSeenInstallPrompt", "true");
+    }
+  }, [session]);
 
   // admin portal
   const [reviewQueue, setReviewQueue] = useState<ReviewQueueRow[]>([]);
@@ -475,11 +485,26 @@ export default function App() {
 
   // --- Auth bootstrap ---
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
     });
-    return () => sub.subscription.unsubscribe();
+
+    const {
+      data: { subscription: sub },
+    } = supabase.auth.onAuthStateChange((event, s) => {
+      console.log("Auth state changed:", event, s?.user?.id); // デバッグログ
+      setSession(s);
+
+      // OAuthコールバック後の処理
+      if (event === "SIGNED_IN" && window.location.pathname === "/auth/callback") {
+        console.log("OAuth callback completed, redirecting to home");
+        window.history.replaceState({}, "", "/");
+      }
+    });
+
+    return () => {
+      sub.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -573,8 +598,32 @@ export default function App() {
       options: { emailRedirectTo: window.location.origin },
     });
 
-    if (error) setStatus(`送信失敗: ${error.message}`);
-    else setStatus("マジックリンクを送信しました。メールのリンクを踏んでください。");
+    if (error) {
+      if (error.status === 429 || error.message.includes("rate limit")) {
+        setStatus("送信制限を超えました。少し時間を置いてから再試行してください（通常1時間3通まで）。");
+      } else {
+        setStatus(`送信失敗: ${error.message}`);
+      }
+    } else {
+      setStatus("マジックリンクを送信しました。メールのリンクを踏んでください。");
+    }
+  };
+
+  const handleDiscordLogin = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "discord",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) {
+        console.error("Discord login error:", error.message);
+        setStatus("Discordログインに失敗しました: " + error.message);
+      }
+    } catch (err) {
+      console.error("Unexpected error during Discord login:", err);
+    }
   };
 
   const signOut = async () => {
@@ -1257,7 +1306,18 @@ export default function App() {
   // ----------------------
   // UI
   // ----------------------
-  if (!session) {
+  if (isAuthCallback && !session) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-zinc-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-zinc-600 font-medium">認証中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session && !isAuthCallback) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-zinc-50 px-4">
         <div className="w-full max-w-md space-y-6">
@@ -1274,14 +1334,7 @@ export default function App() {
             {/* Discordログイン（推奨） */}
             <button
               type="button"
-              onClick={() => {
-                void supabase.auth.signInWithOAuth({
-                  provider: "discord",
-                  options: {
-                    redirectTo: window.location.origin,
-                  },
-                });
-              }}
+              onClick={handleDiscordLogin}
               className="w-full rounded-xl bg-[#5865F2] px-4 py-3 text-white font-semibold shadow-sm hover:bg-[#4752C4] active:bg-[#3C45A5] transition-colors flex items-center justify-center gap-2"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
@@ -1359,7 +1412,7 @@ export default function App() {
         <div className="mb-6">
           <AdminHeader
             title={labels.adminTitle}
-            staffName={profileDisplayName ?? session.user.email ?? ""}
+            staffName={profileDisplayName ?? session?.user?.email ?? ""}
             logsLabel={labels.adminLogs ?? "ログ閲覧"}
             showMenu={showAdminMenu}
             onToggleMenu={() => setShowAdminMenu((prev) => !prev)}
@@ -2152,7 +2205,7 @@ export default function App() {
             {labels.appTitle}
           </h2>
           <div className="text-muted" style={{ fontSize: 13 }}>
-            {profileDisplayName ?? session.user.email}
+            {profileDisplayName ?? session?.user?.email}
           </div>
         </div>
         
@@ -3005,7 +3058,9 @@ export default function App() {
         </section>
       )}
 
-      {session && !isAdminRoute && <InstallPrompt />}
+      {session && !isAdminRoute && showInstallPrompt && (
+        <InstallPrompt onClose={() => setShowInstallPrompt(false)} />
+      )}
     </div>
   );
 }

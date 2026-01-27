@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react"
 import { X } from "lucide-react"
 
-export function InstallPrompt() {
+type InstallPromptProps = {
+  onClose?: () => void
+}
+
+export function InstallPrompt({ onClose }: InstallPromptProps) {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [showPrompt, setShowPrompt] = useState(false)
 
@@ -23,12 +27,14 @@ export function InstallPrompt() {
     deferredPrompt.userChoice.then(() => {
       setDeferredPrompt(null)
       setShowPrompt(false)
+      onClose?.()
     })
   }
 
   const handleDismiss = () => {
     setShowPrompt(false)
     localStorage.setItem("installPromptDismissed", "true")
+    onClose?.()
   }
 
   // iOS判定（Safariは beforeinstallprompt が無い）
