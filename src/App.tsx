@@ -368,7 +368,7 @@ export default function App() {
     if (typeof window === "undefined") return false;
     return window.localStorage.getItem("fxj_test_mode") === "1";
   });
-  const isTestMode = testMode;
+  const isTestMode = testMode && isTeacher;
 
   // login
   const [email, setEmail] = useState("");
@@ -2260,21 +2260,23 @@ export default function App() {
                     <IconGear /> 管理
                   </button>
                 )}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 20px" }}>
-                  <span style={{ fontSize: 13, fontWeight: 600 }}>テストモード</span>
-                  <label style={{ display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-                    <input
-                      type="checkbox"
-                      checked={isTestMode}
-                      onChange={(e) => setTestMode(e.target.checked)}
-                      style={{ width: 18, height: 18 }}
-                      aria-label="テストモード切替"
-                    />
-                    <span style={{ fontSize: 12, color: isTestMode ? "var(--color-danger)" : "inherit" }}>
-                      {isTestMode ? "ON" : "OFF"}
-                    </span>
-                  </label>
-                </div>
+                {isTeacher && (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 20px" }}>
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>テストモード</span>
+                    <label style={{ display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                      <input
+                        type="checkbox"
+                        checked={isTestMode}
+                        onChange={(e) => setTestMode(e.target.checked)}
+                        style={{ width: 18, height: 18 }}
+                        aria-label="テストモード切替"
+                      />
+                      <span style={{ fontSize: 12, color: isTestMode ? "var(--color-danger)" : "inherit" }}>
+                        {isTestMode ? "ON" : "OFF"}
+                      </span>
+                    </label>
+                  </div>
+                )}
                 <div style={{ height: "1px", background: "var(--color-border)" }} />
                 <button 
                   onClick={signOut}
