@@ -23,9 +23,9 @@ interface FXJournalPageProps {
 }
 
 const fallbackTasks: Task[] = [
-  { id: "1", label: "取引前チェック", duration: "30秒", completed: true, xp: 10 },
-  { id: "2", label: "取引後の振り返り", duration: "60秒", completed: false, xp: 15 },
-  { id: "3", label: "日次まとめ", duration: "2分", completed: false, xp: 20 },
+  { id: "1", label: "取引前チェック", completed: true },
+  { id: "2", label: "取引後の振り返り", completed: false },
+  { id: "3", label: "日次まとめ", completed: false },
 ];
 
 export default function FXJournalPage({

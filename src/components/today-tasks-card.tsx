@@ -1,42 +1,22 @@
 "use client";
 
-import { useState } from "react";
 import { Card, CardContent } from "./ui/card";
-import { Button } from "./ui/button";
-import { Check, Circle, ChevronRight, Sparkles } from "lucide-react";
+import { Check, Circle, Sparkles } from "lucide-react";
 
 export interface Task {
   id: string;
   label: string;
-  duration: string;
   completed: boolean;
-  xp: number;
+  disabled?: boolean;
 }
 
 interface TodayTasksCardProps {
   tasks: Task[];
-  onTaskComplete?: (taskId: string) => void;
 }
 
-export function TodayTasksCard({ tasks: initialTasks, onTaskComplete }: TodayTasksCardProps) {
-  const [tasks, setTasks] = useState(initialTasks);
-  const [celebratingId, setCelebratingId] = useState<string | null>(null);
-
+export function TodayTasksCard({ tasks }: TodayTasksCardProps) {
   const completedCount = tasks.filter((t) => t.completed).length;
   const allCompleted = completedCount === tasks.length;
-
-  const handleTaskClick = (taskId: string) => {
-    const task = tasks.find((t) => t.id === taskId);
-    if (task?.completed) return;
-
-    setCelebratingId(taskId);
-    setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, completed: true } : t))
-    );
-    onTaskComplete?.(taskId);
-
-    setTimeout(() => setCelebratingId(null), 600);
-  };
 
   return (
     <Card className="relative overflow-hidden">
@@ -48,59 +28,59 @@ export function TodayTasksCard({ tasks: initialTasks, onTaskComplete }: TodayTas
           </div>
         </div>
       )}
-      <CardContent className="pt-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-foreground">今日のタスク</h2>
-          <span className="text-sm text-muted-foreground">
+      <CardContent className="pt-4 pb-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-bold text-foreground">今日のタスク</h2>
+          <span className="text-xs text-muted-foreground">
             {completedCount}/{tasks.length} 完了
           </span>
         </div>
 
-        <div className="space-y-2">
-          {tasks.map((task) => (
-            <Button
-              key={task.id}
-              variant={task.completed ? "secondary" : "outline"}
-              className={`w-full h-14 justify-start px-4 transition-all duration-300 ${
-                task.completed
-                  ? "bg-primary/10 border-primary/20"
-                  : "hover:border-primary hover:bg-primary/5"
-              } ${celebratingId === task.id ? "scale-95" : ""}`}
-              onClick={() => handleTaskClick(task.id)}
-              disabled={task.completed}
-            >
-              <div className="flex items-center gap-3 w-full">
+        <div className="space-y-1.5">
+          {tasks.map((task) => {
+            const isCompleted = task.completed;
+            const isDisabled = task.disabled ?? false;
+
+            return (
+              <div
+                key={task.id}
+                className={`
+                  w-full h-11 flex items-center gap-3 px-3 rounded-lg border transition-all duration-300
+                  ${isCompleted
+                    ? "bg-primary/5 border-primary/10"
+                    : "bg-white border-zinc-100"
+                  }
+                `}
+              >
                 <div
-                  className={`flex items-center justify-center size-6 rounded-full transition-all duration-300 ${
-                    task.completed
+                  className={`flex items-center justify-center size-5 rounded-full transition-all duration-300 ${
+                    isCompleted
                       ? "bg-primary text-primary-foreground"
-                      : "border-2 border-muted-foreground/30"
+                      : "border-2 border-muted-foreground/20"
                   }`}
                 >
-                  {task.completed ? (
-                    <Check className="size-4" />
+                  {isCompleted ? (
+                    <Check className="size-3" />
                   ) : (
-                    <Circle className="size-4 opacity-0" />
+                    <Circle className="size-3 opacity-0" />
                   )}
                 </div>
-                <div className="min-w-0 text-left">
+                <div className="min-w-0 text-left flex-1">
                   <div
-                    className={`font-medium ${
-                      task.completed ? "text-muted-foreground line-through" : "text-foreground"
+                    className={`font-medium text-sm ${
+                      isCompleted
+                        ? "text-muted-foreground line-through"
+                        : isDisabled
+                          ? "text-muted-foreground/50"
+                          : "text-foreground"
                     }`}
                   >
                     {task.label}
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    ({task.duration}) +{task.xp} XP
-                  </div>
-                </div>
-                <div className="ml-auto flex items-center gap-2">
-                  {!task.completed && <ChevronRight className="size-4 text-muted-foreground" />}
                 </div>
               </div>
-            </Button>
-          ))}
+            );
+          })}
         </div>
       </CardContent>
     </Card>

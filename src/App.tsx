@@ -11,8 +11,138 @@ import { TeacherDMCard } from "./components/teacher-dm-card";
 import { NextActionCard } from "./components/next-action-card";
 import { Card as UiCard, CardContent as UiCardContent } from "./components/ui/card";
 import { AdminHeader } from "./components/admin-header";
+import { InstallPrompt } from "./components/install-prompt";
 
-type Mode = "home" | "pre" | "post" | "history" | "complete";
+type Mode = "home" | "pre" | "post" | "history" | "skip";
+
+type LearningCard = {
+  id: number;
+  title: string;
+  content: string[];
+  emoji: string;
+};
+
+const learningCards: LearningCard[] = [
+  {
+    id: 1,
+    emoji: "🛡️",
+    title: "2%ルール：破産を防ぐ基本",
+    content: [
+      "1回の取引で失っていい金額は、資金の2%まで。",
+      "例：資金10万円なら、1回の損失は2,000円まで。",
+      "これを守ると、連敗しても資金が残り、再起できます。",
+      "「もっと稼ぎたい」より「生き残る」が先です。",
+    ],
+  },
+  {
+    id: 2,
+    emoji: "⚖️",
+    title: "リスクリワード（RR）1:3の意味",
+    content: [
+      "損切り1に対して、利確3以上を狙う設定。",
+      "例：損切り1,000円なら、利確3,000円以上。",
+      "勝率33%でもトントン、それ以上なら利益が残ります。",
+      "「当てる」ではなく「損小利大」で勝つのがFXです。",
+    ],
+  },
+  {
+    id: 3,
+    emoji: "🚦",
+    title: "なぜ週2回までなのか？",
+    content: [
+      "初心者が破産する最大の原因は「やりすぎ」です。",
+      "週2回の制限で、焦らず・丁寧に・記録を振り返る習慣を作ります。",
+      "学習と記録が積み重なると、週3回以上に段階的に解放されます。",
+      "「制限」ではなく「守り」のための設計です。",
+    ],
+  },
+  {
+    id: 4,
+    emoji: "🎯",
+    title: "見送りも立派な判断",
+    content: [
+      "チャンスがない日に無理に取引するのは、ギャンブルです。",
+      "ルールを満たさないなら「見送り」を記録してください。",
+      "見送りもXPが貯まり、学習継続の評価になります。",
+      "「何もしない勇気」が、資金を守ります。",
+    ],
+  },
+  {
+    id: 5,
+    emoji: "😤",
+    title: "感情とルール：取り返したいは危険信号",
+    content: [
+      "「負けを取り返したい」は破産フラグ。",
+      "ルールを破った時こそ、記録を見直して原因を特定します。",
+      "このアプリは「感情を冷ます」ためのツールです。",
+      "勝ち負けより、ルールを守れたかを評価してください。",
+    ],
+  },
+  {
+    id: 6,
+    emoji: "🔄",
+    title: "記録の振り返りが成長の鍵",
+    content: [
+      "取引後の記録は「感情禁止、事実だけ」で書きます。",
+      "ルールを守れたか？想定内だったか？を冷静に確認。",
+      "10回分の記録を見返すと、自分のクセが見えてきます。",
+      "「当てる」から「改善する」へ、視点を変えましょう。",
+    ],
+  },
+  {
+    id: 7,
+    emoji: "⏱️",
+    title: "30秒・60秒で記録する意味",
+    content: [
+      "記録を短時間で終わらせるのは、習慣化のため。",
+      "「めんどくさい」と思う前に、サクッと終わる設計。",
+      "記録が続けば、振り返りが資産になります。",
+      "「完璧な記録」より「続ける記録」を目指してください。",
+    ],
+  },
+  {
+    id: 8,
+    emoji: "🎓",
+    title: "学習と実践の両輪で上達する",
+    content: [
+      "このアプリは「学び」と「記録」をセットで積み上げます。",
+      "週2回の取引で実践し、毎日の学習で知識を固める。",
+      "焦って取引回数を増やすより、質を上げるのが先です。",
+      "学習が続けば、段階的に機能が解放されます。",
+    ],
+  },
+  {
+    id: 9,
+    emoji: "📐",
+    title: "ポジションサイズの決め方",
+    content: [
+      "損切り幅から逆算して、ロット数を決めます。",
+      "計算式：許容損失 ÷ 損切り幅（円換算）= ロット数",
+      "例：許容2,000円、損切り30pips（1ロット3,000円）なら、約0.66ロット。",
+      "「なんとなく」でロットを決めると、2%ルールが守れません。",
+    ],
+  },
+  {
+    id: 10,
+    emoji: "📊",
+    title: "期待値とは？（初心者向け）",
+    content: [
+      "期待値 = 1回の取引で平均して得られる利益。",
+      "例：勝率40%、RR 1:3なら、10回で平均プラスになります。",
+      "期待値がプラスの手法を、何度も繰り返すのがFXの本質。",
+      "「この1回で勝ちたい」ではなく「100回で勝つ」発想が大切です。",
+    ],
+  },
+];
+
+// 今日の学習カードを取得する関数
+function getTodayLearningCard(): LearningCard {
+  const dayOfYear = Math.floor(
+    (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000
+  );
+  const index = dayOfYear % learningCards.length;
+  return learningCards[index];
+}
 
 type GateState = {
   gate_trade_count_ok: boolean;
@@ -198,12 +328,19 @@ function daysAgo(n: number) {
   return d;
 }
 
-function nextMondayLabel() {
-  const d = new Date();
-  const day = d.getDay(); // 0=Sun,1=Mon
-  const daysUntil = (8 - day) % 7 || 7;
-  d.setDate(d.getDate() + daysUntil);
-  return d.toLocaleDateString("ja-JP", { month: "2-digit", day: "2-digit" });
+function nextMondayLabel(): string {
+  const now = new Date();
+  const day = now.getDay();
+  const daysUntilMonday = day === 0 ? 1 : 8 - day;
+  const nextMonday = new Date(now);
+  nextMonday.setDate(now.getDate() + daysUntilMonday);
+  return `${nextMonday.getMonth() + 1}/${nextMonday.getDate()}（月）`;
+}
+
+function isToday(d: string | number | Date) {
+  const dt = new Date(d);
+  const now = new Date();
+  return dt.toDateString() === now.toDateString();
 }
 
 function extractCompleteLogId(body: string) {
@@ -239,13 +376,6 @@ export default function App() {
   const [pending, setPending] = useState<TradeLogLite | null>(null);
   const [activeLog, setActiveLog] = useState<TradeLogLite | null>(null);
   const [currentLogId, setCurrentLogId] = useState<string | null>(null);
-  const [completeLog, setCompleteLog] = useState<HistoryLog | null>(null);
-  const [completeSuccessProb, setCompleteSuccessProb] = useState<SuccessProb | null>(null);
-  const [completeExpectedValue, setCompleteExpectedValue] = useState<ExpectedValue | null>(null);
-  const [completePostGateKept, setCompletePostGateKept] = useState<boolean | null>(null);
-  const [completePostWithinHypo, setCompletePostWithinHypo] = useState<boolean | null>(null);
-  const [completeUnexpectedReason, setCompleteUnexpectedReason] = useState("");
-
   const [role, setRole] = useState<"member" | "teacher" | "admin">("member");
   const isTeacher = role === "teacher" || role === "admin";
   const [profileDisplayName, setProfileDisplayName] = useState<string | null>(null);
@@ -272,6 +402,7 @@ export default function App() {
   const [weeklyAttempts, setWeeklyAttempts] = useState(0);
   const [memberSettings, setMemberSettings] = useState<MemberSettings | null>(null);
   const [historyLogs, setHistoryLogs] = useState<HistoryLog[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [historyTarget, setHistoryTarget] = useState<HistoryLog | null>(null);
   const [voidReason, setVoidReason] = useState("");
 
@@ -315,10 +446,32 @@ export default function App() {
     },
     [accountBalance, stopLossAmount, takeProfitAmount, gate.gate_rule_ok]
   );
-  const weeklyLocked =
-    !!memberSettings &&
-    !memberSettings.unlocked &&
-    weeklyAttempts >= memberSettings.weekly_limit;
+  const weeklyLimit = memberSettings?.weekly_limit ?? 2;
+  const weeklyLocked = weeklyAttempts >= weeklyLimit && !isTestMode;
+
+  // 今日のログを導出（フックは早期リターンの前に配置）
+  const todayLogs = useMemo(
+    () => historyLogs.filter((l) => isToday(l.occurred_at)),
+    [historyLogs]
+  );
+
+  // 今日の取引（valid）があるか
+  const hasValidToday = useMemo(
+    () => todayLogs.some((l) => l.log_type === "valid"),
+    [todayLogs]
+  );
+
+  // 今日の取引が完了しているか（completed_at がある）
+  const hasCompletedTradeToday = useMemo(
+    () => todayLogs.some((l) => l.log_type === "valid" && l.completed_at != null),
+    [todayLogs]
+  );
+
+  // 今日の見送りがあるか
+  const hasSkipToday = useMemo(
+    () => todayLogs.some((l) => l.log_type === "skip"),
+    [todayLogs]
+  );
 
   // --- Auth bootstrap ---
   useEffect(() => {
@@ -343,8 +496,39 @@ export default function App() {
 
   useEffect(() => {
     if (!session || !completeLogId) return;
-    void loadCompleteLog(completeLogId);
-    setMode("complete");
+
+    // completeLogId からログを取得して pending にセット
+    void (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("trade_logs")
+          .select("*")
+          .eq("id", completeLogId)
+          .single();
+
+        if (error) throw error;
+        if (!data) return;
+
+        // pending にセット（取引前情報がすでに入っているログ）
+        setPending({
+          id: data.id,
+          occurred_at: data.occurred_at,
+          log_type: data.log_type,
+          gate_all_ok: data.gate_trade_count_ok && data.gate_rr_ok && data.gate_risk_ok && data.gate_rule_ok,
+          success_prob: data.success_prob,
+          expected_value: data.expected_value,
+          post_gate_kept: data.post_gate_kept,
+          post_within_hypothesis: data.post_within_hypothesis,
+          unexpected_reason: data.unexpected_reason,
+          voided_at: data.voided_at,
+          completed_at: data.completed_at,
+        });
+
+        setMode("post"); // post モードに切り替え
+      } catch (err) {
+        console.error("completeLog fetch error:", err);
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.id, completeLogId]);
 
@@ -372,6 +556,13 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.id, isAdminRoute, isTeacher, isAdminLogsRoute]);
 
+  // --- load history when entering history mode ---
+  useEffect(() => {
+    if (!session || mode !== "history") return;
+    void loadHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id, mode]);
+
   const sendMagicLink = async () => {
     setStatus("");
     const e = email.trim();
@@ -392,12 +583,6 @@ export default function App() {
     setPending(null);
     setActiveLog(null);
     setCurrentLogId(null);
-    setCompleteLog(null);
-    setCompleteSuccessProb(null);
-    setCompleteExpectedValue(null);
-    setCompletePostGateKept(null);
-    setCompletePostWithinHypo(null);
-    setCompleteUnexpectedReason("");
     setGate(initialGate);
     setSuccessProb("mid");
     setExpectedValue("unknown");
@@ -642,6 +827,7 @@ export default function App() {
   const loadHistory = async () => {
     setStatus("");
     if (!session?.user?.id) return;
+    setHistoryLoading(true);
     const { data, error } = await supabase
       .from("trade_logs")
       .select(
@@ -651,29 +837,9 @@ export default function App() {
       .order("occurred_at", { ascending: false })
       .limit(50);
 
+    setHistoryLoading(false);
     if (error) return reportError("履歴取得失敗", error);
     setHistoryLogs((data ?? []) as HistoryLog[]);
-  };
-
-  const loadCompleteLog = async (logId: string) => {
-    setStatus("");
-    if (!session?.user?.id) return;
-    const { data, error } = await supabase
-      .from("trade_logs")
-      .select(
-        "id, occurred_at, log_type, gate_trade_count_ok, gate_rr_ok, gate_risk_ok, gate_rule_ok, success_prob, expected_value, post_gate_kept, post_within_hypothesis, unexpected_reason, voided_at, void_reason, completed_at"
-      )
-      .eq("id", logId)
-      .single();
-
-    if (error) return reportError("未完ログ取得失敗", error);
-    const log = data as HistoryLog;
-    setCompleteLog(log);
-    setCompleteSuccessProb(log.success_prob);
-    setCompleteExpectedValue(log.expected_value);
-    setCompletePostGateKept(log.post_gate_kept);
-    setCompletePostWithinHypo(log.post_within_hypothesis);
-    setCompleteUnexpectedReason(log.unexpected_reason ?? "");
   };
 
   const voidLog = async () => {
@@ -1082,48 +1248,10 @@ export default function App() {
     void loadPending();
     void loadWeeklyCount();
     void loadHistory();
+    if (completeLogId) {
+      window.history.pushState({}, "", "/");
+    }
     setMode("home");
-  };
-
-  const saveCompletion = async () => {
-    setStatus("");
-    if (!completeLog) return setStatus("対象ログが見つかりません。");
-    if (!completeSuccessProb || !completeExpectedValue) {
-      return setStatus("仮説（成功確率・期待値）を選んでください。");
-    }
-    if (completePostGateKept === null || completePostWithinHypo === null) {
-      return setStatus("事後チェック（はい/いいえ）を選んでください。");
-    }
-    const isUnexpected = completePostGateKept === false || completePostWithinHypo === false;
-    if (isUnexpected && completeUnexpectedReason.trim().length === 0) {
-      return setStatus("想定外がある場合は、原因（事実）を1行で入力してください。");
-    }
-
-    const { error } = await supabase
-      .from("trade_logs")
-      .update({
-        success_prob: completeSuccessProb,
-        expected_value: completeExpectedValue,
-        post_gate_kept: completePostGateKept,
-        post_within_hypothesis: completePostWithinHypo,
-        unexpected_reason: completeUnexpectedReason.trim() ? completeUnexpectedReason.trim() : null,
-        completed_at: new Date().toISOString(),
-      })
-      .eq("id", completeLog.id);
-
-    if (error) return reportError("未完更新失敗", error);
-    setStatus("✅ 未完記録を完了しました。");
-    setCompleteLog(null);
-    setCompleteSuccessProb(null);
-    setCompleteExpectedValue(null);
-    setCompletePostGateKept(null);
-    setCompletePostWithinHypo(null);
-    setCompleteUnexpectedReason("");
-    void loadHistory();
-    void loadPending();
-    void loadWeeklyCount();
-    window.history.pushState({}, "", "/");
-    setMode("history");
   };
 
   // ----------------------
@@ -1131,23 +1259,83 @@ export default function App() {
   // ----------------------
   if (!session) {
     return (
-      <div style={{ maxWidth: "100%", margin: "0", padding: "0 var(--space-md)" }}>
-        <h1 className="shimmer-text" style={{ marginBottom: "var(--space-sm)", textAlign: "center" }}>FX Journal</h1>
-        <p style={{ opacity: 0.85, marginBottom: "var(--space-lg)", textAlign: "center" }}>
-          使うのは2つだけ：<b>取引前（30秒）</b> と <b>取引後（15秒）</b>
-        </p>
+      <div className="min-h-screen flex items-center justify-center bg-zinc-50 px-4">
+        <div className="w-full max-w-md space-y-6">
+          {/* ヘッダー */}
+          <div className="text-center">
+            <h1 className="text-3xl font-black shimmer-text">FX Journal MVP</h1>
+            <p className="mt-2 text-sm text-zinc-600">初心者モード</p>
+          </div>
 
-        <div style={{ display: "flex", gap: "var(--space-md)", flexDirection: "column", alignItems: "center" }}>
-          <input
-            style={{ width: "100%" }}
-            placeholder="メールアドレス"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <PrimaryButton onClick={sendMagicLink} style={{ width: "100%" }}>ログイン</PrimaryButton>
+          {/* ログインカード */}
+          <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-6 space-y-4">
+            <h2 className="text-lg font-bold text-zinc-900">ログイン</h2>
+
+            {/* Discordログイン（推奨） */}
+            <button
+              type="button"
+              onClick={() => {
+                void supabase.auth.signInWithOAuth({
+                  provider: "discord",
+                  options: {
+                    redirectTo: window.location.origin,
+                  },
+                });
+              }}
+              className="w-full rounded-xl bg-[#5865F2] px-4 py-3 text-white font-semibold shadow-sm hover:bg-[#4752C4] active:bg-[#3C45A5] transition-colors flex items-center justify-center gap-2"
+            >
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515a.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0a12.64 12.64 0 0 0-.617-1.25a.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057a19.9 19.9 0 0 0 5.993 3.03a.078.078 0 0 0 .084-.028a14.09 14.09 0 0 0 1.226-1.994a.076.076 0 0 0-.041-.106a13.107 13.107 0 0 1-1.872-.892a.077.077 0 0 1-.008-.128a10.2 10.2 0 0 0 .372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127a12.299 12.299 0 0 1-1.873.892a.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028a19.839 19.839 0 0 0 6.002-3.03a.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.956-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.955-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.946 2.418-2.157 2.418z" />
+              </svg>
+              Discordでログイン（推奨）
+            </button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-zinc-200"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="bg-white px-2 text-zinc-500">または</span>
+              </div>
+            </div>
+
+            {/* メールアドレスログイン */}
+            <div className="space-y-3">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="メールアドレス"
+                className="w-full rounded-xl border-2 border-zinc-200 bg-white px-4 py-3 text-sm focus:border-blue-500 focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => void sendMagicLink()}
+                className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 transition-colors"
+              >
+                メールアドレスでログイン
+              </button>
+            </div>
+
+            {status && (
+              <p className="text-sm text-blue-600 font-semibold text-center">
+                {status}
+              </p>
+            )}
+
+            <p className="text-xs text-zinc-500 text-center">
+              ログインすると、
+              <a href="#" className="underline">
+                利用規約
+              </a>
+              と
+              <a href="#" className="underline">
+                プライバシーポリシー
+              </a>
+              に同意したことになります。
+            </p>
+          </div>
         </div>
-
-        {status && <p style={{ marginTop: "var(--space-md)", color: "var(--color-accent)", fontWeight: 600, textAlign: "center" }}>{status}</p>}
       </div>
     );
   }
@@ -1869,29 +2057,25 @@ export default function App() {
     return true;
   });
 
-  const weeklyLimit = memberSettings?.weekly_limit ?? 2;
-  const hasAnyLogs = weeklyAttempts > 0;
+  // 今日のタスク
   const todayTasks: Task[] = [
     {
       id: "pre",
       label: labels.tradePre,
-      duration: "30秒",
-      completed: hasAnyLogs && !pending,
-      xp: 10,
+      completed: hasValidToday,
+      disabled: weeklyLocked,
     },
     {
       id: "post",
       label: labels.tradePost,
-      duration: "60秒",
-      completed: !pending && hasAnyLogs,
-      xp: 15,
+      completed: hasCompletedTradeToday,
+      disabled: weeklyLocked || !pending,
     },
     {
       id: "skip",
       label: labels.skip,
-      duration: "1分",
-      completed: false,
-      xp: 5,
+      completed: hasSkipToday,
+      disabled: false,
     },
   ];
 
@@ -1900,27 +2084,44 @@ export default function App() {
   )[0];
 
   const nextAction = (() => {
+    // 1. 週次制限（最優先）
+    if (weeklyLocked) {
+      return {
+        actionLabel: "今日の学びを見る",
+        description: `今週の取引は上限に達しました。見送りページで今日の学習カードを確認しましょう。次の取引は${nextMondayLabel()}です。`,
+        onAction: () => setMode("skip"),
+        disabled: false,
+      };
+    }
+
+    // 2. 取引後の入力待ち
     if (pending) {
       return {
-        pendingCount: 1,
-        actionLabel: labels.tradePost,
+        actionLabel: labels.tradePost + " を入力",
         description: copy.nextAction.incomplete,
         onAction: () => setMode("post"),
       };
     }
-    if (weeklyLocked && !isTestMode) {
+
+    // 3. 今日のタスクが完了（見送り済み or 取引完了）
+    if (hasSkipToday || hasCompletedTradeToday) {
       return {
-        pendingCount: 0,
-        actionLabel: "見送りを記録する",
-        description: `今週の取引は上限に達しました。次の取引は ${nextMondayLabel()} です。`,
-        onAction: () => void saveSkipQuick(),
+        actionLabel: "本日のタスク完了",
+        description: "今日の振り返りは終了です。お疲れ様でした！",
+        onAction: () => {},
+        disabled: true,
       };
     }
+
+    // 4. まだ何もしていない場合（取引前 または 見送り）
     return {
-      pendingCount: 0,
-      actionLabel: labels.tradePre,
-      description: copy.nextAction.normal,
+      actionLabel: labels.tradePre + " を記録",
+      description: "取引チャンスを待機中。見送る場合は「見送り」ボタンから。",
       onAction: () => setMode("pre"),
+      secondaryAction: {
+        label: "見送りを記録する（+5 XP）",
+        onAction: () => setMode("skip"),
+      },
     };
   })();
 
@@ -2093,10 +2294,11 @@ export default function App() {
               )}
 
               <NextActionCard
-                pendingCount={nextAction.pendingCount}
                 actionLabel={nextAction.actionLabel}
                 onAction={nextAction.onAction}
                 description={nextAction.description}
+                disabled={nextAction.disabled}
+                secondaryAction={nextAction.secondaryAction}
               />
               <TodayTasksCard tasks={todayTasks} />
               <WeeklyProgressCard usedTrades={weeklyAttempts} maxTrades={weeklyLimit} />
@@ -2133,505 +2335,673 @@ export default function App() {
       )}
 
       {mode === "history" && (
-        <section>
-          <Card style={{ marginTop: 0 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center", marginBottom: 20 }}>
-              <div style={{ display: "flex", alignItems: "center" }}>
-                <IconHistory />
-                <h3 style={{ margin: 0 }}>履歴（直近50件）</h3>
-              </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button onClick={() => void loadHistory()}>更新</button>
-                <button onClick={() => setMode("home")}>戻る</button>
-              </div>
+        <section className="space-y-4 max-w-md mx-auto relative pb-8">
+          {/* 2) ヘッダー（「履歴」タイトル＋更新・戻るボタン）を統一 */}
+          <div className="flex items-center justify-between mb-4 px-1">
+            <h3 className="text-lg font-bold text-zinc-900 flex items-center gap-2 m-0">
+              <span>📋</span>
+              履歴（直近50件）
+            </h3>
+            <div className="flex gap-2">
+              <button
+                onClick={() => void loadHistory()}
+                className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors"
+              >
+                更新
+              </button>
+              <button
+                onClick={() => setMode("home")}
+                className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors"
+              >
+                戻る
+              </button>
             </div>
+          </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: 20 }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 12, maxHeight: 400, overflow: "auto", paddingRight: 8 }}>
-                {historyLogs.length === 0 ? (
-                  <div className="text-muted">まだ記録がありません。</div>
-                ) : (
-                  historyLogs.map((l) => {
+          <div className="space-y-4">
+            {/* 一覧（モバイルでは選択時非表示） */}
+            <div className={`${historyTarget ? "hidden" : "block"}`}>
+              {historyLoading ? (
+                <div className="text-muted text-center py-10 bg-white rounded-2xl border border-zinc-200 shadow-sm">読み込み中...</div>
+              ) : historyLogs.length === 0 ? (
+                <div className="text-muted text-center py-10 bg-white rounded-2xl border border-zinc-200 shadow-sm">まだ記録がありません。</div>
+              ) : (
+                <div className="space-y-3">
+                  {historyLogs.map((log) => {
                     const isDone =
-                      !!l.completed_at ||
-                      (l.success_prob !== null &&
-                        l.expected_value !== null &&
-                        l.post_gate_kept !== null &&
-                        l.post_within_hypothesis !== null);
-                    const statusLabel = l.voided_at ? "無効" : isDone ? "完了" : "未完";
-                    const active = historyTarget?.id === l.id;
+                      !!log.completed_at ||
+                      (log.success_prob !== null &&
+                        log.expected_value !== null &&
+                        log.post_gate_kept !== null &&
+                        log.post_within_hypothesis !== null);
+                    const statusLabel = log.voided_at ? "無効" : isDone ? "完了" : "未完";
+                    
                     return (
                       <button
-                        key={l.id}
-                        onClick={() => { setHistoryTarget(l); setVoidReason(""); }}
-                        style={{
-                          width: "100%",
-                          textAlign: "left",
-                          padding: "12px 16px",
-                          borderRadius: "var(--radius-md)",
-                          border: "1px solid var(--color-border)",
-                          backgroundColor: active ? "rgba(43, 109, 224, 0.05)" : "var(--color-card)",
-                          borderColor: active ? "var(--color-accent)" : "var(--color-border)",
-                          transition: "all 0.2s"
-                        }}
+                        key={log.id}
+                        type="button"
+                        onClick={() => { setHistoryTarget(log); setVoidReason(""); }}
+                        className="w-full rounded-2xl border border-zinc-200 bg-white p-4 text-left flex items-center gap-3 shadow-sm hover:bg-zinc-50 active:bg-zinc-100 transition-colors"
                       >
-                        <div style={{ fontSize: 13, fontWeight: 700 }}>
-                          {new Date(l.occurred_at).toLocaleString()}
+                        {/* 左：アイコン */}
+                        <div className="flex-shrink-0 h-10 w-10 rounded-xl bg-zinc-100 flex items-center justify-center text-xl">
+                          {log.log_type === "skip" ? "🛡️" : "📊"}
                         </div>
-                        <div className="text-muted" style={{ marginTop: 4, display: "flex", justifyContent: "space-between" }}>
-                          <span>{l.log_type}</span>
-                          <span style={{ 
-                            color: l.voided_at ? "var(--color-danger)" : isDone ? "var(--color-accent)" : "inherit",
-                            fontWeight: 600
-                          }}>{statusLabel}</span>
+
+                        {/* 中央：日時＋種別 */}
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-semibold text-zinc-900 truncate">
+                            {new Date(log.occurred_at).toLocaleString("ja-JP", {
+                              month: "numeric",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit"
+                            })}
+                          </div>
+                          <div className="text-sm text-zinc-600 truncate">
+                            {log.log_type === "skip" ? "見送り" : "取引"}
+                          </div>
                         </div>
+
+                        {/* 右：ステータスpill */}
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-bold ring-1 flex-shrink-0 ${
+                            log.voided_at 
+                              ? "bg-red-50 text-red-700 ring-red-200"
+                              : isDone
+                                ? "bg-blue-50 text-blue-700 ring-blue-200"
+                                : "bg-zinc-50 text-zinc-700 ring-zinc-200"
+                          }`}
+                        >
+                          {statusLabel}
+                        </span>
+
+                        {/* 右矢印 */}
+                        <span className="text-zinc-400 flex-shrink-0">›</span>
                       </button>
                     );
-                  })
-                )}
-              </div>
+                  })}
+                </div>
+              )}
+            </div>
 
-              <div style={{ padding: "0 4px" }}>
-                {!historyTarget ? (
-                  <div className="text-muted" style={{ textAlign: "center", padding: "40px 0" }}>左の一覧からログを選んでください。</div>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                    <div style={{ paddingBottom: 12, borderBottom: "1px solid var(--color-border)" }}>
-                      <div style={{ fontSize: 14, fontWeight: 700 }}>
-                        {new Date(historyTarget.occurred_at).toLocaleString()}
-                      </div>
-                      <div className="text-muted" style={{ marginTop: 4 }}>種別：{historyTarget.log_type}</div>
-                    </div>
+            {/* 3) 詳細パネルをカード化（選択時のみ表示） */}
+            {historyTarget && (
+              <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4 space-y-4">
+                <div className="flex items-center justify-between border-b border-zinc-50 pb-3">
+                  <div className="text-base font-bold text-zinc-900">記録の詳細</div>
+                  <button
+                    onClick={() => setHistoryTarget(null)}
+                    className="text-sm font-semibold text-zinc-600 hover:text-zinc-900 flex items-center gap-1"
+                  >
+                    ✕ 閉じる
+                  </button>
+                </div>
 
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8, color: "var(--color-text-muted)" }}>前提（Gate）</div>
-                      <div style={{ fontSize: 13, background: "rgba(0,0,0,0.03)", padding: 12, borderRadius: "var(--radius-sm)" }}>
-                        {` 回数:${historyTarget.gate_trade_count_ok ? "○" : "×"} / ` +
-                          `RR:${historyTarget.gate_rr_ok ? "○" : "×"} / ` +
-                          `リスク:${historyTarget.gate_risk_ok ? "○" : "×"} / ` +
-                          `ルール:${historyTarget.gate_rule_ok ? "○" : "×"}`}
-                      </div>
-                    </div>
+                {/* 基本情報 */}
+                <div className="text-sm text-zinc-600 space-y-1">
+                  <div>日時：{new Date(historyTarget.occurred_at).toLocaleString()}</div>
+                  <div>種別：{historyTarget.log_type === "skip" ? "見送り" : "取引"}</div>
+                  <div>ステータス：{historyTarget.voided_at ? "無効" : (!!historyTarget.completed_at ? "完了" : "未完")}</div>
+                </div>
 
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                      <div>
-                        <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4, color: "var(--color-text-muted)" }}>仮説：成功確率</div>
-                        <div style={{ fontSize: 14 }}>{labelProb(historyTarget.success_prob)}</div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4, color: "var(--color-text-muted)" }}>仮説：期待値</div>
-                        <div style={{ fontSize: 14 }}>{labelEV(historyTarget.expected_value)}</div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4, color: "var(--color-text-muted)" }}>事後チェック</div>
-                      <div style={{ fontSize: 14 }}>
-                        {historyTarget.post_gate_kept === null ? "未完" : historyTarget.post_gate_kept ? "✅ 守れた" : "❌ 破った"} /
-                        {historyTarget.post_within_hypothesis === null ? "未完" : historyTarget.post_within_hypothesis ? "🎯 想定内" : "❓ 想定外"}
-                      </div>
-                    </div>
-
-                    {historyTarget.unexpected_reason && (
-                      <div>
-                        <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4, color: "var(--color-text-muted)" }}>想定外の原因</div>
-                        <div style={{ fontSize: 13, fontStyle: "italic", borderLeft: "2px solid var(--color-danger)", paddingLeft: 10 }}>
-                          {historyTarget.unexpected_reason}
+                {/* 取引前情報（validの場合のみ） */}
+                {historyTarget.log_type === "valid" && (
+                  <>
+                    <div className="space-y-2 pt-2 border-t border-zinc-50">
+                      <div className="text-sm font-bold text-zinc-900">取引前（Gate & 仮説）</div>
+                      <div className="text-sm text-zinc-600 space-y-1">
+                        <div className="bg-zinc-50 p-2 rounded-lg text-xs mb-2">
+                          {`回数:${historyTarget.gate_trade_count_ok ? "○" : "×"} / ` +
+                            `RR:${historyTarget.gate_rr_ok ? "○" : "×"} / ` +
+                            `リスク:${historyTarget.gate_risk_ok ? "○" : "×"} / ` +
+                            `ルール:${historyTarget.gate_rule_ok ? "○" : "×"}`}
                         </div>
+                        <div>成功確率：{labelProb(historyTarget.success_prob)}</div>
+                        <div>期待値：{labelEV(historyTarget.expected_value)}</div>
                       </div>
-                    )}
+                    </div>
 
-                    {historyTarget.voided_at && (
-                      <div className="alert-danger" style={{ fontSize: 12 }}>
-                        無効化：{new Date(historyTarget.voided_at).toLocaleString()}<br />
-                        理由：{historyTarget.void_reason ?? "—"}
+                    <div className="space-y-2 pt-2 border-t border-zinc-50">
+                      <div className="text-sm font-bold text-zinc-900">事後チェック</div>
+                      <div className="text-sm text-zinc-600">
+                        {historyTarget.post_gate_kept === null ? "未完" : historyTarget.post_gate_kept ? "✅ ルール守れた" : "❌ ルール破った"} / {historyTarget.post_within_hypothesis === null ? "未完" : historyTarget.post_within_hypothesis ? "🎯 想定内" : "❓ 想定外"}
                       </div>
-                    )}
-
-                    {!historyTarget.voided_at &&
-                      !historyTarget.completed_at &&
-                      (historyTarget.success_prob === null ||
-                        historyTarget.expected_value === null ||
-                        historyTarget.post_gate_kept === null ||
-                        historyTarget.post_within_hypothesis === null) && (
-                        <div style={{ marginTop: 10 }}>
-                          <PrimaryButton
-                            style={{ width: "100%" }}
-                            onClick={() => {
-                              window.history.pushState({}, "", `/complete/${historyTarget.id}`);
-                              setMode("complete");
-                              void loadCompleteLog(historyTarget.id);
-                            }}
-                          >
-                            この記録を完了する
-                          </PrimaryButton>
+                      {historyTarget.unexpected_reason && (
+                        <div className="text-sm text-zinc-600 italic bg-rose-50 p-3 rounded-xl border border-rose-100 mt-2">
+                          原因：{historyTarget.unexpected_reason}
                         </div>
                       )}
-
-                    {!historyTarget.voided_at && (
-                      <div style={{ marginTop: 12, paddingTop: 16, borderTop: "1px dashed var(--color-border)" }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8, color: "var(--color-text-muted)" }}>訂正（無効化）</div>
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <input
-                            style={{ flex: 1, padding: "8px 12px" }}
-                            placeholder="訂正理由（例：記録ミス）"
-                            value={voidReason}
-                            onChange={(e) => setVoidReason(e.target.value)}
-                          />
-                          <button
-                            onClick={() => void voidLog()}
-                            style={{ whiteSpace: "nowrap", borderColor: "var(--color-danger)", color: "var(--color-danger)" }}
-                          >
-                            無効化
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          </Card>
-        </section>
-      )}
-
-      {mode === "complete" && (
-        <section>
-          <Card style={{ marginTop: 0 }}>
-            <h3 style={{ marginTop: 0 }}>取引後を完了する（60秒）</h3>
-            {!completeLog ? (
-              <div style={{ opacity: 0.85 }}>読み込み中…</div>
-            ) : (
-              <>
-                <div style={{ padding: 10, border: "1px solid #444" }}>
-                  <div style={{ fontSize: 12, opacity: 0.85 }}>
-                    対象：{new Date(completeLog.occurred_at).toLocaleString()} / {completeLog.log_type}
-                  </div>
-                  <div style={{ fontSize: 12, opacity: 0.75 }}>
-                    前提：回数{completeLog.gate_trade_count_ok ? "○" : "×"} / リワード{completeLog.gate_rr_ok ? "○" : "×"} / リスク{completeLog.gate_risk_ok ? "○" : "×"} / ルール{completeLog.gate_rule_ok ? "○" : "×"}
-                  </div>
-                </div>
-
-                <div style={{ marginTop: 12 }}>
-                  <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 6 }}>
-                    成功確率（感覚でOK）
-                  </div>
-                  <ChoiceRow>
-                    <ChoiceButton active={completeSuccessProb === "high"} onClick={() => setCompleteSuccessProb("high")}>
-                      高<br /><span style={{ fontSize: 12, opacity: 0.75 }}>根拠がある</span>
-                    </ChoiceButton>
-                    <ChoiceButton active={completeSuccessProb === "mid"} onClick={() => setCompleteSuccessProb("mid")}>
-                      中<br /><span style={{ fontSize: 12, opacity: 0.75 }}>五分・迷う</span>
-                    </ChoiceButton>
-                    <ChoiceButton active={completeSuccessProb === "low"} onClick={() => setCompleteSuccessProb("low")}>
-                      低<br /><span style={{ fontSize: 12, opacity: 0.75 }}>微妙</span>
-                    </ChoiceButton>
-                  </ChoiceRow>
-                </div>
-
-                <div style={{ marginTop: 12 }}>
-                  <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 6 }}>
-                    期待値（有利/不利の感覚）
-                  </div>
-                  <ChoiceRow>
-                    <ChoiceButton active={completeExpectedValue === "plus"} onClick={() => setCompleteExpectedValue("plus")}>
-                      ＋<br /><span style={{ fontSize: 12, opacity: 0.75 }}>条件そろってる</span>
-                    </ChoiceButton>
-                    <ChoiceButton active={completeExpectedValue === "unknown"} onClick={() => setCompleteExpectedValue("unknown")}>
-                      不明<br /><span style={{ fontSize: 12, opacity: 0.75 }}>判断つかない</span>
-                    </ChoiceButton>
-                    <ChoiceButton active={completeExpectedValue === "minus"} onClick={() => setCompleteExpectedValue("minus")}>
-                      －<br /><span style={{ fontSize: 12, opacity: 0.75 }}>不利寄り</span>
-                    </ChoiceButton>
-                  </ChoiceRow>
-                </div>
-
-                <div style={{ marginTop: 14 }}>
-                  <Row>
-                    <label style={{ width: 220 }}>ルールは守れたか</label>
-                    <YesNoJP value={completePostGateKept} setValue={setCompletePostGateKept} />
-                  </Row>
-                  <Row>
-                    <label style={{ width: 220 }}>想定内だったか</label>
-                    <YesNoJP value={completePostWithinHypo} setValue={setCompletePostWithinHypo} />
-                  </Row>
-                </div>
-
-                {(completePostGateKept === false || completePostWithinHypo === false) && (
-                  <Row>
-                    <label style={{ width: 220 }}>想定外の原因（1行）</label>
-                    <input
-                      style={{ flex: 1, padding: 10 }}
-                      maxLength={120}
-                      placeholder="例：前提条件の破綻 / ルール未達 / 記録漏れ（事実のみ）"
-                      value={completeUnexpectedReason}
-                      onChange={(e) => setCompleteUnexpectedReason(e.target.value)}
-                    />
-                  </Row>
-                )}
-
-                <div style={{ marginTop: 14, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <button onClick={() => void saveCompletion()}>保存して完了</button>
-                  <button onClick={() => { window.history.pushState({}, "", "/"); setMode("history"); }}>戻る</button>
-                </div>
-              </>
-            )}
-          </Card>
-        </section>
-      )}
-
-      {mode === "pre" && (
-        <section>
-          <Card className="card-accent" style={{ marginTop: 0 }}>
-            <h3 style={{ marginBottom: 20 }}>{labels.tradePre}</h3>
-            
-            {memberSettings && !memberSettings.unlocked && weeklyAttempts >= memberSettings.weekly_limit && !isTestMode && (
-              <div className="alert-danger" style={{ marginBottom: 20 }}>
-                {labels.weeklyLimitReached}
-              </div>
-            )}
-
-            <div style={{ padding: 16, background: "rgba(0,0,0,0.03)", borderRadius: "var(--radius-md)", marginBottom: 20 }}>
-              <div style={{ fontWeight: 700, marginBottom: 12, display: "flex", alignItems: "center" }}>
-                <IconSafety /> {copy.verdict.title}
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <div style={{ fontSize: 13, opacity: 0.8 }}>{copy.verdict.rr}</div>
-                <div style={{ fontSize: 13, opacity: 0.8 }}>{copy.verdict.risk}</div>
-                <div style={{ fontSize: 13, opacity: 0.8 }}>{copy.verdict.skip}</div>
-              </div>
-            </div>
-
-            <div style={{ marginBottom: 24, padding: "0 4px" }}>
-              <div className="text-muted" style={{ fontWeight: 700, marginBottom: 4 }}>今週残り</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: "var(--color-accent)" }}>
-                {Math.max(0, (memberSettings?.weekly_limit ?? 2) - weeklyAttempts)} <span style={{ fontSize: 14, color: "var(--color-text-muted)" }}>/ {memberSettings?.weekly_limit ?? 2} 回</span>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              <section>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                  <h4 style={{ margin: 0 }}>① {copy.gate.rrTitle}</h4>
-                  <button onClick={() => setGateHelp((h) => ({ ...h, rr: !h.rr }))} style={{ padding: "4px 10px", fontSize: 12 }}>？</button>
-                </div>
-                {gateHelp.rr && (
-                  <div className="text-muted" style={{ padding: 12, background: "rgba(0,0,0,0.02)", borderRadius: "var(--radius-sm)", marginBottom: 12 }}>{copy.gate.rrHelp}</div>
-                )}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                  <div>
-                    <label className="text-muted" style={{ display: "block", marginBottom: 6 }}>{copy.gate.takeProfit}</label>
-                    <input
-                      style={{ width: "100%" }}
-                      placeholder="利確金額"
-                      value={takeProfitAmount}
-                      onChange={(e) => setTakeProfitAmount(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-muted" style={{ display: "block", marginBottom: 6 }}>{copy.gate.stopLoss}</label>
-                    <input
-                      style={{ width: "100%" }}
-                      placeholder="損切り金額"
-                      value={stopLossAmount}
-                      onChange={(e) => setStopLossAmount(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div style={{ marginTop: 10, fontSize: 13, fontWeight: 600 }}>
-                  RR：{(() => {
-                    const stopLoss = Number(stopLossAmount);
-                    const takeProfit = Number(takeProfitAmount);
-                    if (stopLoss > 0 && takeProfit > 0) {
-                      const rr = takeProfit / stopLoss;
-                      const ok = rr >= 3;
-                      return <span style={{ color: ok ? "var(--color-accent)" : "var(--color-danger)" }}>{rr.toFixed(2)}（{ok ? "OK" : "NG"}）</span>;
-                    }
-                    return <span className="text-muted">未計算</span>;
-                  })()}
-                </div>
-              </section>
-
-              <section>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                  <h4 style={{ margin: 0 }}>② {copy.gate.riskTitle}</h4>
-                  <button onClick={() => setGateHelp((h) => ({ ...h, risk: !h.risk }))} style={{ padding: "4px 10px", fontSize: 12 }}>？</button>
-                </div>
-                {gateHelp.risk && (
-                  <div className="text-muted" style={{ padding: 12, background: "rgba(0,0,0,0.02)", borderRadius: "var(--radius-sm)", marginBottom: 12 }}>{copy.gate.riskHelp}</div>
-                )}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                  <div>
-                    <label className="text-muted" style={{ display: "block", marginBottom: 6 }}>{copy.gate.balance}</label>
-                    <input
-                      style={{ width: "100%" }}
-                      placeholder="資金"
-                      value={accountBalance}
-                      onChange={(e) => setAccountBalance(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-muted" style={{ display: "block", marginBottom: 6 }}>{copy.gate.stopLoss}</label>
-                    <input
-                      style={{ width: "100%" }}
-                      placeholder="損切り金額"
-                      value={stopLossAmount}
-                      onChange={(e) => setStopLossAmount(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div style={{ marginTop: 10, fontSize: 13, fontWeight: 600 }}>
-                  リスク：{(() => {
-                    const balance = Number(accountBalance);
-                    const stopLoss = Number(stopLossAmount);
-                    if (balance > 0 && stopLoss > 0) {
-                      const riskPct = (stopLoss / balance) * 100;
-                      const ok = riskPct <= 2;
-                      return <span style={{ color: ok ? "var(--color-accent)" : "var(--color-danger)" }}>{riskPct.toFixed(2)}%（{ok ? "OK" : "NG"}）</span>;
-                    }
-                    return <span className="text-muted">未計算</span>;
-                  })()}
-                </div>
-              </section>
-
-              <section>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                  <h4 style={{ margin: 0 }}>③ {copy.gate.ruleTitle}</h4>
-                  <button onClick={() => setGateHelp((h) => ({ ...h, rule: !h.rule }))} style={{ padding: "4px 10px", fontSize: 12 }}>？</button>
-                </div>
-                {gateHelp.rule && (
-                  <div className="text-muted" style={{ padding: 12, background: "rgba(0,0,0,0.02)", borderRadius: "var(--radius-sm)", marginBottom: 12 }}>{copy.gate.ruleHelp}</div>
-                )}
-                <GateRowJP
-                  label={copy.gate.ruleLabel}
-                  checked={gate.gate_rule_ok}
-                  onChange={(v) => setGate((g) => ({ ...g, gate_rule_ok: v }))}
-                />
-              </section>
-            </div>
-
-            <hr style={{ margin: "24px 0", border: "none", borderTop: "1px solid var(--color-border)" }} />
-
-            {gateAllOk ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                <h4 style={{ margin: 0 }}>仮説（振り返りのためのラベル付け）</h4>
-
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, color: "var(--color-text-muted)" }}>成功確率</div>
-                  <ChoiceRow>
-                    <ChoiceButton active={successProb === "high"} onClick={() => setSuccessProb("high")}>
-                      高<div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }}>根拠あり</div>
-                    </ChoiceButton>
-                    <ChoiceButton active={successProb === "mid"} onClick={() => setSuccessProb("mid")}>
-                      中<div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }}>五分五分</div>
-                    </ChoiceButton>
-                    <ChoiceButton active={successProb === "low"} onClick={() => setSuccessProb("low")}>
-                      低<div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }}>自信なし</div>
-                    </ChoiceButton>
-                  </ChoiceRow>
-                </div>
-
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, color: "var(--color-text-muted)" }}>期待値</div>
-                  <ChoiceRow>
-                    <ChoiceButton active={expectedValue === "plus"} onClick={() => setExpectedValue("plus")}>
-                      ＋<div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }}>有利</div>
-                    </ChoiceButton>
-                    <ChoiceButton active={expectedValue === "unknown"} onClick={() => setExpectedValue("unknown")}>
-                      不明<div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }}>判断不能</div>
-                    </ChoiceButton>
-                    <ChoiceButton active={expectedValue === "minus"} onClick={() => setExpectedValue("minus")}>
-                      －<div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }}>不利</div>
-                    </ChoiceButton>
-                  </ChoiceRow>
-                </div>
-
-                <div style={{ display: "flex", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
-                  <PrimaryButton
-                    onClick={() => void savePre()}
-                    disabled={weeklyLocked && !isTestMode}
-                    style={{ flex: 1 }}
-                  >
-                    {labels.tradePre} を保存
-                  </PrimaryButton>
-                  <button onClick={() => { resetPre(); setMode("home"); }} style={{ flex: 1 }}>戻る</button>
-                </div>
-              </div>
-            ) : (
-              <div>
-                <div className="alert-danger" style={{ marginBottom: 20, fontWeight: 600 }}>
-                  前提に「いいえ」があります。今日は見送るのが正解です。
-                </div>
-                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                  <PrimaryButton onClick={() => void saveSkipQuick()} style={{ flex: 1 }}>見送りとして記録</PrimaryButton>
-                  <button onClick={() => { resetPre(); setMode("home"); }} style={{ flex: 1 }}>戻る</button>
-                </div>
-              </div>
-            )}
-          </Card>
-        </section>
-      )}
-
-      {mode === "post" && (
-        <section>
-          <Card style={{ marginTop: 0 }}>
-            <h3 style={{ marginBottom: 20 }}>{labels.tradePost}</h3>
-
-            {!pending ? (
-              <>
-                <p style={{ opacity: 0.85 }}>未完の記録がありません。先に「取引前」を記録してください。</p>
-                <button onClick={() => setMode("home")}>戻る</button>
-              </>
-            ) : (
-              <>
-                <div style={{ padding: 10, border: "1px solid #444" }}>
-                  <div style={{ fontSize: 12, opacity: 0.85 }}>
-                    対象：{new Date(pending.occurred_at).toLocaleString()}
-                  </div>
-                  <div style={{ fontSize: 12, opacity: 0.75 }}>
-                    仮説：{labelProb(pending.success_prob)} / 期待値：{labelEV(pending.expected_value)}
-                  </div>
-                </div>
-
-                <hr style={{ margin: "14px 0" }} />
-
-                <h4>事後チェック（感情禁止：事実だけ）</h4>
-                <Row>
-                  <label style={{ width: 220 }}>ルールは守れたか</label>
-                  <YesNoJP value={postGateKept} setValue={setPostGateKept} />
-                </Row>
-                <Row>
-                  <label style={{ width: 220 }}>想定内だったか</label>
-                  <YesNoJP value={postWithinHypo} setValue={setPostWithinHypo} />
-                </Row>
-
-                {(postGateKept === false || postWithinHypo === false) && (
-                  <>
-                    <Row>
-                      <label style={{ width: 220 }}>想定外の原因（1行）</label>
-                      <input
-                        style={{ flex: 1, padding: 10 }}
-                        maxLength={120}
-                        placeholder="例：前提条件の破綻 / ルール未達 / 記録漏れ（事実のみ）"
-                        value={unexpectedReason}
-                        onChange={(e) => setUnexpectedReason(e.target.value)}
-                      />
-                    </Row>
-                    <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      <SmallChip onClick={() => setUnexpectedReason("前提条件の破綻")}>前提条件の破綻</SmallChip>
-                      <SmallChip onClick={() => setUnexpectedReason("ルール未達")}>ルール未達</SmallChip>
-                      <SmallChip onClick={() => setUnexpectedReason("記録漏れ")}>記録漏れ</SmallChip>
                     </div>
                   </>
                 )}
 
-                <div style={{ marginTop: 14, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <button onClick={() => void savePost()}>保存（取引後）</button>
-                  <button onClick={() => { resetPost(); setMode("home"); }}>戻る</button>
+                {historyTarget.voided_at && (
+                  <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs">
+                    <div className="font-bold mb-1">この記録は無効化されています</div>
+                    <div>日時：{new Date(historyTarget.voided_at).toLocaleString()}</div>
+                    <div>理由：{historyTarget.void_reason ?? "—"}</div>
+                  </div>
+                )}
+
+                {/* アクションボタン */}
+                <div className="pt-4 space-y-3">
+                  {!historyTarget.voided_at &&
+                    !historyTarget.completed_at &&
+                    (historyTarget.success_prob === null ||
+                      historyTarget.expected_value === null ||
+                      historyTarget.post_gate_kept === null ||
+                      historyTarget.post_within_hypothesis === null) && (
+                      <button
+                        className="w-full rounded-xl bg-blue-600 px-4 py-3 text-white font-bold shadow-sm hover:bg-blue-700 active:bg-blue-800 transition-colors"
+                        onClick={() => {
+                          window.history.pushState({}, "", `/complete/${historyTarget.id}`);
+                          setMode("home");
+                          setTimeout(() => setMode("post"), 0);
+                        }}
+                      >
+                        この記録を完了する
+                      </button>
+                    )}
+
+                  {!historyTarget.voided_at && (
+                    <div className="space-y-2 pt-4 border-t border-zinc-100">
+                      <div className="text-xs font-bold text-zinc-400 uppercase tracking-wider">訂正（無効化）</div>
+                      <div className="flex gap-2">
+                        <input
+                          className="flex-1 rounded-xl border-2 border-zinc-100 bg-zinc-50/50 px-3 py-2 text-sm font-bold focus:border-red-500 focus:bg-white focus:outline-none transition-all"
+                          placeholder="訂正理由（例：記録ミス）"
+                          value={voidReason}
+                          onChange={(e) => setVoidReason(e.target.value)}
+                        />
+                        <button
+                          onClick={() => void voidLog()}
+                          className="rounded-xl border-2 border-red-200 bg-white px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 active:bg-red-100 transition-colors whitespace-nowrap"
+                        >
+                          無効化
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <button
+                    onClick={() => setHistoryTarget(null)}
+                    className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 transition-colors"
+                  >
+                    一覧に戻る
+                  </button>
                 </div>
-              </>
+              </div>
             )}
-          </Card>
+          </div>
+        </section>
+      )}
+
+      {mode === "skip" && (
+        <section className="space-y-4 max-w-md mx-auto relative pb-8">
+          {/* ヘッダー */}
+          <div className="flex items-center justify-between mb-2 px-1">
+            <button
+              onClick={() => setMode("home")}
+              className="text-sm font-semibold text-zinc-600 flex items-center gap-1 hover:text-zinc-800 transition-colors"
+            >
+              ← 戻る
+            </button>
+            <h3 className="text-lg font-bold m-0">見送り（15秒）</h3>
+            <div className="w-10"></div>
+          </div>
+
+          {/* 今日の学習カード */}
+          <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white shadow-sm p-6">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-2xl">{getTodayLearningCard().emoji}</span>
+              <div className="text-sm font-bold text-blue-900">今日の学び（1分）</div>
+            </div>
+
+            <h4 className="text-base font-bold text-zinc-900 mb-3">
+              {getTodayLearningCard().title}
+            </h4>
+
+            <div className="text-sm text-zinc-700 leading-relaxed space-y-2">
+              {getTodayLearningCard().content.map((line, i) => (
+                <p key={i} className="m-0">
+                  {line}
+                </p>
+              ))}
+            </div>
+
+            {/* 詳しく見るボタン */}
+            <button
+              type="button"
+              onClick={() => {
+                // 今後、詳細ページへ遷移する実装を追加予定
+                alert("詳細ページは今後実装予定です");
+              }}
+              className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700 underline underline-offset-2 transition-colors"
+            >
+              詳しく見る →
+            </button>
+          </div>
+
+          {/* 見送り記録ボタン */}
+          <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4">
+            <div className="text-sm font-bold text-zinc-900 mb-2">今日の取引</div>
+            <div className="text-sm text-zinc-600 mb-4">
+              チャンスがなかった、またはルールを満たさなかった場合は「見送り」を記録してください。
+            </div>
+            <button
+              onClick={() => {
+                void saveSkipQuick();
+                setMode("home");
+              }}
+              className="w-full rounded-xl bg-zinc-600 px-4 py-3 text-white font-semibold shadow-sm hover:bg-zinc-700 active:bg-zinc-800 transition-colors"
+            >
+              見送りを記録（+5 XP）
+            </button>
+          </div>
+        </section>
+      )}
+
+      {mode === "pre" && (
+        <section className="space-y-4 max-w-md mx-auto relative pb-8">
+          {/* Header with Back button */}
+          <div className="flex items-center justify-between mb-2 px-1">
+            <button 
+              onClick={() => { resetPre(); setMode("home"); }} 
+              className="text-sm font-semibold text-zinc-600 flex items-center gap-1 hover:text-zinc-800 transition-colors"
+            >
+              ← 戻る
+            </button>
+            <h3 className="text-lg font-bold m-0">{labels.tradePre}</h3>
+            <div className="w-10"></div>
+          </div>
+
+          {memberSettings && !memberSettings.unlocked && weeklyAttempts >= memberSettings.weekly_limit && !isTestMode && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm font-medium">
+              {labels.weeklyLimitReached}
+            </div>
+          )}
+
+          {/* 結論 Card */}
+          <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4">
+            <div className="font-bold mb-3 flex items-center justify-between text-zinc-800">
+              <div className="flex items-center gap-2">
+                <IconSafety /> {copy.verdict.title}
+              </div>
+              <span className="text-zinc-400 hover:text-zinc-600 cursor-help text-lg">?</span>
+            </div>
+            <div className="space-y-1">
+              <div className="text-xs text-zinc-500 leading-relaxed">• {copy.verdict.rr}</div>
+              <div className="text-xs text-zinc-500 leading-relaxed">• {copy.verdict.risk}</div>
+              <div className="text-xs text-zinc-500 leading-relaxed">• {copy.verdict.skip}</div>
+            </div>
+          </div>
+
+          {/* 今週残り Card */}
+          <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4">
+            <div className="text-zinc-400 text-[10px] font-bold uppercase tracking-wider mb-1">今週残り</div>
+            <div className="text-2xl font-black text-zinc-900 leading-none">
+              {Math.max(0, (memberSettings?.weekly_limit ?? 2) - weeklyAttempts)} 
+              <span className="text-sm font-bold text-zinc-400 ml-1">/ {memberSettings?.weekly_limit ?? 2} 回</span>
+            </div>
+          </div>
+
+          {/* ① RR Ratio Card */}
+          <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-sm font-bold text-zinc-800 m-0">① {copy.gate.rrTitle}</h4>
+              <button onClick={() => setGateHelp((h) => ({ ...h, rr: !h.rr }))} className="text-zinc-400 hover:text-zinc-600 cursor-help text-lg">?</button>
+            </div>
+            {gateHelp.rr && (
+              <div className="text-xs text-zinc-500 p-3 bg-zinc-50 rounded-xl mb-4 border border-zinc-100">{copy.gate.rrHelp}</div>
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] font-bold text-zinc-400 mb-1 block">利確</label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  className="w-full rounded-xl border-2 border-zinc-100 bg-zinc-50/50 px-3 py-2 text-sm font-bold focus:border-blue-500 focus:bg-white focus:outline-none transition-all"
+                  placeholder="金額"
+                  value={takeProfitAmount}
+                  onChange={(e) => setTakeProfitAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-zinc-400 mb-1 block">損切り</label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  className="w-full rounded-xl border-2 border-zinc-100 bg-zinc-50/50 px-3 py-2 text-sm font-bold focus:border-blue-500 focus:bg-white focus:outline-none transition-all"
+                  placeholder="金額"
+                  value={stopLossAmount}
+                  onChange={(e) => setStopLossAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+                />
+              </div>
+            </div>
+            <div className="mt-4 pt-3 border-t border-zinc-100 flex justify-between items-center">
+              <span className="text-xs font-bold text-zinc-400">RR比率</span>
+              {(() => {
+                const stopLoss = Number(stopLossAmount);
+                const takeProfit = Number(takeProfitAmount);
+                if (stopLoss > 0 && takeProfit > 0) {
+                  const rr = takeProfit / stopLoss;
+                  const ok = rr >= 3;
+                  return (
+                    <div className={`text-sm font-black ${ok ? "text-blue-600" : "text-rose-500"}`}>
+                      {rr.toFixed(2)} <span className="text-[10px] ml-1">{ok ? "OK" : "NG"}</span>
+                    </div>
+                  );
+                }
+                return <span className="text-xs font-bold text-zinc-200 italic">計算中...</span>;
+              })()}
+            </div>
+          </div>
+
+          {/* ② Risk Card */}
+          <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-sm font-bold text-zinc-800 m-0">② {copy.gate.riskTitle}</h4>
+              <button onClick={() => setGateHelp((h) => ({ ...h, risk: !h.risk }))} className="text-zinc-400 hover:text-zinc-600 cursor-help text-lg">?</button>
+            </div>
+            {gateHelp.risk && (
+              <div className="text-xs text-zinc-500 p-3 bg-zinc-50 rounded-xl mb-4 border border-zinc-100">{copy.gate.riskHelp}</div>
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] font-bold text-zinc-400 mb-1 block">資金</label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  className="w-full rounded-xl border-2 border-zinc-100 bg-zinc-50/50 px-3 py-2 text-sm font-bold focus:border-blue-500 focus:bg-white focus:outline-none transition-all"
+                  placeholder="残高"
+                  value={accountBalance}
+                  onChange={(e) => setAccountBalance(e.target.value.replace(/[^0-9.]/g, ""))}
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-zinc-400 mb-1 block">損切り</label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  className="w-full rounded-xl border-2 border-zinc-100 bg-zinc-50/50 px-3 py-2 text-sm font-bold focus:border-blue-500 focus:bg-white focus:outline-none transition-all"
+                  placeholder="許容額"
+                  value={stopLossAmount}
+                  onChange={(e) => setStopLossAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+                />
+              </div>
+            </div>
+            <div className="mt-4 pt-3 border-t border-zinc-100 flex justify-between items-center">
+              <span className="text-xs font-bold text-zinc-400">リスク許容</span>
+              {(() => {
+                const balance = Number(accountBalance);
+                const stopLoss = Number(stopLossAmount);
+                if (balance > 0 && stopLoss > 0) {
+                  const riskPct = (stopLoss / balance) * 100;
+                  const ok = riskPct <= 2;
+                  return (
+                    <div className={`text-sm font-black ${ok ? "text-blue-600" : "text-rose-500"}`}>
+                      {riskPct.toFixed(2)}% <span className="text-[10px] ml-1">{ok ? "OK" : "NG"}</span>
+                    </div>
+                  );
+                }
+                return <span className="text-xs font-bold text-zinc-200 italic">計算中...</span>;
+              })()}
+            </div>
+          </div>
+
+          {/* ③ Rule Condition Card */}
+          <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-sm font-bold text-zinc-800 m-0">③ {copy.gate.ruleTitle}</h4>
+              <button onClick={() => setGateHelp((h) => ({ ...h, rule: !h.rule }))} className="text-zinc-400 hover:text-zinc-600 cursor-help text-lg">?</button>
+            </div>
+            {gateHelp.rule && (
+              <div className="text-xs text-zinc-500 p-3 bg-zinc-50 rounded-xl mb-4 border border-zinc-100">{copy.gate.ruleHelp}</div>
+            )}
+            <GateRowJP
+              label={copy.gate.ruleLabel}
+              checked={gate.gate_rule_ok}
+              onChange={(v) => setGate((g) => ({ ...g, gate_rule_ok: v }))}
+            />
+          </div>
+
+          <div className="pt-2">
+            {gateAllOk ? (
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4 space-y-6">
+                  <h4 className="text-sm font-bold text-zinc-800 m-0 border-b border-zinc-50 pb-2">仮説ラベル</h4>
+                  
+                  <div>
+                    <div className="text-[10px] font-bold text-zinc-400 mb-2 uppercase tracking-wider">成功確率</div>
+                    <ChoiceRow>
+                      <ChoiceButton active={successProb === "high"} onClick={() => setSuccessProb("high")}>
+                        高<div className="text-[9px] opacity-70 mt-1">根拠あり</div>
+                      </ChoiceButton>
+                      <ChoiceButton active={successProb === "mid"} onClick={() => setSuccessProb("mid")}>
+                        中<div className="text-[9px] opacity-70 mt-1">五分五分</div>
+                      </ChoiceButton>
+                      <ChoiceButton active={successProb === "low"} onClick={() => setSuccessProb("low")}>
+                        低<div className="text-[9px] opacity-70 mt-1">自信なし</div>
+                      </ChoiceButton>
+                    </ChoiceRow>
+                  </div>
+
+                  <div>
+                    <div className="text-[10px] font-bold text-zinc-400 mb-2 uppercase tracking-wider">期待値</div>
+                    <ChoiceRow>
+                      <ChoiceButton active={expectedValue === "plus"} onClick={() => setExpectedValue("plus")}>
+                        ＋<div className="text-[9px] opacity-70 mt-1">有利</div>
+                      </ChoiceButton>
+                      <ChoiceButton active={expectedValue === "unknown"} onClick={() => setExpectedValue("unknown")}>
+                        不明<div className="text-[9px] opacity-70 mt-1">判断不能</div>
+                      </ChoiceButton>
+                      <ChoiceButton active={expectedValue === "minus"} onClick={() => setExpectedValue("minus")}>
+                        －<div className="text-[9px] opacity-70 mt-1">不利</div>
+                      </ChoiceButton>
+                    </ChoiceRow>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => void savePre()}
+                  disabled={weeklyLocked && !isTestMode}
+                  className="w-full h-14 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  {labels.tradePre} を保存
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl text-center">
+                   <div className="text-rose-800 font-bold text-sm">前提条件を満たしていません</div>
+                   <div className="text-rose-600 text-xs mt-1">今日は見送るのが正解です。</div>
+                </div>
+
+                <button
+                  onClick={() => void saveSkipQuick()}
+                  className="w-full h-14 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 active:scale-[0.98] transition-all"
+                >
+                  見送りとして記録
+                </button>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {mode === "post" && (
+        <section className="space-y-4 max-w-md mx-auto relative pb-8">
+          {/* Header with Back button */}
+          <div className="flex items-center justify-between mb-2 px-1">
+            <button 
+              onClick={() => { 
+                resetPost(); 
+                if (completeLogId) {
+                  window.history.pushState({}, "", "/");
+                }
+                setMode("home"); 
+              }} 
+              className="text-sm font-semibold text-zinc-600 flex items-center gap-1 hover:text-zinc-800 transition-colors"
+            >
+              ← 戻る
+            </button>
+            <h3 className="text-lg font-bold m-0">{labels.tradePost}</h3>
+            <div className="w-10"></div>
+          </div>
+
+          {!pending ? (
+            <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-6 text-center">
+              <p className="text-sm text-zinc-600 mb-4">未完の記録がありません。先に「取引前」を記録してください。</p>
+              <button 
+                onClick={() => {
+                  if (completeLogId) {
+                    window.history.pushState({}, "", "/");
+                  }
+                  setMode("home");
+                }}
+                className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 transition-colors"
+              >
+                戻る
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* 1) 対象情報をカード化 */}
+              <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4 space-y-2">
+                <div className="text-sm font-bold text-zinc-900">対象</div>
+                <div className="text-sm text-zinc-600 space-y-1">
+                  <div>日時：{new Date(pending.occurred_at).toLocaleString()}</div>
+                  <div>仮説：{labelProb(pending.success_prob)}</div>
+                  <div>期待値：{labelEV(pending.expected_value)}</div>
+                  <div>終値率：不明</div>
+                </div>
+              </div>
+
+              {/* 2) 事後チェックをカード化＋選択肢をボタン風に */}
+              <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4 space-y-4">
+                <div className="text-base font-bold text-zinc-900">事後チェック（感情禁止：事実だけ）</div>
+                
+                {/* 質問1：ルールは守れたか */}
+                <div className="space-y-2">
+                  <div className="text-sm font-semibold text-zinc-900">ルールは守れたか</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPostGateKept(true)}
+                      className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
+                        postGateKept === true
+                          ? "bg-blue-600 text-white shadow-sm"
+                          : "bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50"
+                      }`}
+                    >
+                      はい
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPostGateKept(false)}
+                      className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
+                        postGateKept === false
+                          ? "bg-blue-600 text-white shadow-sm"
+                          : "bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50"
+                      }`}
+                    >
+                      いいえ
+                    </button>
+                  </div>
+                </div>
+
+                {/* 質問2：想定内だったか */}
+                <div className="space-y-2">
+                  <div className="text-sm font-semibold text-zinc-900">想定内だったか</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPostWithinHypo(true)}
+                      className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
+                        postWithinHypo === true
+                          ? "bg-blue-600 text-white shadow-sm"
+                          : "bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50"
+                      }`}
+                    >
+                      はい
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPostWithinHypo(false)}
+                      className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
+                        postWithinHypo === false
+                          ? "bg-blue-600 text-white shadow-sm"
+                          : "bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50"
+                      }`}
+                    >
+                      いいえ
+                    </button>
+                  </div>
+                </div>
+
+                {postWithinHypo === false && (
+                  <div className="mt-3 space-y-2 pt-2 border-t border-zinc-100">
+                    <div className="text-sm font-semibold text-zinc-900">理由を教えてください</div>
+                    <textarea
+                      value={unexpectedReason}
+                      onChange={(e) => setUnexpectedReason(e.target.value)}
+                      className="w-full rounded-xl border-2 border-zinc-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none transition-all"
+                      rows={3}
+                      placeholder="何が想定外でしたか..."
+                    />
+                    <div className="flex gap-2 flex-wrap mt-1">
+                      <button
+                        type="button"
+                        onClick={() => setUnexpectedReason("前提条件の破綻")}
+                        className="px-2 py-1 text-[10px] font-bold rounded-lg bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors"
+                      >
+                        前提条件の破綻
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setUnexpectedReason("ルール未達")}
+                        className="px-2 py-1 text-[10px] font-bold rounded-lg bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors"
+                      >
+                        ルール未達
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setUnexpectedReason("記録漏れ")}
+                        className="px-2 py-1 text-[10px] font-bold rounded-lg bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors"
+                      >
+                        記録漏れ
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 3) ボタンを下部に大きく配置 */}
+              <div className="flex flex-col gap-3">
+                <button
+                  type="button"
+                  onClick={() => void savePost()}
+                  className="w-full rounded-xl bg-blue-600 px-4 py-3 text-white font-semibold shadow-sm hover:bg-blue-700 active:bg-blue-800 transition-colors"
+                >
+                  保存（取引後）
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { 
+                    resetPost(); 
+                    if (completeLogId) {
+                      window.history.pushState({}, "", "/");
+                    }
+                    setMode("home"); 
+                  }}
+                  className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 transition-colors"
+                >
+                  戻る
+                </button>
+              </div>
+            </>
+          )}
         </section>
       )}
 
@@ -2678,6 +3048,52 @@ const IconHistory = () => (
   </svg>
 );
 
+// 取引アイコン（TrendingUp）
+const IconTrade = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+    <polyline points="17 6 23 6 23 12" />
+  </svg>
+);
+
+// 見送りアイコン（Pause）
+const IconSkip = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="6" y="4" width="4" height="16" />
+    <rect x="14" y="4" width="4" height="16" />
+  </svg>
+);
+
+// ログ種別バッジ（取引/見送り）
+function LogTypeBadge({ logType }: { logType: string | null | undefined }) {
+  if (!logType) return null;
+  
+  if (logType === "valid") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+        <IconTrade />
+        取引
+      </span>
+    );
+  }
+  
+  if (logType === "skip") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-zinc-100 text-zinc-600">
+        <IconSkip />
+        見送り
+      </span>
+    );
+  }
+  
+  // 未知の値はそのまま表示
+  return (
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-zinc-100 text-zinc-600">
+      {logType}
+    </span>
+  );
+}
+
 function Card(props: { children: any; style?: CSSProperties; className?: string }) {
   return (
     <div
@@ -2687,14 +3103,6 @@ function Card(props: { children: any; style?: CSSProperties; className?: string 
         ...(props.style ?? {}),
       }}
     >
-      {props.children}
-    </div>
-  );
-}
-
-function Row(props: { children: any; style?: CSSProperties }) {
-  return (
-    <div style={{ display: "flex", gap: "var(--space-md)", alignItems: "center", marginTop: "var(--space-md)", flexWrap: "wrap", ...(props.style ?? {}) }}>
       {props.children}
     </div>
   );
@@ -2714,38 +3122,6 @@ function GateRowJP(props: { label: string; checked: boolean; onChange: (v: boole
     </label>
   );
 }
-
-function YesNoJP(props: { value: boolean | null; setValue: (v: boolean) => void }) {
-  return (
-    <div style={{ display: "flex", gap: 12 }}>
-      <button
-        onClick={() => props.setValue(true)}
-        style={{ 
-          padding: "10px 20px", 
-          flex: 1,
-          borderColor: props.value === true ? "var(--color-accent)" : "var(--color-border)",
-          backgroundColor: props.value === true ? "rgba(43, 109, 224, 0.1)" : "var(--color-card)",
-          fontWeight: props.value === true ? 700 : 500 
-        }}
-      >
-        はい
-      </button>
-      <button
-        onClick={() => props.setValue(false)}
-        style={{ 
-          padding: "10px 20px", 
-          flex: 1,
-          borderColor: props.value === false ? "var(--color-danger)" : "var(--color-border)",
-          backgroundColor: props.value === false ? "var(--color-danger-bg)" : "var(--color-card)",
-          fontWeight: props.value === false ? 700 : 500 
-        }}
-      >
-        いいえ
-      </button>
-    </div>
-  );
-}
-
 
 function ChoiceRow(props: { children: any }) {
   return (
@@ -2767,22 +3143,6 @@ function ChoiceButton(props: { active: boolean; onClick: () => void; children: a
         backgroundColor: props.active ? "rgba(43, 109, 224, 0.1)" : "var(--color-card)",
         color: props.active ? "var(--color-accent)" : "var(--color-text)",
         fontWeight: props.active ? 700 : 500,
-      }}
-    >
-      {props.children}
-    </button>
-  );
-}
-
-function SmallChip(props: { onClick: () => void; children: any }) {
-  return (
-    <button
-      onClick={props.onClick}
-      style={{
-        padding: "6px 12px",
-        fontSize: 12,
-        borderRadius: "var(--radius-sm)",
-        opacity: 0.9,
       }}
     >
       {props.children}

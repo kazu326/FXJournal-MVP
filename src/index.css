@@ -12,13 +12,22 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-body {
+html, body {
   margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+  touch-action: pan-y; /* Only allow vertical scrolling */
+}
+
+body {
   min-width: 320px;
   min-height: 100vh;
   background: var(--color-bg);
   color: var(--color-text);
-  overflow-x: hidden; /* Prevent horizontal scroll */
+  position: relative;
+  overscroll-behavior-y: none; /* Prevent bounce effect */
 }
 
 * {
