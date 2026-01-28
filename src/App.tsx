@@ -364,21 +364,22 @@ export default function App() {
     !isAdminRoute && window.location.pathname.startsWith("/complete/")
       ? decodeURIComponent(window.location.pathname.replace("/complete/", ""))
       : null;
+  // login
+  const [email, setEmail] = useState("");
+
+  const [role, setRole] = useState<"member" | "teacher" | "admin">("member");
+  const isTeacher = role === "teacher" || role === "admin";
+
   const [testMode, setTestMode] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.localStorage.getItem("fxj_test_mode") === "1";
   });
   const isTestMode = testMode && isTeacher;
 
-  // login
-  const [email, setEmail] = useState("");
-
   // pending（取引前は書いたけど、取引後チェックが未完のログ）
   const [pending, setPending] = useState<TradeLogLite | null>(null);
   const [activeLog, setActiveLog] = useState<TradeLogLite | null>(null);
   const [currentLogId, setCurrentLogId] = useState<string | null>(null);
-  const [role, setRole] = useState<"member" | "teacher" | "admin">("member");
-  const isTeacher = role === "teacher" || role === "admin";
   const [profileDisplayName, setProfileDisplayName] = useState<string | null>(null);
   const [showNameModal, setShowNameModal] = useState(false);
   const [nameInput, setNameInput] = useState("");
