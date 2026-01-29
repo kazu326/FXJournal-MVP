@@ -22,6 +22,11 @@ begin
   insert into public.profiles (user_id, role)
   values (new.id, 'member')
   on conflict (user_id) do nothing;
+
+  insert into public.member_settings (member_user_id, weekly_limit, max_risk_percent, unlocked)
+  values (new.id, 2, 2, false)
+  on conflict (member_user_id) do nothing;
+
   return new;
 end;
 $$;

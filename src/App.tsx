@@ -12,6 +12,10 @@ import { NextActionCard } from "./components/next-action-card";
 import { Card as UiCard, CardContent as UiCardContent } from "./components/ui/card";
 import { AdminHeader } from "./components/admin-header";
 import { InstallPrompt } from "./components/install-prompt";
+import { updateXpAndStreak } from "./lib/xp";
+import LectureNotesPage from "./pages/LectureNotesPage";
+import HistoryPage from "./pages/HistoryPage";
+import { BottomTabBar, type TabKey } from "./components/bottom-tab-bar";
 
 type Mode = "home" | "pre" | "post" | "history" | "skip";
 
@@ -352,6 +356,11 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [status, setStatus] = useState("");
   const [mode, setMode] = useState<Mode>("home");
+  const isLectureNotesRoute = window.location.pathname === "/lecture-notes";
+  const [activeTab, setActiveTab] = useState<TabKey>(() => {
+    if (isLectureNotesRoute) return "lecture";
+    return "home";
+  });
   const [showMenu, setShowMenu] = useState(false);
   const [showAdminMenu, setShowAdminMenu] = useState(false);
   const isAdminRoute =
@@ -381,7 +390,25 @@ export default function App() {
   const [activeLog, setActiveLog] = useState<TradeLogLite | null>(null);
   const [currentLogId, setCurrentLogId] = useState<string | null>(null);
   const [profileDisplayName, setProfileDisplayName] = useState<string | null>(null);
+  const [level, setLevel] = useState(1);
+  const [currentXp, setCurrentXp] = useState(0);
+  const [loginStreak, setLoginStreak] = useState(0);
   const [showNameModal, setShowNameModal] = useState(false);
+
+  // XP更新共通ハンドラ
+  const applyXpResult = (res: any | null) => {
+    if (!res) return;
+    setLevel((prevLevel) => {
+      const nextLevel = res.level;
+      if (nextLevel > prevLevel) {
+        // TODO: レベルアップ演出（モーダルやトースト）をここに追加
+        console.log(`Level up! ${prevLevel} -> ${nextLevel}`);
+      }
+      return nextLevel;
+    });
+    setCurrentXp(res.currentXp);
+    setLoginStreak(res.loginStreak);
+  };
   const [nameInput, setNameInput] = useState("");
   const [profileNameMap, setProfileNameMap] = useState<Record<string, string>>({});
 
@@ -404,9 +431,6 @@ export default function App() {
   const [weeklyAttempts, setWeeklyAttempts] = useState(0);
   const [memberSettings, setMemberSettings] = useState<MemberSettings | null>(null);
   const [historyLogs, setHistoryLogs] = useState<HistoryLog[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [historyTarget, setHistoryTarget] = useState<HistoryLog | null>(null);
-  const [voidReason, setVoidReason] = useState("");
 
   // announcements + DM (member)
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -420,6 +444,22 @@ export default function App() {
     if (session && !localStorage.getItem("hasSeenInstallPrompt")) {
       setShowInstallPrompt(true);
       localStorage.setItem("hasSeenInstallPrompt", "true");
+    }
+  }, [session]);
+
+  useEffect(() => {
+    if (session) {
+      const key = `fxj-login-xp-done-${session.user.id}-${new Date().toDateString()}`;
+      const alreadyDone = window.sessionStorage.getItem(key);
+      if (alreadyDone) return;
+
+      void (async () => {
+        const result = await updateXpAndStreak("LOGIN");
+        if (result) {
+          applyXpResult(result);
+          window.sessionStorage.setItem(key, "1");
+        }
+      })();
     }
   }, [session]);
 
@@ -641,8 +681,6 @@ export default function App() {
     setUnexpectedReason("");
     setWeeklyAttempts(0);
     setHistoryLogs([]);
-    setHistoryTarget(null);
-    setVoidReason("");
     setRole("member");
     setAnnouncements([]);
     setMemberThreads([]);
@@ -755,11 +793,16 @@ export default function App() {
 
     const { data, error } = await supabase
       .from("profiles")
-      .select("role, display_name")
+      .select("role, display_name, level, current_xp, login_streak")
       .eq("user_id", session.user.id)
       .single();
 
-    if (!error && data?.role) setRole(data.role);
+    if (!error && data) {
+      if (data.role) setRole(data.role);
+      setLevel(data.level || 1);
+      setCurrentXp(data.current_xp || 0);
+      setLoginStreak(data.login_streak || 0);
+    }
     const nextName = data?.display_name?.trim() || null;
     setProfileDisplayName(nextName);
     setNameInput(nextName ?? "");
@@ -871,13 +914,19 @@ export default function App() {
 
     if (error) return setStatus(`保存失敗: ${error.message}`);
     setStatus("✅ 見送りとして記録しました。");
+
+    // XP更新
+    void (async () => {
+      const xpRes = await updateXpAndStreak("DAILY_LESSON_SKIP");
+      applyXpResult(xpRes);
+    })();
+
     await loadWeeklyCount();
   };
 
   const loadHistory = async () => {
     setStatus("");
     if (!session?.user?.id) return;
-    setHistoryLoading(true);
     const { data, error } = await supabase
       .from("trade_logs")
       .select(
@@ -887,26 +936,8 @@ export default function App() {
       .order("occurred_at", { ascending: false })
       .limit(50);
 
-    setHistoryLoading(false);
     if (error) return reportError("履歴取得失敗", error);
     setHistoryLogs((data ?? []) as HistoryLog[]);
-  };
-
-  const voidLog = async () => {
-    setStatus("");
-    if (!historyTarget) return setStatus("対象ログを選んでください。");
-    const reason = voidReason.trim();
-    if (!reason) return setStatus("訂正理由を入力してください。");
-    const { error } = await supabase
-      .from("trade_logs")
-      .update({ voided_at: new Date().toISOString(), void_reason: reason })
-      .eq("id", historyTarget.id);
-    if (error) return reportError("訂正失敗", error);
-    setStatus("✅ 訂正（無効化）しました。");
-    setVoidReason("");
-    await loadHistory();
-    await loadWeeklyCount();
-    await loadPending();
   };
 
   const sendMemberMessage = async (message?: string) => {
@@ -1248,6 +1279,13 @@ export default function App() {
     setCurrentLogId(newLog.id);
     setPending(newLog);
     setStatus("✅ 記録しました。取引後のチェックを入れてください。");
+
+    // XP更新
+    void (async () => {
+      const xpRes = await updateXpAndStreak("TRADE_PRE");
+      applyXpResult(xpRes);
+    })();
+
     resetPre();
     setMode("post");
     void loadPending();
@@ -1298,6 +1336,13 @@ export default function App() {
     void loadPending();
     void loadWeeklyCount();
     void loadHistory();
+
+    // XP更新
+    void (async () => {
+      const xpRes = await updateXpAndStreak("TRADE_POST");
+      applyXpResult(xpRes);
+    })();
+
     if (completeLogId) {
       window.history.pushState({}, "", "/");
     }
@@ -1391,6 +1436,18 @@ export default function App() {
           </div>
         </div>
       </div>
+    );
+  }
+
+  if (isLectureNotesRoute) {
+    return (
+      <LectureNotesPage 
+        session={session} 
+        onBack={() => { 
+          window.history.pushState({}, "", "/"); 
+          window.location.reload(); 
+        }} 
+      />
     );
   }
 
@@ -2180,16 +2237,32 @@ export default function App() {
   })();
 
   return (
-    <div style={{ maxWidth: "100%", margin: "0", padding: "0 16px var(--space-xl) 16px", minHeight: "100vh" }}>
+    <div
+      style={{
+        maxWidth: "100%",
+        margin: "0",
+        padding: `0 16px ${session && !isAdminRoute ? "80px" : "var(--space-xl)"} 16px`,
+        paddingTop: session && !isAdminRoute ? "72px" : "0",
+        minHeight: "100vh",
+      }}
+    >
       {/* Header */}
-      <header style={{ 
-        display: "flex", 
-        justifyContent: "space-between", 
-        alignItems: "center", 
-        padding: "var(--space-md) var(--space-md)",
-        marginBottom: "var(--space-lg)",
-        borderBottom: "1px solid var(--color-border)"
-      }}>
+      <header
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "12px 16px",
+          marginBottom: "var(--space-lg)",
+          borderBottom: "1px solid var(--color-border)",
+          position: session && !isAdminRoute ? "fixed" : "static",
+          top: 0,
+          left: 0,
+          right: 0,
+          background: "var(--color-bg)",
+          zIndex: 40,
+        }}
+      >
         <div onClick={() => setMode("home")} style={{ cursor: "pointer" }}>
           <h2
             className="shimmer-text"
@@ -2248,10 +2321,19 @@ export default function App() {
                   <IconNext /> ホーム
                 </button>
                 <button 
-                  onClick={() => { setMode("history"); setShowMenu(false); }}
+                  onClick={() => { setActiveTab("history"); setShowMenu(false); }}
                   style={{ width: "100%", border: "none", borderRadius: 0, display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-start", padding: "16px 20px" }}
                 >
                   <IconHistory /> 履歴
+                </button>
+                <button 
+                  onClick={() => { 
+                    setShowMenu(false); 
+                    setActiveTab("lecture");
+                  }}
+                  style={{ width: "100%", border: "none", borderRadius: 0, display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-start", padding: "16px 20px" }}
+                >
+                  <span style={{ fontSize: 18 }}>📝</span> 講義メモ
                 </button>
                 {isTeacher && (
                   <button 
@@ -2325,7 +2407,7 @@ export default function App() {
         </div>
       )}
 
-      {mode === "home" && (
+      {activeTab === "home" && mode === "home" && (
         <section>
           <main className="min-h-screen bg-zinc-50 px-4 py-6">
             <div className="space-y-6 text-left">
@@ -2336,9 +2418,9 @@ export default function App() {
                   </div>
                 </div>
                 <StreakHeader
-                  streakDays={5}
-                  level={3}
-                  currentXP={75}
+                  streakDays={loginStreak}
+                  level={level}
+                  currentXP={currentXp % 100}
                   nextLevelXP={100}
                 />
               </header>
@@ -2358,242 +2440,66 @@ export default function App() {
               />
               <TodayTasksCard tasks={todayTasks} />
               <WeeklyProgressCard usedTrades={weeklyAttempts} maxTrades={weeklyLimit} />
-              <TeacherDMCard
-                timestamp={latestMessage ? new Date(latestMessage.created_at).toLocaleString() : "—"}
-                message={latestMessage?.body ?? "まだメッセージがありません。"}
-                onSendReply={(message) => void sendMemberMessage(message)}
-              />
-              <UiCard>
-                <UiCardContent className="pt-6">
-                  <div className="flex items-center gap-2 mb-3">
-                    <h2 className="text-lg font-semibold text-foreground">お知らせ</h2>
-                  </div>
-                  {announcements.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">まだありません。</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {announcements.slice(0, 3).map((a) => (
-                        <div key={a.id} className="rounded-md border border-border bg-card p-3">
-                          <div className="text-xs text-muted-foreground">
-                            {new Date(a.created_at).toLocaleString()}
-                          </div>
-                          <div className="font-semibold text-foreground mt-1">{a.title}</div>
-                          <div className="text-sm text-muted-foreground mt-1">{a.body}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </UiCardContent>
-              </UiCard>
             </div>
           </main>
         </section>
       )}
 
-      {mode === "history" && (
-        <section className="space-y-4 max-w-md mx-auto relative pb-8">
-          {/* 2) ヘッダー（「履歴」タイトル＋更新・戻るボタン）を統一 */}
-          <div className="flex items-center justify-between mb-4 px-1">
-            <h3 className="text-lg font-bold text-zinc-900 flex items-center gap-2 m-0">
-              <span>📋</span>
-              履歴（直近50件）
-            </h3>
-            <div className="flex gap-2">
-              <button
-                onClick={() => void loadHistory()}
-                className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors"
-              >
-                更新
-              </button>
-              <button
-                onClick={() => setMode("home")}
-                className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors"
-              >
-                戻る
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            {/* 一覧（モバイルでは選択時非表示） */}
-            <div className={`${historyTarget ? "hidden" : "block"}`}>
-              {historyLoading ? (
-                <div className="text-muted text-center py-10 bg-white rounded-2xl border border-zinc-200 shadow-sm">読み込み中...</div>
-              ) : historyLogs.length === 0 ? (
-                <div className="text-muted text-center py-10 bg-white rounded-2xl border border-zinc-200 shadow-sm">まだ記録がありません。</div>
-              ) : (
-                <div className="space-y-3">
-                  {historyLogs.map((log) => {
-                    const isDone =
-                      !!log.completed_at ||
-                      (log.success_prob !== null &&
-                        log.expected_value !== null &&
-                        log.post_gate_kept !== null &&
-                        log.post_within_hypothesis !== null);
-                    const statusLabel = log.voided_at ? "無効" : isDone ? "完了" : "未完";
-                    
-                    return (
-                      <button
-                        key={log.id}
-                        type="button"
-                        onClick={() => { setHistoryTarget(log); setVoidReason(""); }}
-                        className="w-full rounded-2xl border border-zinc-200 bg-white p-4 text-left flex items-center gap-3 shadow-sm hover:bg-zinc-50 active:bg-zinc-100 transition-colors"
-                      >
-                        {/* 左：アイコン */}
-                        <div className="flex-shrink-0 h-10 w-10 rounded-xl bg-zinc-100 flex items-center justify-center text-xl">
-                          {log.log_type === "skip" ? "🛡️" : "📊"}
-                        </div>
-
-                        {/* 中央：日時＋種別 */}
-                        <div className="min-w-0 flex-1">
-                          <div className="text-sm font-semibold text-zinc-900 truncate">
-                            {new Date(log.occurred_at).toLocaleString("ja-JP", {
-                              month: "numeric",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit"
-                            })}
-                          </div>
-                          <div className="text-sm text-zinc-600 truncate">
-                            {log.log_type === "skip" ? "見送り" : "取引"}
-                          </div>
-                        </div>
-
-                        {/* 右：ステータスpill */}
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-bold ring-1 flex-shrink-0 ${
-                            log.voided_at 
-                              ? "bg-red-50 text-red-700 ring-red-200"
-                              : isDone
-                                ? "bg-blue-50 text-blue-700 ring-blue-200"
-                                : "bg-zinc-50 text-zinc-700 ring-zinc-200"
-                          }`}
-                        >
-                          {statusLabel}
-                        </span>
-
-                        {/* 右矢印 */}
-                        <span className="text-zinc-400 flex-shrink-0">›</span>
-                      </button>
-                    );
-                  })}
+      {activeTab === "messages" && (
+        <main className="min-h-screen bg-zinc-50 px-4 py-6">
+          <div className="max-w-md mx-auto space-y-6 pb-20">
+            <h2 className="text-xl font-bold text-zinc-900 px-1 flex items-center gap-2">
+              <span>💬</span> メッセージ
+            </h2>
+            <TeacherDMCard
+              timestamp={latestMessage ? new Date(latestMessage.created_at).toLocaleString() : "—"}
+              message={latestMessage?.body ?? "まだメッセージがありません。"}
+              onSendReply={(message) => void sendMemberMessage(message)}
+            />
+            <UiCard>
+              <UiCardContent className="pt-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <h2 className="text-lg font-semibold text-foreground">お知らせ</h2>
                 </div>
-              )}
-            </div>
-
-            {/* 3) 詳細パネルをカード化（選択時のみ表示） */}
-            {historyTarget && (
-              <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4 space-y-4">
-                <div className="flex items-center justify-between border-b border-zinc-50 pb-3">
-                  <div className="text-base font-bold text-zinc-900">記録の詳細</div>
-                  <button
-                    onClick={() => setHistoryTarget(null)}
-                    className="text-sm font-semibold text-zinc-600 hover:text-zinc-900 flex items-center gap-1"
-                  >
-                    ✕ 閉じる
-                  </button>
-                </div>
-
-                {/* 基本情報 */}
-                <div className="text-sm text-zinc-600 space-y-1">
-                  <div>日時：{new Date(historyTarget.occurred_at).toLocaleString()}</div>
-                  <div>種別：{historyTarget.log_type === "skip" ? "見送り" : "取引"}</div>
-                  <div>ステータス：{historyTarget.voided_at ? "無効" : (!!historyTarget.completed_at ? "完了" : "未完")}</div>
-                </div>
-
-                {/* 取引前情報（validの場合のみ） */}
-                {historyTarget.log_type === "valid" && (
-                  <>
-                    <div className="space-y-2 pt-2 border-t border-zinc-50">
-                      <div className="text-sm font-bold text-zinc-900">取引前（Gate & 仮説）</div>
-                      <div className="text-sm text-zinc-600 space-y-1">
-                        <div className="bg-zinc-50 p-2 rounded-lg text-xs mb-2">
-                          {`回数:${historyTarget.gate_trade_count_ok ? "○" : "×"} / ` +
-                            `RR:${historyTarget.gate_rr_ok ? "○" : "×"} / ` +
-                            `リスク:${historyTarget.gate_risk_ok ? "○" : "×"} / ` +
-                            `ルール:${historyTarget.gate_rule_ok ? "○" : "×"}`}
+                {announcements.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">まだありません。</p>
+                ) : (
+                  <div className="space-y-3">
+                    {announcements.slice(0, 3).map((a) => (
+                      <div key={a.id} className="rounded-md border border-border bg-card p-3">
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(a.created_at).toLocaleString()}
                         </div>
-                        <div>成功確率：{labelProb(historyTarget.success_prob)}</div>
-                        <div>期待値：{labelEV(historyTarget.expected_value)}</div>
+                        <div className="font-semibold text-foreground mt-1">{a.title}</div>
+                        <div className="text-sm text-muted-foreground mt-1">{a.body}</div>
                       </div>
-                    </div>
-
-                    <div className="space-y-2 pt-2 border-t border-zinc-50">
-                      <div className="text-sm font-bold text-zinc-900">事後チェック</div>
-                      <div className="text-sm text-zinc-600">
-                        {historyTarget.post_gate_kept === null ? "未完" : historyTarget.post_gate_kept ? "✅ ルール守れた" : "❌ ルール破った"} / {historyTarget.post_within_hypothesis === null ? "未完" : historyTarget.post_within_hypothesis ? "🎯 想定内" : "❓ 想定外"}
-                      </div>
-                      {historyTarget.unexpected_reason && (
-                        <div className="text-sm text-zinc-600 italic bg-rose-50 p-3 rounded-xl border border-rose-100 mt-2">
-                          原因：{historyTarget.unexpected_reason}
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-
-                {historyTarget.voided_at && (
-                  <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs">
-                    <div className="font-bold mb-1">この記録は無効化されています</div>
-                    <div>日時：{new Date(historyTarget.voided_at).toLocaleString()}</div>
-                    <div>理由：{historyTarget.void_reason ?? "—"}</div>
+                    ))}
                   </div>
                 )}
-
-                {/* アクションボタン */}
-                <div className="pt-4 space-y-3">
-                  {!historyTarget.voided_at &&
-                    !historyTarget.completed_at &&
-                    (historyTarget.success_prob === null ||
-                      historyTarget.expected_value === null ||
-                      historyTarget.post_gate_kept === null ||
-                      historyTarget.post_within_hypothesis === null) && (
-                      <button
-                        className="w-full rounded-xl bg-blue-600 px-4 py-3 text-white font-bold shadow-sm hover:bg-blue-700 active:bg-blue-800 transition-colors"
-                        onClick={() => {
-                          window.history.pushState({}, "", `/complete/${historyTarget.id}`);
-                          setMode("home");
-                          setTimeout(() => setMode("post"), 0);
-                        }}
-                      >
-                        この記録を完了する
-                      </button>
-                    )}
-
-                  {!historyTarget.voided_at && (
-                    <div className="space-y-2 pt-4 border-t border-zinc-100">
-                      <div className="text-xs font-bold text-zinc-400 uppercase tracking-wider">訂正（無効化）</div>
-                      <div className="flex gap-2">
-                        <input
-                          className="flex-1 rounded-xl border-2 border-zinc-100 bg-zinc-50/50 px-3 py-2 text-sm font-bold focus:border-red-500 focus:bg-white focus:outline-none transition-all"
-                          placeholder="訂正理由（例：記録ミス）"
-                          value={voidReason}
-                          onChange={(e) => setVoidReason(e.target.value)}
-                        />
-                        <button
-                          onClick={() => void voidLog()}
-                          className="rounded-xl border-2 border-red-200 bg-white px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 active:bg-red-100 transition-colors whitespace-nowrap"
-                        >
-                          無効化
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <button
-                    onClick={() => setHistoryTarget(null)}
-                    className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 transition-colors"
-                  >
-                    一覧に戻る
-                  </button>
-                </div>
-              </div>
-            )}
+              </UiCardContent>
+            </UiCard>
           </div>
-        </section>
+        </main>
       )}
 
-      {mode === "skip" && (
+      {activeTab === "history" && (
+        <HistoryPage session={session} />
+      )}
+
+      {activeTab === "lecture" && (
+        <div className="pb-20">
+          <LectureNotesPage 
+            session={session} 
+            onBack={() => setActiveTab("home")} 
+          />
+        </div>
+      )}
+
+      {session && !isAdminRoute && showInstallPrompt && (
+        <InstallPrompt onClose={() => setShowInstallPrompt(false)} />
+      )}
+
+      {mode === "skip" && activeTab === "home" && (
         <section className="space-y-4 max-w-md mx-auto relative pb-8">
           {/* ヘッダー */}
           <div className="flex items-center justify-between mb-2 px-1">
@@ -2658,7 +2564,7 @@ export default function App() {
         </section>
       )}
 
-      {mode === "pre" && (
+      {mode === "pre" && activeTab === "home" && (
         <section className="space-y-4 max-w-md mx-auto relative pb-8">
           {/* Header with Back button */}
           <div className="flex items-center justify-between mb-2 px-1">
@@ -2886,7 +2792,7 @@ export default function App() {
         </section>
       )}
 
-      {mode === "post" && (
+      {mode === "post" && activeTab === "home" && (
         <section className="space-y-4 max-w-md mx-auto relative pb-8">
           {/* Header with Back button */}
           <div className="flex items-center justify-between mb-2 px-1">
@@ -3063,6 +2969,10 @@ export default function App() {
 
       {session && !isAdminRoute && showInstallPrompt && (
         <InstallPrompt onClose={() => setShowInstallPrompt(false)} />
+      )}
+
+      {session && !isAdminRoute && (
+        <BottomTabBar selectedTab={activeTab} onChange={setActiveTab} />
       )}
     </div>
   );

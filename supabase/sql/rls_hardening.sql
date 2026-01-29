@@ -204,6 +204,17 @@ for select
 to authenticated
 using (member_user_id = auth.uid());
 
+create policy "member can insert own settings"
+on public.member_settings
+for insert
+to authenticated
+with check (
+  member_user_id = auth.uid() 
+  and weekly_limit = 2 
+  and max_risk_percent = 2 
+  and unlocked = false
+);
+
 create policy "staff can manage settings"
 on public.member_settings
 for all
