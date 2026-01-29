@@ -652,15 +652,20 @@ export default function App() {
 
   const handleDiscordLogin = async () => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "discord",
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
+          skipBrowserRedirect: true,
         },
       });
       if (error) {
         console.error("Discord login error:", error.message);
         setStatus("Discordログインに失敗しました: " + error.message);
+        return;
+      }
+      if (data?.url) {
+        window.location.href = data.url;
       }
     } catch (err) {
       console.error("Unexpected error during Discord login:", err);
