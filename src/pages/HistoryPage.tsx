@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
-import { GlassCard as Card, CardContent } from "../components/ui/card";
+import { Card, CardContent } from "../components/ui/card";
 import { Clock, AlertCircle, Shield, TrendingUp, TrendingDown, Sparkles, Activity, HelpCircle } from "lucide-react";
 
 export type LogType = "valid" | "invalid" | "skip";
@@ -138,7 +138,7 @@ export default function HistoryPage({ session }: HistoryPageProps) {
                   key={log.id}
                   className="w-full text-left transition-transform active:scale-[0.98]"
                 >
-                  <Card className={`hover:border-blue-200 transition-colors ${typeInfo.cardBg}`}>
+                  <Card className={`w-full rounded-2xl glass-panel backdrop-blur-xl hover:border-blue-200 transition-colors ${typeInfo.cardBg}`}>
                     <CardContent className="p-4 space-y-3">
                       {/* 1行目: 日付と種別 */}
                       <div className="flex items-center justify-between">

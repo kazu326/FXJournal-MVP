@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { ArrowLeft, Video, FileText, CheckCircle2 } from "lucide-react";
-import { GlassCard as Card } from "../components/ui/card";
+import { Card } from "../components/ui/card";
 
 export interface Lecture {
   id: string;
@@ -174,7 +174,7 @@ export default function LectureNotesPage({ session, onBack }: LectureNotesPagePr
         </div>
 
         {/* 講義情報カード */}
-        <Card className="p-5 space-y-4">
+        <Card className="w-full rounded-2xl glass-panel backdrop-blur-xl p-5 space-y-4">
           <div>
             <div className="text-xs font-bold text-blue-600 mb-1 px-1">最新の講義</div>
             <h2 className="text-xl font-bold text-zinc-900">{lecture.title}</h2>
@@ -212,7 +212,7 @@ export default function LectureNotesPage({ session, onBack }: LectureNotesPagePr
         </Card>
 
         {/* メモフォームカード */}
-        <Card className="p-5 space-y-6">
+        <Card className="w-full rounded-2xl glass-panel backdrop-blur-xl p-5 space-y-6">
           <div className="text-base font-bold text-zinc-900">理解度チェック</div>
           
           <div className="space-y-3">
