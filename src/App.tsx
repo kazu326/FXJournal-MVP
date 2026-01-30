@@ -1369,7 +1369,7 @@ export default function App() {
 
   if (!session && !isAuthCallback) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50 px-4">
+      <div className="min-h-dvh flex items-center justify-center bg-zinc-50 px-4">
         <div className="w-full max-w-md space-y-6">
           {/* ヘッダー */}
           <div className="text-center">
@@ -2247,7 +2247,7 @@ export default function App() {
         margin: "0",
         padding: `0 16px ${session && !isAdminRoute ? "100px" : "var(--space-xl)"} 16px`,
         paddingTop: session && !isAdminRoute ? "72px" : "0",
-        minHeight: "100vh",
+        minHeight: "100dvh",
       }}
     >
       {/* Aurora Background */}
@@ -2420,7 +2420,7 @@ export default function App() {
 
       {activeTab === "home" && mode === "home" && (
         <section>
-          <main className="min-h-screen px-4 py-6">
+          <main className="min-h-dvh px-4 py-6">
             <div className="space-y-6 text-left">
               <header>
                 <p className="text-sm text-slate-500 mb-4">トレード記録 & 振り返り</p>
@@ -2455,7 +2455,7 @@ export default function App() {
       )}
 
       {activeTab === "messages" && (
-        <main className="min-h-screen px-4 py-6">
+        <main className="min-h-dvh px-4 py-6">
           <div className="max-w-md mx-auto space-y-6 pb-20">
             <h2 className="text-xl font-bold text-zinc-900 px-1 flex items-center gap-2">
               <span>💬</span> メッセージ

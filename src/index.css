@@ -23,7 +23,7 @@ html, body {
 
 body {
   min-width: 320px;
-  min-height: 100vh;
+  min-height: 100dvh; /* iOS: アドレスバー有無で正しく収まる */
   background: #f8fafc;
   color: var(--color-text);
   position: relative;
@@ -104,6 +104,11 @@ body {
     background: rgba(255, 255, 255, 0.98) !important;
   }
 }
+
+/* iOS Safari: Tailwind の backdrop-blur に -webkit-backdrop-filter を補強 */
+.backdrop-blur-sm { -webkit-backdrop-filter: blur(4px); }
+.backdrop-blur-lg { -webkit-backdrop-filter: blur(16px); }
+.backdrop-blur-xl { -webkit-backdrop-filter: blur(24px); }
 
 /* Hero Card: 次にやることカード専用（ニューモーフィズム・グラデ＋影） */
 /* Card の border-border を上書きして黒枠にしない */

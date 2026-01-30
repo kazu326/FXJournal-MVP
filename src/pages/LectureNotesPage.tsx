@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { ArrowLeft, Video, FileText, CheckCircle2 } from "lucide-react";
+import { GlassCard as Card } from "../components/ui/card";
 
 export interface Lecture {
   id: string;
@@ -138,7 +139,7 @@ export default function LectureNotesPage({ session, onBack }: LectureNotesPagePr
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50">
+      <div className="min-h-dvh flex items-center justify-center bg-zinc-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
@@ -146,7 +147,7 @@ export default function LectureNotesPage({ session, onBack }: LectureNotesPagePr
 
   if (!lecture) {
     return (
-      <div className="min-h-screen bg-zinc-50 p-4">
+      <div className="min-h-dvh bg-zinc-50 p-4">
         <button onClick={onBack} className="flex items-center gap-1 text-zinc-600 mb-6 font-semibold">
           <ArrowLeft className="h-4 w-4" /> 戻る
         </button>
@@ -158,7 +159,7 @@ export default function LectureNotesPage({ session, onBack }: LectureNotesPagePr
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 pb-12">
+    <div className="min-h-dvh pb-12">
       <div className="max-w-md mx-auto px-4 py-6 space-y-6">
         {/* ヘッダー */}
         <div className="flex items-center justify-between">
@@ -173,15 +174,15 @@ export default function LectureNotesPage({ session, onBack }: LectureNotesPagePr
         </div>
 
         {/* 講義情報カード */}
-        <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-5 space-y-4">
+        <Card className="p-5 space-y-4">
           <div>
-            <div className="text-xs font-bold text-blue-600 mb-1">最新の講義</div>
+            <div className="text-xs font-bold text-blue-600 mb-1 px-1">最新の講義</div>
             <h2 className="text-xl font-bold text-zinc-900">{lecture.title}</h2>
-            <div className="text-sm text-zinc-500">{lecture.lecture_date}</div>
+            <div className="text-sm text-zinc-500 px-1">{lecture.lecture_date}</div>
           </div>
           
           {lecture.description && (
-            <p className="text-sm text-zinc-600 leading-relaxed">
+            <p className="text-sm text-zinc-600 leading-relaxed bg-white/30 p-3 rounded-xl border border-white/20">
               {lecture.description}
             </p>
           )}
@@ -192,7 +193,7 @@ export default function LectureNotesPage({ session, onBack }: LectureNotesPagePr
                 href={lecture.video_url} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-bold text-zinc-700 hover:bg-zinc-50 transition-colors"
+                className="flex items-center justify-center gap-2 rounded-xl border border-white/50 bg-white/40 backdrop-blur-sm px-4 py-3 text-sm font-bold text-zinc-700 hover:bg-white/60 transition-colors shadow-sm"
               >
                 <Video className="h-4 w-4" /> 動画を見る
               </a>
@@ -202,20 +203,20 @@ export default function LectureNotesPage({ session, onBack }: LectureNotesPagePr
                 href={lecture.slide_url} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-bold text-zinc-700 hover:bg-zinc-50 transition-colors"
+                className="flex items-center justify-center gap-2 rounded-xl border border-white/50 bg-white/40 backdrop-blur-sm px-4 py-3 text-sm font-bold text-zinc-700 hover:bg-white/60 transition-colors shadow-sm"
               >
                 <FileText className="h-4 w-4" /> スライド
               </a>
             )}
           </div>
-        </div>
+        </Card>
 
         {/* メモフォームカード */}
-        <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-5 space-y-6">
+        <Card className="p-5 space-y-6">
           <div className="text-base font-bold text-zinc-900">理解度チェック</div>
           
           <div className="space-y-3">
-            <label className="flex items-start gap-3 p-3 rounded-xl border border-zinc-100 bg-zinc-50/50 cursor-pointer active:bg-zinc-100 transition-colors">
+            <label className="flex items-start gap-3 p-3 rounded-xl border border-white/50 bg-white/40 backdrop-blur-sm cursor-pointer active:bg-white/60 transition-colors shadow-sm">
               <input
                 type="checkbox"
                 className="mt-1 h-5 w-5 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
@@ -225,7 +226,7 @@ export default function LectureNotesPage({ session, onBack }: LectureNotesPagePr
               <span className="text-sm font-medium text-zinc-700">今日の講義のメインポイントを理解できた</span>
             </label>
 
-            <label className="flex items-start gap-3 p-3 rounded-xl border border-zinc-100 bg-zinc-50/50 cursor-pointer active:bg-zinc-100 transition-colors">
+            <label className="flex items-start gap-3 p-3 rounded-xl border border-white/50 bg-white/40 backdrop-blur-sm cursor-pointer active:bg-white/60 transition-colors shadow-sm">
               <input
                 type="checkbox"
                 className="mt-1 h-5 w-5 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
@@ -235,7 +236,7 @@ export default function LectureNotesPage({ session, onBack }: LectureNotesPagePr
               <span className="text-sm font-medium text-zinc-700">リスク・注意点を理解できた</span>
             </label>
 
-            <label className="flex items-start gap-3 p-3 rounded-xl border border-zinc-100 bg-zinc-50/50 cursor-pointer active:bg-zinc-100 transition-colors">
+            <label className="flex items-start gap-3 p-3 rounded-xl border border-white/50 bg-white/40 backdrop-blur-sm cursor-pointer active:bg-white/60 transition-colors shadow-sm">
               <input
                 type="checkbox"
                 className="mt-1 h-5 w-5 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
@@ -247,9 +248,9 @@ export default function LectureNotesPage({ session, onBack }: LectureNotesPagePr
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-bold text-zinc-900">一言メモ（任意）</label>
+            <label className="text-sm font-bold text-zinc-900 px-1">一言メモ（任意）</label>
             <textarea
-              className="w-full rounded-xl border-2 border-zinc-100 bg-zinc-50/50 px-4 py-3 text-sm focus:border-blue-500 focus:bg-white focus:outline-none transition-all"
+              className="w-full rounded-xl border border-white/50 bg-white/40 backdrop-blur-sm px-4 py-3 text-sm focus:border-blue-500 focus:bg-white/80 focus:outline-none transition-all shadow-inner"
               rows={3}
               placeholder="学んだことや気付きをメモ..."
               value={note.memo || ""}
@@ -261,7 +262,7 @@ export default function LectureNotesPage({ session, onBack }: LectureNotesPagePr
             <button
               onClick={handleSave}
               disabled={saving}
-              className="w-full rounded-xl bg-blue-600 px-4 py-4 text-white font-bold shadow-sm hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+              className="w-full h-14 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-2xl font-bold shadow-lg shadow-blue-500/30 hover:brightness-110 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {saving ? (
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
@@ -277,7 +278,7 @@ export default function LectureNotesPage({ session, onBack }: LectureNotesPagePr
               </p>
             )}
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );

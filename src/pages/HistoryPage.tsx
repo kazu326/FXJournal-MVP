@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
-import { Card, CardContent } from "../components/ui/card";
+import { GlassCard as Card, CardContent } from "../components/ui/card";
 import { Clock, AlertCircle, Shield, TrendingUp, TrendingDown, Sparkles, Activity, HelpCircle } from "lucide-react";
 
 export type LogType = "valid" | "invalid" | "skip";
@@ -112,7 +112,7 @@ export default function HistoryPage({ session }: HistoryPageProps) {
   const skipCount = logs.filter((l) => l.log_type === "skip").length;
 
   return (
-    <main className="min-h-screen bg-zinc-50 px-4 py-6">
+    <main className="min-h-dvh px-4 py-6">
       <div className="max-w-md mx-auto space-y-6">
         <div className="px-1 space-y-1">
           <h2 className="text-xl font-bold text-zinc-900 flex items-center gap-2">
