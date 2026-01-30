@@ -9,7 +9,7 @@ import { TodayTasksCard, type Task } from "./components/today-tasks-card";
 import { WeeklyProgressCard } from "./components/weekly-progress-card";
 import { TeacherDMCard } from "./components/teacher-dm-card";
 import { NextActionCard } from "./components/next-action-card";
-import { Card as UiCard, CardContent as UiCardContent } from "./components/ui/card";
+import { GlassCard as UiGlassCard, CardContent as UiCardContent } from "./components/ui/card";
 import { AdminHeader } from "./components/admin-header";
 import { InstallPrompt } from "./components/install-prompt";
 import { updateXpAndStreak } from "./lib/xp";
@@ -491,7 +491,7 @@ export default function App() {
       const takeProfit = Number(takeProfitAmount);
       const rr = stopLoss > 0 && takeProfit > 0 ? takeProfit / stopLoss : null;
       const riskPct = balance > 0 && stopLoss > 0 ? (stopLoss / balance) * 100 : null;
-      const rrOk = rr !== null && rr >= 3;
+      const rrOk = rr !== null && rr >= 2.7;
       const riskOk = riskPct !== null && riskPct <= 2;
       return rrOk && riskOk && gate.gate_rule_ok;
     },
@@ -1226,7 +1226,7 @@ export default function App() {
     const takeProfit = Number(takeProfitAmount);
     const rr = stopLoss > 0 && takeProfit > 0 ? takeProfit / stopLoss : null;
     const riskPct = balance > 0 && stopLoss > 0 ? (stopLoss / balance) * 100 : null;
-    const rrOk = rr !== null && rr >= 3;
+    const rrOk = rr !== null && rr >= 2.7;
     const riskOk = riskPct !== null && riskPct <= 2;
 
     // Gateが全部Noじゃないか等の判定はUIで見せる
@@ -1354,8 +1354,12 @@ export default function App() {
   // ----------------------
   if (isAuthCallback && !session) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50">
-        <div className="text-center">
+      <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+        <div className="aurora-bg">
+          <div className="blob blob-1" />
+          <div className="blob blob-2" />
+        </div>
+        <div className="text-center glass-panel p-8 rounded-3xl relative z-10">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-zinc-600 font-medium">認証中...</p>
         </div>
@@ -2241,11 +2245,19 @@ export default function App() {
       style={{
         maxWidth: "100%",
         margin: "0",
-        padding: `0 16px ${session && !isAdminRoute ? "80px" : "var(--space-xl)"} 16px`,
+        padding: `0 16px ${session && !isAdminRoute ? "100px" : "var(--space-xl)"} 16px`,
         paddingTop: session && !isAdminRoute ? "72px" : "0",
         minHeight: "100vh",
       }}
     >
+      {/* Aurora Background */}
+      {session && !isAdminRoute && (
+        <div className="aurora-bg">
+          <div className="blob blob-1" />
+          <div className="blob blob-2" />
+        </div>
+      )}
+
       {/* Header */}
       <header
         style={{
@@ -2254,14 +2266,13 @@ export default function App() {
           alignItems: "center",
           padding: "12px 16px",
           marginBottom: "var(--space-lg)",
-          borderBottom: "1px solid var(--color-border)",
           position: session && !isAdminRoute ? "fixed" : "static",
           top: 0,
           left: 0,
           right: 0,
-          background: "var(--color-bg)",
           zIndex: 40,
         }}
+        className={session && !isAdminRoute ? "glass-header" : "border-b border-[var(--color-border)] bg-[var(--color-bg)]"}
       >
         <div onClick={() => setMode("home")} style={{ cursor: "pointer" }}>
           <h2
@@ -2409,24 +2420,22 @@ export default function App() {
 
       {activeTab === "home" && mode === "home" && (
         <section>
-          <main className="min-h-screen bg-zinc-50 px-4 py-6">
+          <main className="min-h-screen px-4 py-6">
             <div className="space-y-6 text-left">
-              <header className="mb-2">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">トレード記録 & 振り返り</p>
-                  </div>
-                </div>
-                <StreakHeader
-                  streakDays={loginStreak}
-                  level={level}
-                  currentXP={currentXp % 100}
-                  nextLevelXP={100}
-                />
+              <header>
+                <p className="text-sm text-slate-500 mb-4">トレード記録 & 振り返り</p>
+                <UiGlassCard className="p-5 rounded-2xl">
+                  <StreakHeader
+                    streakDays={loginStreak}
+                    level={level}
+                    currentXP={currentXp % 100}
+                    nextLevelXP={100}
+                  />
+                </UiGlassCard>
               </header>
 
               {isTestMode && (
-                <div className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning-foreground">
+                <div className="rounded-xl border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning-foreground">
                   テストモード：制限無効
                 </div>
               )}
@@ -2446,7 +2455,7 @@ export default function App() {
       )}
 
       {activeTab === "messages" && (
-        <main className="min-h-screen bg-zinc-50 px-4 py-6">
+        <main className="min-h-screen px-4 py-6">
           <div className="max-w-md mx-auto space-y-6 pb-20">
             <h2 className="text-xl font-bold text-zinc-900 px-1 flex items-center gap-2">
               <span>💬</span> メッセージ
@@ -2456,28 +2465,28 @@ export default function App() {
               message={latestMessage?.body ?? "まだメッセージがありません。"}
               onSendReply={(message) => void sendMemberMessage(message)}
             />
-            <UiCard>
-              <UiCardContent className="pt-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <h2 className="text-lg font-semibold text-foreground">お知らせ</h2>
-                </div>
-                {announcements.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">まだありません。</p>
-                ) : (
-                  <div className="space-y-3">
-                    {announcements.slice(0, 3).map((a) => (
-                      <div key={a.id} className="rounded-md border border-border bg-card p-3">
-                        <div className="text-xs text-muted-foreground">
-                          {new Date(a.created_at).toLocaleString()}
-                        </div>
-                        <div className="font-semibold text-foreground mt-1">{a.title}</div>
-                        <div className="text-sm text-muted-foreground mt-1">{a.body}</div>
-                      </div>
-                    ))}
+              <UiGlassCard>
+                <UiCardContent className="pt-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <h2 className="text-lg font-semibold text-foreground">お知らせ</h2>
                   </div>
-                )}
-              </UiCardContent>
-            </UiCard>
+                  {announcements.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">まだありません。</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {announcements.slice(0, 3).map((a) => (
+                        <div key={a.id} className="rounded-md border border-border bg-card p-3 shadow-sm bg-white/50">
+                          <div className="text-xs text-muted-foreground">
+                            {new Date(a.created_at).toLocaleString()}
+                          </div>
+                          <div className="font-semibold text-foreground mt-1">{a.title}</div>
+                          <div className="text-sm text-muted-foreground mt-1">{a.body}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </UiCardContent>
+              </UiGlassCard>
           </div>
         </main>
       )}
@@ -2641,21 +2650,46 @@ export default function App() {
                 />
               </div>
             </div>
-            <div className="mt-4 pt-3 border-t border-zinc-100 flex justify-between items-center">
-              <span className="text-xs font-bold text-zinc-400">RR比率</span>
+            <div className="mt-4 pt-3 border-t border-zinc-100">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-zinc-400">RR比率</span>
+                {(() => {
+                  const stopLoss = Number(stopLossAmount);
+                  const takeProfit = Number(takeProfitAmount);
+                  if (stopLoss > 0 && takeProfit > 0) {
+                    const rr = takeProfit / stopLoss;
+                    let status: "OK" | "注意" | "NG" = "NG";
+                    let color = "text-rose-500";
+                    if (rr >= 3.0) {
+                      status = "OK";
+                      color = "text-blue-600";
+                    } else if (rr >= 2.7) {
+                      status = "注意";
+                      color = "text-amber-500";
+                    }
+                    return (
+                      <div className={`text-sm font-black ${color}`}>
+                        {rr.toFixed(2)} <span className="text-[10px] ml-1">{status}</span>
+                      </div>
+                    );
+                  }
+                  return <span className="text-xs font-bold text-zinc-200 italic">計算中...</span>;
+                })()}
+              </div>
               {(() => {
                 const stopLoss = Number(stopLossAmount);
                 const takeProfit = Number(takeProfitAmount);
                 if (stopLoss > 0 && takeProfit > 0) {
                   const rr = takeProfit / stopLoss;
-                  const ok = rr >= 3;
-                  return (
-                    <div className={`text-sm font-black ${ok ? "text-blue-600" : "text-rose-500"}`}>
-                      {rr.toFixed(2)} <span className="text-[10px] ml-1">{ok ? "OK" : "NG"}</span>
-                    </div>
-                  );
+                  if (rr >= 2.7 && rr < 3.0) {
+                    return (
+                      <div className="mt-2 p-2 bg-amber-50 border border-amber-100 rounded-lg text-[10px] text-amber-700 font-bold leading-relaxed">
+                        ⚠️ RRがやや低めです。安全マージンは減っています。
+                      </div>
+                    );
+                  }
                 }
-                return <span className="text-xs font-bold text-zinc-200 italic">計算中...</span>;
+                return null;
               })()}
             </div>
           </div>
@@ -2768,7 +2802,7 @@ export default function App() {
                 <button
                   onClick={() => void savePre()}
                   disabled={weeklyLocked && !isTestMode}
-                  className="w-full h-14 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none"
+                  className="btn-cta w-full h-14 rounded-xl font-bold disabled:opacity-50 disabled:pointer-events-none"
                 >
                   {labels.tradePre} を保存
                 </button>
@@ -2782,7 +2816,7 @@ export default function App() {
 
                 <button
                   onClick={() => void saveSkipQuick()}
-                  className="w-full h-14 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 active:scale-[0.98] transition-all"
+                  className="btn-cta w-full h-14 rounded-xl font-bold"
                 >
                   見送りとして記録
                 </button>
@@ -2944,7 +2978,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => void savePost()}
-                  className="w-full rounded-xl bg-blue-600 px-4 py-3 text-white font-semibold shadow-sm hover:bg-blue-700 active:bg-blue-800 transition-colors"
+                  className="btn-cta w-full rounded-xl px-4 py-3 font-semibold"
                 >
                   保存（取引後）
                 </button>

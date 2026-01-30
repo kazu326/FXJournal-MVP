@@ -1,6 +1,6 @@
 "use client";
 
-import { GlassCard as Card, CardContent } from "./ui/card";
+import { Card, CardContent } from "./ui/card";
 import { AlertCircle, ArrowRight, Shield } from "lucide-react";
 
 interface NextActionCardProps {
@@ -24,7 +24,7 @@ export function NextActionCard({
 }: NextActionCardProps) {
   return (
     <Card
-      className={`relative overflow-hidden flex hero-card ${disabled ? "" : ""}`}
+      className="relative overflow-hidden flex hero-card w-full rounded-2xl glass-panel backdrop-blur-xl"
     >
       {/* 光る柱（左アクセントバー） */}
       <div
