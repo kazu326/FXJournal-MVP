@@ -64,17 +64,17 @@ body {
 }
 
 /* New Morphism: Glass Card / Panel (inspired by Uiverse.io neumorphism + glass) */
+/* !important で Tailwind/テーマの border-border, bg-card を上書き（黒枠・透明化を防ぐ） */
 /* iOS Safari: translateZ(0) でレイヤー化し backdrop-filter を有効に */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.7) !important;
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
-  isolation: isolate; /* iOS: スタッキングコンテキストで backdrop-filter を安定化 */
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  isolation: isolate;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
   border-radius: 1rem;
-  /* Multiple shadows: soft outer (bebebe/ffffff) + subtle blue tint + top highlight */
   box-shadow:
     20px 20px 60px rgba(190, 190, 190, 0.35),
     -20px -20px 60px rgba(255, 255, 255, 0.7),
@@ -82,33 +82,34 @@ body {
     inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
 }
 
-/* backdrop-filter 非対応時のフォールバック（iOS 古いバージョンなど） */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .glass-panel {
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(255, 255, 255, 0.95) !important;
   }
 }
 
+/* ヘッダー: グラスモーフィズムを常に適用（テーマの --color-bg や透明に負けない） */
 .glass-header {
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.85) !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
-  isolation: isolate; /* iOS: スタッキングコンテキストで backdrop-filter を安定化 */
-  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+  isolation: isolate;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5) !important;
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .glass-header {
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(255, 255, 255, 0.98) !important;
   }
 }
 
-/* Hero Card: 次にやることカード専用（グラデーション＋浮き上がる影） */
-/* iOS: レイヤー化で box-shadow の描画を安定させる */
+/* Hero Card: 次にやることカード専用（ニューモーフィズム・グラデ＋影） */
+/* Card の border-border を上書きして黒枠にしない */
 .hero-card {
   background: linear-gradient(to bottom right, rgba(239, 246, 255, 0.8), rgba(255, 255, 255, 0.7), rgba(250, 245, 255, 0.6)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
   box-shadow:
