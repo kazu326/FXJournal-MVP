@@ -9,7 +9,7 @@ import { TodayTasksCard, type Task } from "./components/today-tasks-card";
 import { WeeklyProgressCard } from "./components/weekly-progress-card";
 import { TeacherDMCard } from "./components/teacher-dm-card";
 import { NextActionCard } from "./components/next-action-card";
-import { GlassCard as UiGlassCard, CardContent as UiCardContent } from "./components/ui/card";
+import { Card as UiCard, CardContent as UiCardContent } from "./components/ui/card";
 import { AdminHeader } from "./components/admin-header";
 import { InstallPrompt } from "./components/install-prompt";
 import { updateXpAndStreak } from "./lib/xp";
@@ -2424,14 +2424,14 @@ export default function App() {
             <div className="space-y-6 text-left">
               <header>
                 <p className="text-sm text-slate-500 mb-4">トレード記録 & 振り返り</p>
-                <UiGlassCard className="p-5 rounded-2xl">
+                <UiCard className="w-full rounded-2xl glass-panel backdrop-blur-xl p-5">
                   <StreakHeader
                     streakDays={loginStreak}
                     level={level}
                     currentXP={currentXp % 100}
                     nextLevelXP={100}
                   />
-                </UiGlassCard>
+                </UiCard>
               </header>
 
               {isTestMode && (
@@ -2465,7 +2465,7 @@ export default function App() {
               message={latestMessage?.body ?? "まだメッセージがありません。"}
               onSendReply={(message) => void sendMemberMessage(message)}
             />
-              <UiGlassCard>
+              <UiCard className="w-full rounded-2xl glass-panel backdrop-blur-xl">
                 <UiCardContent className="pt-6">
                   <div className="flex items-center gap-2 mb-3">
                     <h2 className="text-lg font-semibold text-foreground">お知らせ</h2>
@@ -2486,7 +2486,7 @@ export default function App() {
                     </div>
                   )}
                 </UiCardContent>
-              </UiGlassCard>
+              </UiCard>
           </div>
         </main>
       )}
