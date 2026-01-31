@@ -15,6 +15,7 @@ import { updateXpAndStreak } from "./lib/xp";
 import LectureNotesPage from "./pages/LectureNotesPage";
 import HistoryPage from "./pages/HistoryPage";
 import { BottomTabBar, type TabKey } from "./components/bottom-tab-bar";
+import OnboardingTour from "./components/Onboarding/OnboardingTour";
 
 type Mode = "home" | "pre" | "post" | "history" | "skip";
 
@@ -437,6 +438,8 @@ export default function App() {
   const [memberMessages, setMemberMessages] = useState<DmMessage[]>([]);
   const [memberDmInput, setMemberDmInput] = useState("");
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingLoading, setOnboardingLoading] = useState(false);
 
   useEffect(() => {
     // session が確立し、かつ初回表示でない場合のみ
@@ -445,6 +448,33 @@ export default function App() {
       localStorage.setItem("hasSeenInstallPrompt", "true");
     }
   }, [session]);
+
+  useEffect(() => {
+    if (!session || isAdminRoute) {
+      setOnboardingLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setOnboardingLoading(true);
+    void (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("onboarding_completed")
+          .eq("user_id", session.user.id)
+          .single();
+        if (cancelled) return;
+        if (!error && data && !data.onboarding_completed) {
+          setShowOnboarding(true);
+        }
+      } finally {
+        if (!cancelled) setOnboardingLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user?.id, isAdminRoute]);
 
   useEffect(() => {
     if (session) {
@@ -2198,6 +2228,15 @@ export default function App() {
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   )[0];
 
+  if (session && !isAdminRoute && onboardingLoading) {
+    return (
+      <div className="min-h-dvh flex flex-col items-center justify-center gap-3 bg-zinc-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+        <p className="text-zinc-600 font-medium">読み込み中...</p>
+      </div>
+    );
+  }
+
   const nextAction = (() => {
     // 1. 週次制限（最優先）
     if (weeklyLocked) {
@@ -2250,6 +2289,13 @@ export default function App() {
         minHeight: "100dvh",
       }}
     >
+      {showOnboarding && session && !isAdminRoute && (
+        <OnboardingTour
+          session={session}
+          onComplete={() => setShowOnboarding(false)}
+          onSkip={() => setShowOnboarding(false)}
+        />
+      )}
       {/* Aurora Background */}
       {session && !isAdminRoute && (
         <div className="aurora-bg">

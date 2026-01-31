@@ -49,10 +49,10 @@ export function NextActionCard({
             type="button"
             onClick={onAction}
             disabled={disabled}
-            className={`w-full h-14 rounded-xl font-semibold text-base text-white inline-flex items-center justify-center gap-2 transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none disabled:transform-none ${
+            className={`w-full h-14 rounded-xl font-semibold text-base inline-flex items-center justify-center gap-2 transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none disabled:transform-none !border-0 outline-none ring-0 ${
               disabled
                 ? "bg-zinc-200 text-zinc-600 border border-zinc-300"
-                : "bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 shadow-xl shadow-blue-500/40"
+                : "bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 shadow-xl shadow-blue-500/40 !text-white"
             }`}
           >
             {actionLabel}
