@@ -1449,7 +1449,8 @@ export default function App() {
         onBack={() => { 
           window.history.pushState({}, "", "/"); 
           window.location.reload(); 
-        }} 
+        }}
+        onLectureComplete={applyXpResult}
       />
     );
   }
@@ -2498,7 +2499,8 @@ export default function App() {
         <div className="pb-20">
           <LectureNotesPage 
             session={session} 
-            onBack={() => setActiveTab("home")} 
+            onBack={() => setActiveTab("home")}
+            onLectureComplete={applyXpResult}
           />
         </div>
       )}

@@ -5,7 +5,8 @@ export type XpActionType =
   | "DAILY_LESSON_SKIP"
   | "TRADE_PRE"
   | "TRADE_POST"
-  | "WEEKLY_LECTURE_NOTE";
+  | "WEEKLY_LECTURE_NOTE"
+  | "LECTURE_COMPLETE";
 
 export interface XpUpdateResult {
   level: number;
