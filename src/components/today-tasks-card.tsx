@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent } from "./ui/card";
+import { GlassCard as Card, CardContent } from "./ui/card";
 import { Check, Circle, Sparkles } from "lucide-react";
 
 export interface Task {
@@ -19,7 +19,7 @@ export function TodayTasksCard({ tasks }: TodayTasksCardProps) {
   const allCompleted = completedCount === tasks.length;
 
   return (
-    <Card className="relative overflow-hidden">
+    <Card className="relative overflow-hidden w-full rounded-2xl glass-panel backdrop-blur-xl">
       {allCompleted && (
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-2 right-2 flex items-center gap-1 text-primary animate-pulse">
@@ -28,15 +28,15 @@ export function TodayTasksCard({ tasks }: TodayTasksCardProps) {
           </div>
         </div>
       )}
-      <CardContent className="pt-4 pb-4">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-bold text-foreground">今日のタスク</h2>
-          <span className="text-xs text-muted-foreground">
+      <CardContent className="pt-5 pb-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-bold text-slate-700">今日のタスク</h2>
+          <span className="text-xs text-slate-500">
             {completedCount}/{tasks.length} 完了
           </span>
         </div>
 
-        <div className="space-y-1.5">
+        <div className="flex flex-col gap-3">
           {tasks.map((task) => {
             const isCompleted = task.completed;
             const isDisabled = task.disabled ?? false;
@@ -45,10 +45,10 @@ export function TodayTasksCard({ tasks }: TodayTasksCardProps) {
               <div
                 key={task.id}
                 className={`
-                  w-full h-11 flex items-center gap-3 px-3 rounded-lg border transition-all duration-300
+                  w-full h-11 flex items-center gap-3 px-3 rounded-xl border transition-all duration-300
                   ${isCompleted
                     ? "bg-primary/5 border-primary/10"
-                    : "bg-white border-zinc-100"
+                    : "bg-white/80 border-slate-200/80"
                   }
                 `}
               >
@@ -56,7 +56,7 @@ export function TodayTasksCard({ tasks }: TodayTasksCardProps) {
                   className={`flex items-center justify-center size-5 rounded-full transition-all duration-300 ${
                     isCompleted
                       ? "bg-primary text-primary-foreground"
-                      : "border-2 border-muted-foreground/20"
+                      : "border-2 border-slate-300/50"
                   }`}
                 >
                   {isCompleted ? (
@@ -69,10 +69,10 @@ export function TodayTasksCard({ tasks }: TodayTasksCardProps) {
                   <div
                     className={`font-medium text-sm ${
                       isCompleted
-                        ? "text-muted-foreground line-through"
+                        ? "text-slate-500 line-through"
                         : isDisabled
-                          ? "text-muted-foreground/50"
-                          : "text-foreground"
+                          ? "text-slate-400"
+                          : "text-slate-700"
                     }`}
                   >
                     {task.label}

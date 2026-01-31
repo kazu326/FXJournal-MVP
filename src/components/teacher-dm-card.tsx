@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Card, CardContent } from "./ui/card";
+import { GlassCard as Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { MessageCircle, Send } from "lucide-react";
@@ -34,7 +34,7 @@ export function TeacherDMCard({
   };
 
   return (
-    <Card className="bg-accent border-accent">
+    <Card className="w-full rounded-2xl glass-panel backdrop-blur-xl bg-accent border-accent">
       <CardContent className="pt-6">
         <div className="flex items-center gap-2 mb-4">
           <MessageCircle className="size-5 text-accent-foreground" />

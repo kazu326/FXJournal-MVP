@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent } from "./ui/card";
+import { GlassCard as Card, CardContent } from "./ui/card";
 import { AlertTriangle, Shield, ShieldCheck, TrendingDown } from "lucide-react";
 
 interface WeeklyProgressCardProps {
@@ -48,31 +48,31 @@ export function WeeklyProgressCard({
   const StatusIcon = status.icon;
 
   return (
-    <Card className={status.card}>
+    <Card className={`w-full rounded-2xl glass-panel backdrop-blur-xl ${status.card}`}>
       <CardContent className="pt-6">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <TrendingDown className="size-6 text-primary" />
-            <h2 className="text-lg font-bold text-foreground">今週のトレード枠</h2>
+            <h2 className="text-lg font-bold text-slate-700">今週のトレード枠</h2>
           </div>
           <div className={`flex items-center justify-center size-8 rounded-full ${status.badge}`}>
             <StatusIcon className={`size-5 ${status.iconColor}`} />
           </div>
         </div>
 
-        <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+        <p className="text-sm text-slate-500 leading-relaxed mb-6">
           {quote}
         </p>
 
-        <div className="mb-4">
+        <div className="mb-6">
           <div className="flex items-center gap-2 mb-2">
             {Array.from({ length: maxTrades }).map((_, i) => (
               <div
                 key={i}
-                className={`flex-1 h-12 rounded-lg flex items-center justify-center font-bold text-lg transition-all ${
+                className={`flex-1 h-12 rounded-xl flex items-center justify-center font-bold text-sm transition-all ${
                   i < usedTrades
-                    ? "bg-muted text-muted-foreground"
-                    : "bg-primary/10 text-primary border-2 border-dashed border-primary/30"
+                    ? "bg-slate-200/80 text-slate-500"
+                    : "bg-primary/15 text-primary"
                 }`}
               >
                 {i < usedTrades ? "使用済" : "残り"}
@@ -85,7 +85,7 @@ export function WeeklyProgressCard({
               {Array.from({ length: overCount }).map((_, i) => (
                 <div
                   key={i}
-                  className="flex-1 h-12 rounded-lg flex items-center justify-center font-bold text-sm bg-warning/20 text-warning-foreground border-2 border-warning/50"
+                  className="flex-1 h-12 rounded-xl flex items-center justify-center font-bold text-sm bg-warning/20 text-warning-foreground border-2 border-warning/50"
                 >
                   超過 {i + 1}
                 </div>
@@ -95,8 +95,8 @@ export function WeeklyProgressCard({
         </div>
 
         <div
-          className={`flex items-start gap-3 p-3 rounded-lg ${
-            isOverTrading ? "bg-warning/10" : isAtLimit ? "bg-success/10" : "bg-muted"
+          className={`flex items-start gap-3 p-4 rounded-xl ${
+            isOverTrading ? "bg-warning/10" : isAtLimit ? "bg-success/10" : "bg-slate-100/60"
           }`}
         >
           {isOverTrading ? (
@@ -104,7 +104,7 @@ export function WeeklyProgressCard({
               <AlertTriangle className="size-6 text-warning shrink-0 mt-0.5" />
               <div>
                 <p className="font-bold text-warning-foreground">過剰トレード警告</p>
-                <p className="text-sm text-warning-foreground/80 mt-1">
+                <p className="text-sm text-slate-500 mt-1">
                   週{maxTrades}回の上限を{overCount}回超過しています。リベンジトレードになっていませんか？
                 </p>
               </div>
@@ -114,7 +114,7 @@ export function WeeklyProgressCard({
               <ShieldCheck className="size-6 text-success shrink-0 mt-0.5" />
               <div>
                 <p className="font-bold text-success-foreground">今週の枠を使い切りました</p>
-                <p className="text-sm text-success-foreground/80 mt-1">
+                <p className="text-sm text-slate-500 mt-1">
                   素晴らしい自制心です。来週まで見送りに徹しましょう。
                 </p>
               </div>
@@ -123,8 +123,8 @@ export function WeeklyProgressCard({
             <>
               <Shield className="size-6 text-primary shrink-0 mt-0.5" />
               <div>
-                <p className="font-bold text-foreground">残り {remaining} 回</p>
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="font-bold text-slate-700">残り {remaining} 回</p>
+                <p className="text-sm text-slate-500 mt-1">
                   厳選したチャンスだけを狙いましょう。
                 </p>
               </div>
