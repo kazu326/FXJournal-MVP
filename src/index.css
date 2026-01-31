@@ -63,28 +63,27 @@ body {
   right: -150px;
 }
 
-/* New Morphism: Glass Card / Panel (inspired by Uiverse.io neumorphism + glass) */
-/* !important で Tailwind/テーマの border-border, bg-card を上書き（黒枠・透明化を防ぐ） */
-/* iOS Safari: translateZ(0) でレイヤー化し backdrop-filter を有効に */
-.glass-panel {
-  background: rgba(255, 255, 255, 0.7) !important;
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px); /* iOS Safari: グラスモーフィズム必須 */
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-  isolation: isolate;
-  border: 1px solid rgba(255, 255, 255, 0.5) !important;
-  border-radius: 1rem;
-  box-shadow:
-    20px 20px 60px rgba(190, 190, 190, 0.35),
-    -20px -20px 60px rgba(255, 255, 255, 0.7),
-    0 25px 50px -12px rgba(30, 58, 138, 0.06),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
-}
-
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+/* Glass Panel: 変数を使わない直接CSS（Tailwind v4 本番ビルドで変数が展開されない問題を回避） */
+@layer components {
   .glass-panel {
-    background: rgba(255, 255, 255, 0.95) !important;
+    /* 背景: 半透明の白 */
+    background-color: rgba(255, 255, 255, 0.6);
+
+    /* ぼかし効果（iOS対応含む） */
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+
+    /* 境界線: 半透明の白 */
+    border: 1px solid rgba(255, 255, 255, 0.5);
+
+    /* 影: 柔らかい影 + 色付き影の2層構造 */
+    box-shadow:
+      0 20px 25px -5px rgba(0, 0, 0, 0.1),
+      0 10px 10px -5px rgba(0, 0, 0, 0.04),
+      0 0 40px -10px rgba(59, 130, 246, 0.15);
+
+    /* 角丸 */
+    border-radius: 1rem; /* 16px */
   }
 }
 
