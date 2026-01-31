@@ -69,7 +69,7 @@ body {
 .glass-panel {
   background: rgba(255, 255, 255, 0.7) !important;
   backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px); /* iOS Safari: グラスモーフィズム必須 */
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
   isolation: isolate;

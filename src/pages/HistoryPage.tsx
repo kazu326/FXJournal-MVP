@@ -138,7 +138,7 @@ export default function HistoryPage({ session }: HistoryPageProps) {
                   key={log.id}
                   className="w-full text-left transition-transform active:scale-[0.98]"
                 >
-                  <Card className={`w-full rounded-2xl glass-panel backdrop-blur-xl hover:border-blue-200 transition-colors ${typeInfo.cardBg}`}>
+                  <Card className={`w-full rounded-2xl !bg-transparent glass-panel backdrop-blur-xl hover:border-blue-200 transition-colors ${typeInfo.cardBg}`}>
                     <CardContent className="p-4 space-y-3">
                       {/* 1行目: 日付と種別 */}
                       <div className="flex items-center justify-between">

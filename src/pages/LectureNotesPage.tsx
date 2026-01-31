@@ -212,7 +212,7 @@ export default function LectureNotesPage({ session, onBack }: LectureNotesPagePr
         </Card>
 
         {/* メモフォームカード */}
-        <Card className="w-full rounded-2xl glass-panel backdrop-blur-xl p-5 space-y-6">
+        <Card className="w-full rounded-2xl !bg-transparent glass-panel backdrop-blur-xl p-5 space-y-6">
           <div className="text-base font-bold text-zinc-900">理解度チェック</div>
           
           <div className="space-y-3">
