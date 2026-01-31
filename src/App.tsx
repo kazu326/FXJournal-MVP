@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import "./App.css";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./lib/supabase";
 import { labels } from "./ui/labels";
