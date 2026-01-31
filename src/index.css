@@ -105,10 +105,10 @@ body {
   }
 }
 
-/* iOS Safari: Tailwind の backdrop-blur に -webkit-backdrop-filter を補強 */
-.backdrop-blur-sm { -webkit-backdrop-filter: blur(4px); }
-.backdrop-blur-lg { -webkit-backdrop-filter: blur(16px); }
-.backdrop-blur-xl { -webkit-backdrop-filter: blur(24px); }
+/* iOS Safari: Tailwind の backdrop-blur に -webkit- を補強。互換性のため標準 backdrop-filter も定義 */
+.backdrop-blur-sm { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+.backdrop-blur-lg { backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+.backdrop-blur-xl { backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
 
 /* Hero Card: 次にやることカード専用（ニューモーフィズム・グラデ＋影） */
 /* Card の border-border を上書きして黒枠にしない */
