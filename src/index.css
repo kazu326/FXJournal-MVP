@@ -63,27 +63,25 @@ body {
   right: -150px;
 }
 
-/* Glass Panel: 変数を使わない直接CSS（Tailwind v4 本番ビルドで変数が展開されない問題を回避） */
-@layer components {
+/* CSS優先順位とTailwind v4変数問題のため @layer utilities で定義（後勝ち・!importantで上書き） */
+@layer utilities {
+  /* ガラスパネル */
   .glass-panel {
-    /* 背景: 半透明の白 */
-    background-color: rgba(255, 255, 255, 0.6);
-
-    /* ぼかし効果（iOS対応含む） */
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-
-    /* 境界線: 半透明の白 */
-    border: 1px solid rgba(255, 255, 255, 0.5);
-
-    /* 影: 柔らかい影 + 色付き影の2層構造 */
+    background-color: rgba(255, 255, 255, 0.6) !important;
+    backdrop-filter: blur(24px) !important;
+    -webkit-backdrop-filter: blur(24px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
     box-shadow:
       0 20px 25px -5px rgba(0, 0, 0, 0.1),
       0 10px 10px -5px rgba(0, 0, 0, 0.04),
-      0 0 40px -10px rgba(59, 130, 246, 0.15);
+      0 0 40px -10px rgba(59, 130, 246, 0.15) !important;
+    border-radius: 1rem !important;
+  }
 
-    /* 角丸 */
-    border-radius: 1rem; /* 16px */
+  /* ぼかし強制（Tailwind v4のbackdrop-blur-xlが効かない場合の保険） */
+  .backdrop-blur-xl {
+    backdrop-filter: blur(24px) !important;
+    -webkit-backdrop-filter: blur(24px) !important;
   }
 }
 
@@ -104,10 +102,9 @@ body {
   }
 }
 
-/* iOS Safari: Tailwind の backdrop-blur に -webkit- を補強。互換性のため標準 backdrop-filter も定義 */
+/* iOS Safari: backdrop-blur-sm / backdrop-blur-lg の補強（標準＋-webkit-） */
 .backdrop-blur-sm { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
 .backdrop-blur-lg { backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
-.backdrop-blur-xl { backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
 
 /* Hero Card: 次にやることカード専用（ニューモーフィズム・グラデ＋影） */
 /* Card の border-border を上書きして黒枠にしない */
