@@ -1493,11 +1493,11 @@ export default function App() {
 
   if (isLectureNotesRoute) {
     return (
-      <LectureNotesPage 
-        session={session} 
-        onBack={() => { 
-          window.history.pushState({}, "", "/"); 
-          window.location.reload(); 
+      <LectureNotesPage
+        session={session}
+        onBack={() => {
+          window.history.pushState({}, "", "/");
+          window.location.reload();
         }}
         onLectureComplete={applyXpResult}
       />
@@ -1606,11 +1606,10 @@ export default function App() {
                             setAdminNoteInput(l.teacher_note ?? "");
                             if (l.user_id) void loadAdminSettings(l.user_id);
                           }}
-                          className={`w-full text-left p-4 rounded-2xl border shadow-sm flex items-center gap-3 transition-colors ${
-                            active
+                          className={`w-full text-left p-4 rounded-2xl border shadow-sm flex items-center gap-3 transition-colors ${active
                               ? "border-blue-500 bg-blue-50"
                               : "border-zinc-200 bg-white hover:bg-zinc-50"
-                          }`}
+                            }`}
                         >
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
@@ -1625,11 +1624,10 @@ export default function App() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ring-1 ${
-                              isComplete
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ring-1 ${isComplete
                                 ? "bg-blue-50 text-blue-700 ring-blue-200"
                                 : "bg-zinc-50 text-zinc-700 ring-zinc-200"
-                            }`}>
+                              }`}>
                               {isComplete ? "完了" : "未完"}
                             </span>
                             <span className="text-zinc-400">→</span>
@@ -1783,7 +1781,7 @@ export default function App() {
             </div>
           </div>
         ) : (
-            <Card>
+          <Card>
             <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 20 }}>
               <div>
                 <h3 style={{ marginBottom: 16, fontSize: 18 }}>{labels.adminTodo}</h3>
@@ -1795,7 +1793,7 @@ export default function App() {
                       setShowRiskQueue(false);
                       setShowUnlockQueue(false);
                     }}
-                    style={{ 
+                    style={{
                       display: "flex", flexDirection: "column", alignItems: "center", padding: "20px", gap: 10,
                       borderColor: showFollowupQueue ? "var(--color-accent)" : "var(--color-border)",
                       background: showFollowupQueue ? "rgba(43, 109, 224, 0.05)" : "var(--color-card)"
@@ -1811,7 +1809,7 @@ export default function App() {
                       setShowRiskQueue(false);
                       setShowUnlockQueue(false);
                     }}
-                    style={{ 
+                    style={{
                       display: "flex", flexDirection: "column", alignItems: "center", padding: "20px", gap: 10,
                       borderColor: showReviewQueue ? "var(--color-accent)" : "var(--color-border)",
                       background: showReviewQueue ? "rgba(43, 109, 224, 0.05)" : "var(--color-card)"
@@ -1827,7 +1825,7 @@ export default function App() {
                       setShowReviewQueue(false);
                       setShowUnlockQueue(false);
                     }}
-                    style={{ 
+                    style={{
                       display: "flex", flexDirection: "column", alignItems: "center", padding: "20px", gap: 10,
                       borderColor: showRiskQueue ? "var(--color-accent)" : "var(--color-border)",
                       background: showRiskQueue ? "rgba(43, 109, 224, 0.05)" : "var(--color-card)"
@@ -1843,7 +1841,7 @@ export default function App() {
                       setShowReviewQueue(false);
                       setShowRiskQueue(false);
                     }}
-                    style={{ 
+                    style={{
                       display: "flex", flexDirection: "column", alignItems: "center", padding: "20px", gap: 10,
                       borderColor: showUnlockQueue ? "var(--color-accent)" : "var(--color-border)",
                       background: showUnlockQueue ? "rgba(43, 109, 224, 0.05)" : "var(--color-card)"
@@ -2281,7 +2279,7 @@ export default function App() {
       return {
         actionLabel: "本日のタスク完了",
         description: "今日の振り返りは終了です。お疲れ様でした！",
-        onAction: () => {},
+        onAction: () => { },
         disabled: true,
       };
     }
@@ -2358,17 +2356,17 @@ export default function App() {
             {profileDisplayName ?? session?.user?.email}
           </div>
         </div>
-        
+
         <div style={{ position: "relative" }}>
-          <button 
-            onClick={() => setShowMenu(!showMenu)} 
-            style={{ 
-              padding: "var(--space-sm)", 
-              minWidth: 48, 
-              height: 48, 
-              background: "transparent", 
+          <button
+            onClick={() => setShowMenu(!showMenu)}
+            style={{
+              padding: "var(--space-sm)",
+              minWidth: 48,
+              height: 48,
+              background: "transparent",
               border: "none",
-              color: "var(--color-text)" 
+              color: "var(--color-text)"
             }}
             aria-label="Menu"
           >
@@ -2376,35 +2374,39 @@ export default function App() {
           </button>
 
           {showMenu && (
-            <div style={{ 
-              position: "absolute", 
-              top: "100%", 
-              right: 0, 
+            <div style={{
+              position: "absolute",
+              top: "100%",
+              right: 0,
               marginTop: 8,
-              background: "var(--color-card)", 
-              border: "1px solid var(--color-border)", 
-              borderRadius: "var(--radius-md)", 
+              background: "var(--color-card)",
+              border: "1px solid var(--color-border)",
+              borderRadius: "var(--radius-md)",
               boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
               zIndex: 100,
               width: 220,
-              overflow: "hidden"
+              overflow: "hidden",
+              // メニュー内のみ文字色を黒系に上書き（グローバルCSSの button { color: var(--color-text) } 対策）
+              ["--color-text" as any]: "#111827",
+              ["--color-text-muted" as any]: "#6B7280",
+              color: "var(--color-text)"
             }}>
               <div style={{ display: "flex", flexDirection: "column" }}>
-                <button 
+                <button
                   onClick={() => { setMode("home"); setStatus(""); setShowMenu(false); }}
                   style={{ width: "100%", border: "none", borderRadius: 0, display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-start", padding: "16px 20px" }}
                 >
                   <IconNext /> ホーム
                 </button>
-                <button 
+                <button
                   onClick={() => { setActiveTab("history"); setShowMenu(false); }}
                   style={{ width: "100%", border: "none", borderRadius: 0, display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-start", padding: "16px 20px" }}
                 >
                   <IconHistory /> 履歴
                 </button>
-                <button 
-                  onClick={() => { 
-                    setShowMenu(false); 
+                <button
+                  onClick={() => {
+                    setShowMenu(false);
                     setActiveTab("lecture");
                   }}
                   style={{ width: "100%", border: "none", borderRadius: 0, display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-start", padding: "16px 20px" }}
@@ -2412,7 +2414,7 @@ export default function App() {
                   <span style={{ fontSize: 18 }}>📝</span> 講義メモ
                 </button>
                 {isTeacher && (
-                  <button 
+                  <button
                     onClick={() => { window.location.href = "/admin"; }}
                     style={{ width: "100%", border: "none", borderRadius: 0, display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-start", padding: "16px 20px" }}
                   >
@@ -2437,7 +2439,7 @@ export default function App() {
                   </div>
                 )}
                 <div style={{ height: "1px", background: "var(--color-border)" }} />
-                <button 
+                <button
                   onClick={signOut}
                   style={{ width: "100%", border: "none", borderRadius: 0, display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-start", padding: "16px 20px", color: "var(--color-danger)" }}
                 >
@@ -2530,28 +2532,28 @@ export default function App() {
               message={latestMessage?.body ?? "まだメッセージがありません。"}
               onSendReply={(message) => void sendMemberMessage(message)}
             />
-              <UiCard className="w-full rounded-2xl glass-panel backdrop-blur-xl">
-                <UiCardContent className="pt-6">
-                  <div className="flex items-center gap-2 mb-3">
-                    <h2 className="text-lg font-semibold text-foreground">お知らせ</h2>
-                  </div>
-                  {announcements.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">まだありません。</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {announcements.slice(0, 3).map((a) => (
-                        <div key={a.id} className="rounded-md border border-border bg-card p-3 shadow-sm bg-white/50">
-                          <div className="text-xs text-muted-foreground">
-                            {new Date(a.created_at).toLocaleString()}
-                          </div>
-                          <div className="font-semibold text-foreground mt-1">{a.title}</div>
-                          <div className="text-sm text-muted-foreground mt-1">{a.body}</div>
+            <UiCard className="w-full rounded-2xl glass-panel backdrop-blur-xl">
+              <UiCardContent className="pt-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <h2 className="text-lg font-semibold text-foreground">お知らせ</h2>
+                </div>
+                {announcements.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">まだありません。</p>
+                ) : (
+                  <div className="space-y-3">
+                    {announcements.slice(0, 3).map((a) => (
+                      <div key={a.id} className="rounded-md border border-border bg-card p-3 shadow-sm bg-white/50">
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(a.created_at).toLocaleString()}
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </UiCardContent>
-              </UiCard>
+                        <div className="font-semibold text-foreground mt-1">{a.title}</div>
+                        <div className="text-sm text-muted-foreground mt-1">{a.body}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </UiCardContent>
+            </UiCard>
           </div>
         </main>
       )}
@@ -2562,8 +2564,8 @@ export default function App() {
 
       {activeTab === "lecture" && (
         <div className="pb-20">
-          <LectureNotesPage 
-            session={session} 
+          <LectureNotesPage
+            session={session}
             onBack={() => setActiveTab("home")}
             onLectureComplete={applyXpResult}
           />
@@ -2643,8 +2645,8 @@ export default function App() {
         <section className="space-y-4 max-w-md mx-auto relative pb-8">
           {/* Header with Back button */}
           <div className="flex items-center justify-between mb-2 px-1">
-            <button 
-              onClick={() => { resetPre(); setMode("home"); }} 
+            <button
+              onClick={() => { resetPre(); setMode("home"); }}
               className="text-sm font-semibold text-zinc-600 flex items-center gap-1 hover:text-zinc-800 transition-colors"
             >
               ← 戻る
@@ -2678,7 +2680,7 @@ export default function App() {
           <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4">
             <div className="text-zinc-400 text-[10px] font-bold uppercase tracking-wider mb-1">今週残り</div>
             <div className="text-2xl font-black text-zinc-900 leading-none">
-              {Math.max(0, (memberSettings?.weekly_limit ?? 2) - weeklyAttempts)} 
+              {Math.max(0, (memberSettings?.weekly_limit ?? 2) - weeklyAttempts)}
               <span className="text-sm font-bold text-zinc-400 ml-1">/ {memberSettings?.weekly_limit ?? 2} 回</span>
             </div>
           </div>
@@ -2833,7 +2835,7 @@ export default function App() {
               <div className="space-y-4">
                 <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4 space-y-6">
                   <h4 className="text-sm font-bold text-zinc-800 m-0 border-b border-zinc-50 pb-2">仮説ラベル</h4>
-                  
+
                   <div>
                     <div className="text-[10px] font-bold text-zinc-400 mb-2 uppercase tracking-wider">成功確率</div>
                     <ChoiceRow>
@@ -2876,8 +2878,8 @@ export default function App() {
             ) : (
               <div className="space-y-4">
                 <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl text-center">
-                   <div className="text-rose-800 font-bold text-sm">前提条件を満たしていません</div>
-                   <div className="text-rose-600 text-xs mt-1">今日は見送るのが正解です。</div>
+                  <div className="text-rose-800 font-bold text-sm">前提条件を満たしていません</div>
+                  <div className="text-rose-600 text-xs mt-1">今日は見送るのが正解です。</div>
                 </div>
 
                 <button
@@ -2896,14 +2898,14 @@ export default function App() {
         <section className="space-y-4 max-w-md mx-auto relative pb-8">
           {/* Header with Back button */}
           <div className="flex items-center justify-between mb-2 px-1">
-            <button 
-              onClick={() => { 
-                resetPost(); 
+            <button
+              onClick={() => {
+                resetPost();
                 if (completeLogId) {
                   window.history.pushState({}, "", "/");
                 }
-                setMode("home"); 
-              }} 
+                setMode("home");
+              }}
               className="text-sm font-semibold text-zinc-600 flex items-center gap-1 hover:text-zinc-800 transition-colors"
             >
               ← 戻る
@@ -2915,7 +2917,7 @@ export default function App() {
           {!pending ? (
             <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-6 text-center">
               <p className="text-sm text-zinc-600 mb-4">未完の記録がありません。先に「取引前」を記録してください。</p>
-              <button 
+              <button
                 onClick={() => {
                   if (completeLogId) {
                     window.history.pushState({}, "", "/");
@@ -2943,7 +2945,7 @@ export default function App() {
               {/* 2) 事後チェックをカード化＋選択肢をボタン風に */}
               <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4 space-y-4">
                 <div className="text-base font-bold text-zinc-900">事後チェック（感情禁止：事実だけ）</div>
-                
+
                 {/* 質問1：ルールは守れたか */}
                 <div className="space-y-2">
                   <div className="text-sm font-semibold text-zinc-900">ルールは守れたか</div>
@@ -2951,22 +2953,20 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => setPostGateKept(true)}
-                      className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
-                        postGateKept === true
+                      className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${postGateKept === true
                           ? "bg-blue-600 text-white shadow-sm"
                           : "bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50"
-                      }`}
+                        }`}
                     >
                       はい
                     </button>
                     <button
                       type="button"
                       onClick={() => setPostGateKept(false)}
-                      className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
-                        postGateKept === false
+                      className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${postGateKept === false
                           ? "bg-blue-600 text-white shadow-sm"
                           : "bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50"
-                      }`}
+                        }`}
                     >
                       いいえ
                     </button>
@@ -2980,22 +2980,20 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => setPostWithinHypo(true)}
-                      className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
-                        postWithinHypo === true
+                      className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${postWithinHypo === true
                           ? "bg-blue-600 text-white shadow-sm"
                           : "bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50"
-                      }`}
+                        }`}
                     >
                       はい
                     </button>
                     <button
                       type="button"
                       onClick={() => setPostWithinHypo(false)}
-                      className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
-                        postWithinHypo === false
+                      className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${postWithinHypo === false
                           ? "bg-blue-600 text-white shadow-sm"
                           : "bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50"
-                      }`}
+                        }`}
                     >
                       いいえ
                     </button>
@@ -3050,12 +3048,12 @@ export default function App() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => { 
-                    resetPost(); 
+                  onClick={() => {
+                    resetPost();
                     if (completeLogId) {
                       window.history.pushState({}, "", "/");
                     }
-                    setMode("home"); 
+                    setMode("home");
                   }}
                   className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 transition-colors"
                 >
