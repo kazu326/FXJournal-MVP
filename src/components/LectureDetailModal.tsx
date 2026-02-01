@@ -200,7 +200,9 @@ export function LectureDetailModal({
           )}
 
           {lecture.youtube_video_id && (
-            <div id={playerContainerId} className="aspect-video w-full rounded-lg bg-zinc-900 shrink-0" />
+            <div className="relative w-full aspect-video shrink-0 rounded-lg overflow-hidden bg-zinc-900">
+              <div id={playerContainerId} className="absolute inset-0 w-full h-full [&>iframe]:w-full [&>iframe]:h-full" />
+            </div>
           )}
           {!lecture.youtube_video_id && lecture.video_url && (
             <a

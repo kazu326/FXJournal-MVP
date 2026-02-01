@@ -199,6 +199,19 @@ button:disabled {
   transform: none;
 }
 
+/* Discordログインボタン: グローバル button の白背景を上書き */
+button.btn-discord {
+  background-color: #5865F2 !important;
+  color: white !important;
+  border-color: #4752C4 !important;
+}
+button.btn-discord:hover {
+  background-color: #4752C4 !important;
+}
+button.btn-discord:active {
+  background-color: #3C45A5 !important;
+}
+
 input, select, textarea {
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
