@@ -7,6 +7,7 @@ type UserRow = {
     id: string;
     username: string | null;
     avatar_url: string | null;
+    email: string | null;
 };
 
 type TemplateRow = {
@@ -53,7 +54,8 @@ export default function AdminMessages() {
             const mappedUsers = (data as any[]).map(u => ({
                 id: u.id,
                 username: u.username,
-                avatar_url: u.avatar_url ?? null
+                avatar_url: u.avatar_url ?? null,
+                email: u.email
             }));
             setUsers(mappedUsers);
         }
@@ -218,6 +220,7 @@ export default function AdminMessages() {
                                                         </div>
                                                         <div>
                                                             <div className="text-sm font-medium">{user.username || "No Name"}</div>
+                                                            {user.email && <div className="text-xs text-slate-500">{user.email}</div>}
                                                         </div>
                                                     </div>
                                                     <input
