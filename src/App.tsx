@@ -22,7 +22,6 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminBehavior from "./pages/admin/AdminBehavior";
 import AdminMessages from "./pages/admin/AdminMessages";
 import NotificationPrompt from "./components/NotificationPrompt";
-import { useAuth } from "./contexts/AuthContext";
 
 type Mode = "home" | "pre" | "post" | "history" | "skip";
 
