@@ -4,7 +4,7 @@ import { supabase } from "../../lib/supabase";
 import toast from "react-hot-toast";
 
 type UserRow = {
-    id: string;
+    user_id: string;
     username: string | null;
     avatar_url: string | null;
     email: string | null;
@@ -40,10 +40,10 @@ export default function AdminMessages() {
 
     const fetchUsers = async () => {
         setLoading(true);
-        // admin_user_stats または profiles から取得
+        // admin_user_stats から取得 (id ではなく user_id を使用)
         const { data, error } = await supabase
-            .from("profiles") // または admin_user_stats
-            .select("id, username, display_name, email")
+            .from("admin_user_stats")
+            .select("user_id, username, avatar_url, email")
             .limit(100);
 
         if (error) {
@@ -52,7 +52,7 @@ export default function AdminMessages() {
         } else {
             // アバターURLがない可能性があるため、適切にキャストまたはマッピング
             const mappedUsers = (data as any[]).map(u => ({
-                id: u.id,
+                user_id: u.user_id,
                 username: u.username,
                 avatar_url: u.avatar_url ?? null,
                 email: u.email
@@ -211,12 +211,12 @@ export default function AdminMessages() {
                                         <div className="max-h-60 overflow-y-auto space-y-1 pr-2 custom-scrollbar">
                                             {users.map(user => (
                                                 <label
-                                                    key={user.id}
-                                                    className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors border ${selectedUserIds.includes(user.id) ? "bg-emerald-900/20 border-emerald-500/50" : "bg-slate-900 border-slate-800 hover:border-slate-700"}`}
+                                                    key={user.user_id}
+                                                    className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors border ${selectedUserIds.includes(user.user_id) ? "bg-emerald-900/20 border-emerald-500/50" : "bg-slate-900 border-slate-800 hover:border-slate-700"}`}
                                                 >
                                                     <div className="flex items-center gap-3">
-                                                        <div className={`w-4 h-4 rounded border flex items-center justify-center ${selectedUserIds.includes(user.id) ? "bg-emerald-500 border-emerald-500" : "border-slate-600"}`}>
-                                                            {selectedUserIds.includes(user.id) && <CheckCircle className="w-3 h-3 text-white" />}
+                                                        <div className={`w-4 h-4 rounded border flex items-center justify-center ${selectedUserIds.includes(user.user_id) ? "bg-emerald-500 border-emerald-500" : "border-slate-600"}`}>
+                                                            {selectedUserIds.includes(user.user_id) && <CheckCircle className="w-3 h-3 text-white" />}
                                                         </div>
                                                         <div>
                                                             <div className="text-sm font-medium">{user.username || "No Name"}</div>
@@ -226,8 +226,8 @@ export default function AdminMessages() {
                                                     <input
                                                         type="checkbox"
                                                         className="hidden"
-                                                        checked={selectedUserIds.includes(user.id)}
-                                                        onChange={() => toggleUserSelection(user.id)}
+                                                        checked={selectedUserIds.includes(user.user_id)}
+                                                        onChange={() => toggleUserSelection(user.user_id)}
                                                     />
                                                 </label>
                                             ))}
