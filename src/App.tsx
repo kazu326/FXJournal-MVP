@@ -20,6 +20,9 @@ import { Routes, Route } from "react-router-dom";
 import AdminLayout from "./layouts/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminBehavior from "./pages/admin/AdminBehavior";
+import AdminMessages from "./pages/admin/AdminMessages";
+import NotificationPrompt from "./components/NotificationPrompt";
+import { useAuth } from "./contexts/AuthContext";
 
 type Mode = "home" | "pre" | "post" | "history" | "skip";
 
@@ -400,7 +403,8 @@ export default function App() {
   const [showNameModal, setShowNameModal] = useState(false);
 
   // XP更新共通ハンドラ
-  const applyXpResult = (res: any | null) => {
+  type XpResult = { level: number; currentXp: number; loginStreak: number };
+  const applyXpResult = (res: XpResult | null) => {
     if (!res) return;
     setLevel((prevLevel) => {
       const nextLevel = res.level;
@@ -478,6 +482,8 @@ export default function App() {
     return () => {
       cancelled = true;
     };
+    // session全体ではなくuser.idのみを依存にしているのは意図的
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.id, isAdminRoute]);
 
   useEffect(() => {
@@ -494,6 +500,8 @@ export default function App() {
         }
       })();
     }
+    // applyXpResultは毎回再定義されるため依存配列に入れると無限ループになる
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]);
 
   // admin portal
@@ -864,8 +872,9 @@ export default function App() {
       .select("user_id, display_name")
       .in("user_id", ids);
     if (error) return reportError("表示名取得失敗", error);
+    type ProfileRow = { user_id: string; display_name: string };
     const next: Record<string, string> = {};
-    (data ?? []).forEach((p: any) => {
+    (data ?? []).forEach((p: ProfileRow) => {
       if (p.user_id && p.display_name) next[p.user_id] = p.display_name;
     });
     setProfileNameMap((prev) => ({ ...prev, ...next }));
@@ -1092,6 +1101,7 @@ export default function App() {
 
     const { data, error } = await query;
     if (error) return reportError("一覧取得失敗", error);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rows = (data ?? []).map((l: any) => ({
       ...l,
       display_name: l.members?.[0]?.display_name ?? null,
@@ -1395,6 +1405,7 @@ export default function App() {
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />
           <Route path="behavior" element={<AdminBehavior />} />
+          <Route path="messages" element={<AdminMessages />} />
         </Route>
       </Routes>
     );
@@ -1499,7 +1510,7 @@ export default function App() {
           window.history.pushState({}, "", "/");
           window.location.reload();
         }}
-        onLectureComplete={applyXpResult}
+        onLectureComplete={(res: unknown) => applyXpResult(res as XpResult | null)}
       />
     );
   }
@@ -1570,18 +1581,18 @@ export default function App() {
                     value={filterMemberQuery}
                     onChange={(e) => setFilterMemberQuery(e.target.value)}
                   />
-                  <select className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm" value={filterPeriod} onChange={(e) => setFilterPeriod(e.target.value as any)}>
+                  <select className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm" value={filterPeriod} onChange={(e) => setFilterPeriod(e.target.value as "7" | "30" | "all")}>
                     <option value="7">直近7日</option>
                     <option value="30">直近30日</option>
                     <option value="all">全期間</option>
                   </select>
-                  <select className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm" value={filterLogType} onChange={(e) => setFilterLogType(e.target.value as any)}>
+                  <select className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm" value={filterLogType} onChange={(e) => setFilterLogType(e.target.value as "all" | LogType)}>
                     <option value="all">全種別</option>
                     <option value="valid">valid</option>
                     <option value="skip">skip</option>
                     <option value="invalid">invalid</option>
                   </select>
-                  <select className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm" value={filterReview} onChange={(e) => setFilterReview(e.target.value as any)}>
+                  <select className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm" value={filterReview} onChange={(e) => setFilterReview(e.target.value as "all" | "ok" | "warn" | "inspect" | "none")}>
                     <option value="all">レビュー全て</option>
                     <option value="none">未レビュー</option>
                     <option value="ok">ok</option>
@@ -1607,8 +1618,8 @@ export default function App() {
                             if (l.user_id) void loadAdminSettings(l.user_id);
                           }}
                           className={`w-full text-left p-4 rounded-2xl border shadow-sm flex items-center gap-3 transition-colors ${active
-                              ? "border-blue-500 bg-blue-50"
-                              : "border-zinc-200 bg-white hover:bg-zinc-50"
+                            ? "border-blue-500 bg-blue-50"
+                            : "border-zinc-200 bg-white hover:bg-zinc-50"
                             }`}
                         >
                           <div className="flex-1 min-w-0">
@@ -1625,8 +1636,8 @@ export default function App() {
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
                             <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ring-1 ${isComplete
-                                ? "bg-blue-50 text-blue-700 ring-blue-200"
-                                : "bg-zinc-50 text-zinc-700 ring-zinc-200"
+                              ? "bg-blue-50 text-blue-700 ring-blue-200"
+                              : "bg-zinc-50 text-zinc-700 ring-zinc-200"
                               }`}>
                               {isComplete ? "完了" : "未完"}
                             </span>
@@ -2387,7 +2398,9 @@ export default function App() {
               width: 220,
               overflow: "hidden",
               // メニュー内のみ文字色を黒系に上書き（グローバルCSSの button { color: var(--color-text) } 対策）
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               ["--color-text" as any]: "#111827",
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               ["--color-text-muted" as any]: "#6B7280",
               color: "var(--color-text)"
             }}>
@@ -2567,7 +2580,7 @@ export default function App() {
           <LectureNotesPage
             session={session}
             onBack={() => setActiveTab("home")}
-            onLectureComplete={applyXpResult}
+            onLectureComplete={(res: unknown) => applyXpResult(res as XpResult | null)}
           />
         </div>
       )}
@@ -2954,8 +2967,8 @@ export default function App() {
                       type="button"
                       onClick={() => setPostGateKept(true)}
                       className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${postGateKept === true
-                          ? "bg-blue-600 text-white shadow-sm"
-                          : "bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50"
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : "bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50"
                         }`}
                     >
                       はい
@@ -2964,8 +2977,8 @@ export default function App() {
                       type="button"
                       onClick={() => setPostGateKept(false)}
                       className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${postGateKept === false
-                          ? "bg-blue-600 text-white shadow-sm"
-                          : "bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50"
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : "bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50"
                         }`}
                     >
                       いいえ
@@ -2981,8 +2994,8 @@ export default function App() {
                       type="button"
                       onClick={() => setPostWithinHypo(true)}
                       className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${postWithinHypo === true
-                          ? "bg-blue-600 text-white shadow-sm"
-                          : "bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50"
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : "bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50"
                         }`}
                     >
                       はい
@@ -2991,8 +3004,8 @@ export default function App() {
                       type="button"
                       onClick={() => setPostWithinHypo(false)}
                       className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${postWithinHypo === false
-                          ? "bg-blue-600 text-white shadow-sm"
-                          : "bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50"
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : "bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50"
                         }`}
                     >
                       いいえ
@@ -3070,7 +3083,10 @@ export default function App() {
       )}
 
       {session && !isAdminRoute && (
-        <BottomTabBar selectedTab={activeTab} onChange={setActiveTab} />
+        <>
+          <NotificationPrompt />
+          <BottomTabBar selectedTab={activeTab} onChange={setActiveTab} />
+        </>
       )}
     </div>
   );
@@ -3115,7 +3131,7 @@ const IconHistory = () => (
   </svg>
 );
 
-function Card(props: { children: any; style?: CSSProperties; className?: string }) {
+function Card(props: { children: React.ReactNode; style?: CSSProperties; className?: string }) {
   return (
     <div
       className={`card ${props.className ?? ""}`}
@@ -3144,7 +3160,7 @@ function GateRowJP(props: { label: string; checked: boolean; onChange: (v: boole
   );
 }
 
-function ChoiceRow(props: { children: any }) {
+function ChoiceRow(props: { children: React.ReactNode }) {
   return (
     <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 8 }}>
       {props.children}
@@ -3152,7 +3168,7 @@ function ChoiceRow(props: { children: any }) {
   );
 }
 
-function ChoiceButton(props: { active: boolean; onClick: () => void; children: any }) {
+function ChoiceButton(props: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
       onClick={props.onClick}
@@ -3171,7 +3187,7 @@ function ChoiceButton(props: { active: boolean; onClick: () => void; children: a
   );
 }
 
-function PrimaryButton(props: { onClick: () => void; children: any; disabled?: boolean; className?: string; style?: CSSProperties }) {
+function PrimaryButton(props: { onClick: () => void; children: React.ReactNode; disabled?: boolean; className?: string; style?: CSSProperties }) {
   return (
     <button
       onClick={props.onClick}

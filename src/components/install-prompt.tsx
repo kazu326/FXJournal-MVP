@@ -1,18 +1,23 @@
 import { useEffect, useState } from "react"
 import { X } from "lucide-react"
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
+
 type InstallPromptProps = {
   onClose?: () => void
 }
 
 export function InstallPrompt({ onClose }: InstallPromptProps) {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [showPrompt, setShowPrompt] = useState(false)
 
   useEffect(() => {
     const handler = (e: Event) => {
       e.preventDefault()
-      setDeferredPrompt(e)
+      setDeferredPrompt(e as BeforeInstallPromptEvent)
       // 初回ログイン後に出したい場合は、ここでlocalStorageチェック等を入れる
       setShowPrompt(true)
     }

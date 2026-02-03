@@ -87,7 +87,7 @@ export function LectureSequenceItem({
     return null;
   };
 
-  const Icon = () => {
+  const renderIcon = () => {
     if (isLocked) return <Lock className="w-5 h-5 text-zinc-400" />;
     if (status === "completed") return <CheckCircle className="w-5 h-5 text-zinc-500" />;
     if (status === "in_progress") return <Play className="w-5 h-5 text-zinc-600" />;
@@ -122,7 +122,7 @@ export function LectureSequenceItem({
     >
       <div className="flex items-center gap-3">
         <div className="shrink-0">
-          <Icon />
+          {renderIcon()}
         </div>
         <div className="flex-1 min-w-0">
           <div className="font-bold text-zinc-900 flex items-center gap-2 flex-wrap">

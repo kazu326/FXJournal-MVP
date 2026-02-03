@@ -1,0 +1,121 @@
+﻿node.exe : ts-jest[con
+fig] (WARN) [94mmessa
+ge[0m[90m TS151001: 
+[0mIf you have issues
+ related to imports, y
+ou should consider set
+ting `esModuleInterop`
+ to `true` in your Typ
+eScript configuration 
+file (usually `tsconfi
+g.json`). See https://
+blogs.msdn.microsoft.c
+om/typescript/2018/01/
+31/announcing-typescri
+pt-2-7/#easier-ecmascr
+ipt-module-interoperab
+ility for more informa
+tion.
+発生場所 行:1 文字:1
++ & "C:\Program Files\
+nodejs/node.exe" "C:\P
+rogram Files\nodejs/no
+de_mo ...
++ ~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo    
+          : NotSpeci  
+  fied: (ts-jest[co   
+ nfig]...re inform    
+ation.:String) []    ,
+ RemoteException
+    + FullyQualifiedE 
+   rrorId : NativeCo  
+  mmandError
+ 
+FAIL src/__tests__/App
+.test.tsx
+  笳・Test suite failed 
+to run
+
+    [96msrc/__tests__
+/App.test.tsx[0m:[93
+m2[0m:[93m10[0m - 
+[91merror[0m[90m TS1
+295: [0mECMAScript im
+ports and exports cann
+ot be written in a Com
+monJS file under 'verb
+atimModuleSyntax'. Adj
+ust the 'type' field i
+n the nearest 'package
+.json' to make this fi
+le an ECMAScript modul
+e, or adjust your 'ver
+batimModuleSyntax', 'm
+odule', and 'moduleRes
+olution' settings in T
+ypeScript.
+
+    [7m2[0m import {
+ render } from '@testi
+ng-library/react';
+    [7m [0m [91m   
+      ~~~~~~[0m
+    [96msrc/__tests__
+/App.test.tsx[0m:[93
+m3[0m:[93m10[0m - 
+[91merror[0m[90m TS1
+295: [0mECMAScript im
+ports and exports cann
+ot be written in a Com
+monJS file under 'verb
+atimModuleSyntax'. Adj
+ust the 'type' field i
+n the nearest 'package
+.json' to make this fi
+le an ECMAScript modul
+e, or adjust your 'ver
+batimModuleSyntax', 'm
+odule', and 'moduleRes
+olution' settings in T
+ypeScript.
+
+    [7m3[0m import {
+ BrowserRouter } from 
+'react-router-dom';
+    [7m [0m [91m   
+      ~~~~~~~~~~~~~[0
+m
+    [96msrc/__tests__
+/App.test.tsx[0m:[93
+m4[0m:[93m8[0m - [
+91merror[0m[90m TS12
+95: [0mECMAScript imp
+orts and exports canno
+t be written in a Comm
+onJS file under 'verba
+timModuleSyntax'. Adju
+st the 'type' field in
+ the nearest 'package.
+json' to make this fil
+e an ECMAScript module
+, or adjust your 'verb
+atimModuleSyntax', 'mo
+dule', and 'moduleReso
+lution' settings in Ty
+peScript.
+
+    [7m4[0m import A
+pp from '../App';
+    [7m [0m [91m   
+    ~~~[0m
+
+Test Suites: 1 failed,
+ 1 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        6.61 s
+Ran all test suites.

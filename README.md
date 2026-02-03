@@ -1,73 +1,80 @@
-# React + TypeScript + Vite
+# FX Journal MVP
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+FXトレード学習・日誌管理アプリケーション。トレード前後のGate判定記録、講義ノート視聴、進捗管理機能を提供します。
 
-Currently, two official plugins are available:
+## 技術スタック
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+| カテゴリ | 技術 |
+|---------|------|
+| フレームワーク | React 19 + TypeScript |
+| ビルドツール | Vite (rolldown-vite) |
+| スタイリング | TailwindCSS 4.x |
+| ルーティング | React Router DOM 7.x |
+| バックエンド | Supabase（認証、DB、Edge Functions） |
+| ホスティング | Vercel |
+| アイコン | Lucide React |
+| 通知 | react-hot-toast |
 
-## React Compiler
+## セットアップ
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 1. 依存関係のインストール
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 2. 環境変数の設定
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+`.env.local` ファイルをプロジェクトルートに作成し、以下を設定：
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
+
+### 3. 開発サーバーの起動
+
+```bash
+npm run dev
+```
+
+## スクリプト
+
+| コマンド | 説明 |
+|---------|------|
+| `npm run dev` | 開発サーバー起動 |
+| `npm run build` | 本番ビルド |
+| `npm run preview` | ビルド結果のプレビュー |
+| `npm run lint` | ESLintによるコード検査 |
+
+## ディレクトリ構造
+
+```
+src/
+├── App.tsx           # メインアプリケーション
+├── main.tsx          # エントリーポイント
+├── components/       # 再利用可能なUIコンポーネント
+├── contexts/         # Reactコンテキスト（認証等）
+├── layouts/          # ページレイアウト
+├── lib/              # ユーティリティ・Supabaseクライアント
+├── pages/            # ページコンポーネント
+├── types/            # TypeScript型定義
+├── ui/               # UIラベル、コピーテキスト
+└── styles/           # グローバルスタイル
+
+supabase/
+├── functions/        # Edge Functions
+└── sql/              # SQLマイグレーション
+```
+
+## 主要機能
+
+- **Gate判定記録**: トレード前の4つのGate（取引回数、RR、リスク、ルール）をチェック
+- **取引ログ**: 取引前後の記録・振り返り
+- **講義ノート**: 動画講義の視聴・進捗管理
+- **管理者ダッシュボード**: レビューキュー、リスク管理、メンバー設定
+- **PWA対応**: オフライン対応、ホーム画面追加
+
+## デプロイ
+
+Vercelにデプロイ済み。`vercel.json`でSPAリライト設定を適用。

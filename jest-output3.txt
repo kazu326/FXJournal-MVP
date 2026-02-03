@@ -1,0 +1,80 @@
+﻿
+> fx-journal-mvp@0.0.0 test
+> jest --verbose
+
+node.exe : FAIL src/__
+tests__/App.test.tsx
+発生場所 行:1 文字:1
++ & "C:\Program Files\
+nodejs/node.exe" "C:\P
+rogram Files\nodejs/no
+de_mo ...
++ ~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo    
+          : NotSpeci  
+  fied: (FAIL src/_   
+ _tests__/App.test    
+.tsx:String) [],     R
+emoteException
+    + FullyQualifiedE 
+   rrorId : NativeCo  
+  mmandError
+ 
+  繧ｹ繝｢繝ｼ繧ｯ繝・せ繝・    ﾃ・繧
+ｳ繝ｳ繝昴・繝阪Φ繝医′豁｣蟶ｸ縺ｫ繝ｬ繝ｳ
+繝繝ｪ繝ｳ繧ｰ縺輔ｌ繧・(3 ms)
+
+  笳・繧ｹ繝｢繝ｼ繧ｯ繝・せ繝・窶ｺ 繧ｳ
+繝ｳ繝昴・繝阪Φ繝医′豁｣蟶ｸ縺ｫ繝ｬ繝ｳ繝
+繝ｪ繝ｳ繧ｰ縺輔ｌ繧・
+    ReferenceError: Re
+act is not defined
+
+    [0m [90m  9 |[3
+9m describe([32m'繧ｹ繝｢
+繝ｼ繧ｯ繝・せ繝・[39m[33m,[
+39m () [33m=>[39m {
+     [90m 10 |[39m  
+   it([32m'繧ｳ繝ｳ繝昴・繝阪Φ
+繝医′豁｣蟶ｸ縺ｫ繝ｬ繝ｳ繝繝ｪ繝ｳ繧ｰ縺
+輔ｌ繧・[39m[33m,[39m (
+) [33m=>[39m {
+    [31m[1m>[22m[3
+9m[90m 11 |[39m     
+    [36mconst[39m { 
+getByTestId } [33m=[
+39m render([33m<[39m
+[33mSimpleComponent[
+39m [33m/[39m[33m>
+[39m)[33m;[39m
+     [90m    |[39m  
+                      
+                [31m
+[1m^[22m[39m
+     [90m 12 |[39m
+     [90m 13 |[39m  
+       [90m// 繧ｳ繝ｳ繝昴・
+繝阪Φ繝医′繧ｯ繝ｩ繝・す繝･縺帙★縺ｫ繝ｬ
+繝ｳ繝繝ｪ繝ｳ繧ｰ縺輔ｌ繧九％縺ｨ繧堤｢ｺ
+隱・[39m
+     [90m 14 |[39m  
+       expect(getByTes
+tId([32m'simple'[39m
+))[33m.[39mtoBeInThe
+Document()[33m;[39m
+[0m
+
+      at Object.React 
+(src/__tests__/App.tes
+t.tsx:11:40)
+
+Test Suites: 1 failed,
+ 1 total
+Tests:       1 failed,
+ 1 total
+Snapshots:   0 total
+Time:        3.948 s
+Ran all test suites.

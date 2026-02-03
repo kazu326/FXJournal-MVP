@@ -1,0 +1,68 @@
+﻿
+> fx-journal-mvp@0.0.0 lint
+> eslint .
+
+
+C:\Users\kukyo\fx-journal-mvp\src\App.tsx
+   403:31   error    Unexpected any. Specify a different type                                                                    @typescript-eslint/no-explicit-any
+   481:6    warning  React Hook useEffect has a missing dependency: 'session'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   868:30   error    Unexpected any. Specify a different type                                                                    @typescript-eslint/no-explicit-any
+  1095:39   error    Unexpected any. Specify a different type                                                                    @typescript-eslint/no-explicit-any
+  1573:172  error    Unexpected any. Specify a different type                                                                    @typescript-eslint/no-explicit-any
+  1578:174  error    Unexpected any. Specify a different type                                                                    @typescript-eslint/no-explicit-any
+  1584:172  error    Unexpected any. Specify a different type                                                                    @typescript-eslint/no-explicit-any
+  2390:34   error    Unexpected any. Specify a different type                                                                    @typescript-eslint/no-explicit-any
+  2391:40   error    Unexpected any. Specify a different type                                                                    @typescript-eslint/no-explicit-any
+  3118:34   error    Unexpected any. Specify a different type                                                                    @typescript-eslint/no-explicit-any
+  3147:39   error    Unexpected any. Specify a different type                                                                    @typescript-eslint/no-explicit-any
+  3155:80   error    Unexpected any. Specify a different type                                                                    @typescript-eslint/no-explicit-any
+  3174:64   error    Unexpected any. Specify a different type                                                                    @typescript-eslint/no-explicit-any
+
+C:\Users\kukyo\fx-journal-mvp\src\components\LectureItem.tsx
+  19:35  error  '_id' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\kukyo\fx-journal-mvp\src\components\LectureSequenceItem.tsx
+  125:12  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+C:\Users\kukyo\fx-journal-mvp\src\components\LectureSequenceItem.tsx:125:12
+  123 |       <div className="flex items-center gap-3">
+  124 |         <div className="shrink-0">
+> 125 |           <Icon />
+      |            ^^^^ This component is created during render
+  126 |         </div>
+  127 |         <div className="flex-1 min-w-0">
+  128 |           <div className="font-bold text-zinc-900 flex items-center gap-2 flex-wrap">
+
+C:\Users\kukyo\fx-journal-mvp\src\components\LectureSequenceItem.tsx:90:16
+  88 |   };
+  89 |
+> 90 |   const Icon = () => {
+     |                ^^^^^^^
+> 91 |     if (isLocked) return <Lock className="w-5 h-5 text-zinc-400" />;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 92 |     if (status === "completed") return <CheckCircle className="w-5 h-5 text-zinc-500" />;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 93 |     if (status === "in_progress") return <Play className="w-5 h-5 text-zinc-600" />;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 94 |     return <Circle className="w-5 h-5 text-zinc-300" />;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 95 |   };
+     | ^^^^ The component is created during render here
+  96 |
+  97 |   const titleLabel = sequenceNumber === 0 ? "蠎冗ｫ" : `隨ｬ${sequenceNumber}蝗杼;
+  98 |  react-hooks/static-components
+
+C:\Users\kukyo\fx-journal-mvp\src\components\install-prompt.tsx
+  9:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\kukyo\fx-journal-mvp\src\contexts\AuthContext.tsx
+  19:17  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\kukyo\fx-journal-mvp\src\pages\HistoryPage.tsx
+  28:12  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  37:6   warning  React Hook useEffect has a missing dependency: 'fetchLogs'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+笨・19 problems (17 errors, 2 warnings)
+

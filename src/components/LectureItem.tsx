@@ -16,7 +16,7 @@ const statusConfig: Record<LectureStatus, { icon: string; label: string; classNa
   locked: { icon: "🔒", label: "未開始", className: "text-zinc-400" },
 };
 
-export function LectureItem({ id: _id, title, durationMinutes, status, onSelect }: LectureItemProps) {
+export function LectureItem({ title, durationMinutes, status, onSelect }: LectureItemProps) {
   const config = statusConfig[status];
   return (
     <button

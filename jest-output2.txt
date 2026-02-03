@@ -1,0 +1,84 @@
+﻿
+> fx-journal-mvp@0.0.0 test
+> jest
+
+node.exe : FAIL src/__
+tests__/App.test.tsx
+発生場所 行:1 文字:1
++ & "C:\Program Files\
+nodejs/node.exe" "C:\P
+rogram Files\nodejs/no
+de_mo ...
++ ~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo    
+          : NotSpeci  
+  fied: (FAIL src/_   
+ _tests__/App.test    
+.tsx:String) [],     R
+emoteException
+    + FullyQualifiedE 
+   rrorId : NativeCo  
+  mmandError
+ 
+  笳・Test suite failed 
+to run
+
+    ReferenceError: Te
+xtEncoder is not defin
+ed
+
+    [0m [90m 1 |[39
+m [90m// 繧ｷ繝ｳ繝励Ν縺ｪ繧ｹ繝
+｢繝ｼ繧ｯ繝・せ繝茨ｼ哂pp繧ｳ繝ｳ繝昴・繝
+阪Φ繝医′豁｣蟶ｸ縺ｫ繝ｬ繝ｳ繝繝ｪ繝ｳ繧
+ｰ縺輔ｌ繧九°繧堤｢ｺ隱・[39m
+     [90m 2 |[39m [
+36mimport[39m { rende
+r } [36mfrom[39m [3
+2m'@testing-library/re
+act'[39m[33m;[39m
+    [31m[1m>[22m[3
+9m[90m 3 |[39m [36m
+import[39m { [33mBro
+wserRouter[39m } [36
+mfrom[39m [32m'react
+-router-dom'[39m[33m
+;[39m
+     [90m   |[39m [
+31m[1m^[22m[39m
+     [90m 4 |[39m [
+36mimport[39m [33mAp
+p[39m [36mfrom[39m 
+[32m'../App'[39m[33
+m;[39m
+     [90m 5 |[39m
+     [90m 6 |[39m [
+90m// Supabase縺ｮ繝｢繝・け
+[39m[0m
+
+      at Object.<anony
+mous> (node_modules/re
+act-router/dist/develo
+pment/index.js:342:31)
+      at Object.<anony
+mous> (node_modules/re
+act-router/dist/develo
+pment/dom-export.js:40
+:20)
+      at Object.<anony
+mous> (node_modules/re
+act-router-dom/dist/in
+dex.js:38:18)
+      at Object.<anony
+mous> (src/__tests__/A
+pp.test.tsx:3:1)
+
+Test Suites: 1 failed,
+ 1 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        12.602 s
+Ran all test suites.

@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { Card, CardContent } from "../components/ui/card";
 import { Clock, AlertCircle, Shield, TrendingUp, TrendingDown, Sparkles, Activity, HelpCircle } from "lucide-react";
+import type { Session } from "@supabase/supabase-js";
 
 export type LogType = "valid" | "invalid" | "skip";
 export type SuccessProb = "high" | "mid" | "low";
@@ -25,18 +26,15 @@ export interface TradeLog {
 }
 
 interface HistoryPageProps {
-  session: any;
+  session: Session | null;
 }
 
 export default function HistoryPage({ session }: HistoryPageProps) {
   const [logs, setLogs] = useState<TradeLog[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    void fetchLogs();
-  }, []);
-
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
+    if (!session?.user?.id) return;
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -54,7 +52,11 @@ export default function HistoryPage({ session }: HistoryPageProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [session?.user?.id]);
+
+  useEffect(() => {
+    void fetchLogs();
+  }, [fetchLogs]);
 
   const formatType = (type: LogType) => {
     switch (type) {
@@ -163,31 +165,28 @@ export default function HistoryPage({ session }: HistoryPageProps) {
                       <div className="flex flex-wrap gap-x-3 gap-y-1">
                         <div className="flex items-center gap-1">
                           <span className="text-[10px] text-zinc-400 font-bold">RR</span>
-                          <span className={`text-xs font-bold ${
-                            log.log_type === "skip" 
-                              ? log.gate_rr_ok ? "text-green-600" : "text-zinc-400" 
-                              : log.gate_rr_ok ? "text-green-600" : "text-red-500"
-                          }`}>
+                          <span className={`text-xs font-bold ${log.log_type === "skip"
+                            ? log.gate_rr_ok ? "text-green-600" : "text-zinc-400"
+                            : log.gate_rr_ok ? "text-green-600" : "text-red-500"
+                            }`}>
                             {log.gate_rr_ok ? "○" : log.log_type === "skip" ? "-" : "×"}
                           </span>
                         </div>
                         <div className="flex items-center gap-1">
                           <span className="text-[10px] text-zinc-400 font-bold">リスク</span>
-                          <span className={`text-xs font-bold ${
-                            log.log_type === "skip" 
-                              ? log.gate_risk_ok ? "text-green-600" : "text-zinc-400" 
-                              : log.gate_risk_ok ? "text-green-600" : "text-red-500"
-                          }`}>
+                          <span className={`text-xs font-bold ${log.log_type === "skip"
+                            ? log.gate_risk_ok ? "text-green-600" : "text-zinc-400"
+                            : log.gate_risk_ok ? "text-green-600" : "text-red-500"
+                            }`}>
                             {log.gate_risk_ok ? "○" : log.log_type === "skip" ? "-" : "×"}
                           </span>
                         </div>
                         <div className="flex items-center gap-1">
                           <span className="text-[10px] text-zinc-400 font-bold">ルール</span>
-                          <span className={`text-xs font-bold ${
-                            log.log_type === "skip" 
-                              ? log.gate_rule_ok ? "text-green-600" : "text-zinc-400" 
-                              : log.gate_rule_ok ? "text-green-600" : "text-red-500"
-                          }`}>
+                          <span className={`text-xs font-bold ${log.log_type === "skip"
+                            ? log.gate_rule_ok ? "text-green-600" : "text-zinc-400"
+                            : log.gate_rule_ok ? "text-green-600" : "text-red-500"
+                            }`}>
                             {log.gate_rule_ok ? "○" : log.log_type === "skip" ? "-" : "×"}
                           </span>
                         </div>
