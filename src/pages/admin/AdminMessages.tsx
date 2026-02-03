@@ -74,13 +74,39 @@ export default function AdminMessages() {
 
         setSending(true);
         try {
-            // TODO: ここに実際の送信ロジック (Edge Function 呼び出し等) を実装
-            // await supabase.functions.invoke('send-push-message', { body: { ... } });
+            // 現在のユーザー(送信者)を取得
+            const { data: { user: currentUser } } = await supabase.auth.getUser();
+            if (!currentUser) throw new Error("Not authenticated");
 
-            // 仮の遅延
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            const messagesToInsert = [];
 
-            toast.success("メッセージを送信しました (Demo)");
+            if (targetMode === "broadcast") {
+                // 一斉送信: recipient_user_id = null
+                messagesToInsert.push({
+                    sender_user_id: currentUser.id,
+                    recipient_user_id: null,
+                    body: `【${subject}】\n\n${body}`,
+                    created_at: new Date().toISOString()
+                });
+            } else {
+                // 個別送信: 選択されたユーザーごとに作成
+                for (const recipientId of selectedUserIds) {
+                    messagesToInsert.push({
+                        sender_user_id: currentUser.id,
+                        recipient_user_id: recipientId,
+                        body: `【${subject}】\n\n${body}`,
+                        created_at: new Date().toISOString()
+                    });
+                }
+            }
+
+            const { error } = await supabase
+                .from("dm_messages")
+                .insert(messagesToInsert);
+
+            if (error) throw error;
+
+            toast.success("メッセージを送信しました");
             setSubject("");
             setBody("");
             setSelectedUserIds([]);

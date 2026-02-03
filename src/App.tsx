@@ -900,27 +900,26 @@ export default function App() {
 
   const loadMemberDm = async () => {
     if (!session?.user?.id) return;
-    const { data: threads, error: threadError } = await supabase
+
+    // スレッドに依存せず、自分宛(recipient=me or null)または自分発(sender=me)のメッセージを取得
+    const { data: messages, error } = await supabase
+      .from("dm_messages")
+      .select("id, thread_id, sender_user_id, recipient_user_id, body, created_at")
+      .or(`recipient_user_id.eq.${session.user.id},sender_user_id.eq.${session.user.id},recipient_user_id.is.null`)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (error) return;
+    setMemberMessages((messages ?? []) as DmMessage[]);
+
+    // 返信先特定のためにスレッド情報も取得しておく（既存ロジック維持）
+    const { data: threads } = await supabase
       .from("dm_threads")
       .select("id, member_user_id, teacher_user_id, created_at")
       .eq("member_user_id", session.user.id)
       .order("created_at", { ascending: false });
 
-    if (threadError) return;
-    const threadList = (threads ?? []) as DmThread[];
-    setMemberThreads(threadList);
-    if (threadList.length === 0) {
-      setMemberMessages([]);
-      return;
-    }
-    const threadIds = threadList.map((t) => t.id);
-    const { data: messages } = await supabase
-      .from("dm_messages")
-      .select("id, thread_id, sender_user_id, body, created_at")
-      .in("thread_id", threadIds)
-      .order("created_at", { ascending: false })
-      .limit(50);
-    setMemberMessages((messages ?? []) as DmMessage[]);
+    if (threads) setMemberThreads((threads ?? []) as DmThread[]);
   };
 
   const resetPre = () => {
@@ -990,8 +989,14 @@ export default function App() {
       return setStatus("先生からのDMが届いたら返信できます。");
     }
     const threadId = memberThreads[0].id;
+    const teacherId = memberThreads[0].teacher_user_id;
     const { error } = await supabase.from("dm_messages").insert([
-      { thread_id: threadId, sender_user_id: session.user.id, body },
+      {
+        thread_id: threadId,
+        sender_user_id: session.user.id,
+        recipient_user_id: teacherId, // 教師宛
+        body
+      },
     ]);
     if (error) return setStatus(`DM送信失敗: ${error.message}`);
     setMemberDmInput("");
@@ -1218,7 +1223,12 @@ export default function App() {
     if (!threadId) return;
 
     const { error: msgError } = await supabase.from("dm_messages").insert([
-      { thread_id: threadId, sender_user_id: session.user.id, body },
+      {
+        thread_id: threadId,
+        sender_user_id: session.user.id,
+        recipient_user_id: row.user_id, // 生徒宛
+        body
+      },
     ]);
     if (msgError) return reportError("DM送信失敗", msgError);
 
