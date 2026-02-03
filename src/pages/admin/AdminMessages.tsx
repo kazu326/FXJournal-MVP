@@ -6,8 +6,7 @@ import toast from "react-hot-toast";
 type UserRow = {
     id: string;
     username: string | null;
-    display_name: string | null;
-    email: string | null;
+    avatar_url: string | null;
 };
 
 type TemplateRow = {
@@ -50,7 +49,13 @@ export default function AdminMessages() {
             console.error("User fetch error:", error);
             toast.error("ユーザー一覧の取得に失敗しました");
         } else {
-            setUsers(data as UserRow[]);
+            // アバターURLがない可能性があるため、適切にキャストまたはマッピング
+            const mappedUsers = (data as any[]).map(u => ({
+                id: u.id,
+                username: u.username,
+                avatar_url: u.avatar_url ?? null
+            }));
+            setUsers(mappedUsers);
         }
         setLoading(false);
     };
@@ -212,8 +217,7 @@ export default function AdminMessages() {
                                                             {selectedUserIds.includes(user.id) && <CheckCircle className="w-3 h-3 text-white" />}
                                                         </div>
                                                         <div>
-                                                            <div className="text-sm font-medium">{user.display_name || "No Name"}</div>
-                                                            <div className="text-xs text-slate-500">@{user.username || "unknown"}</div>
+                                                            <div className="text-sm font-medium">{user.username || "No Name"}</div>
                                                         </div>
                                                     </div>
                                                     <input
