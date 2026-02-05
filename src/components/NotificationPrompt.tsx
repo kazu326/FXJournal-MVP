@@ -7,6 +7,7 @@ export default function NotificationPrompt() {
     const { user } = useAuth();
     const [visible, setVisible] = useState(false);
     const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+    const [errorMessage, setErrorMessage] = useState("");
 
     useEffect(() => {
         if (!user) return;
@@ -35,9 +36,10 @@ export default function NotificationPrompt() {
                 // 拒否された場合
                 setVisible(false);
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
             setStatus("error");
+            setErrorMessage(e.message || "予期せぬエラーが発生しました");
         }
     };
 
@@ -49,7 +51,7 @@ export default function NotificationPrompt() {
     if (!visible) return null;
 
     return (
-        <div className="fixed bottom-4 right-4 z-50 max-w-sm w-full animate-slide-up">
+        <div className="fixed bottom-24 right-4 left-4 md:left-auto z-[100] max-w-sm ml-auto animate-slide-up">
             <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-blue-100 dark:border-slate-700 p-4 flex gap-4">
                 <div className="flex-shrink-0 bg-blue-100 dark:bg-slate-800 p-3 rounded-full flex items-center justify-center">
                     <Bell className="w-6 h-6 text-blue-600 dark:text-blue-400" />
@@ -96,7 +98,7 @@ export default function NotificationPrompt() {
 
                     {status === "error" && (
                         <div className="text-sm text-red-500 font-semibold">
-                            エラーが発生しました
+                            エラー: {errorMessage || "設定に失敗しました"}
                         </div>
                     )}
                 </div>
