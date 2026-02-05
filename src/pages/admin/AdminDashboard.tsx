@@ -104,7 +104,7 @@ export default function AdminDashboard() {
           <div className="text-xs text-slate-400">
             最長ストリーク:{" "}
             {data.length > 0
-              ? Math.max(...data.map((u) => u.streak_days ?? 0))
+              ? Math.max(...data.map((u) => u.current_streak ?? 0))
               : 0}{" "}
             日
           </div>
