@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+console.log("VAPID_PUBLIC_KEY loaded:", VAPID_PUBLIC_KEY ? `Present (length: ${VAPID_PUBLIC_KEY.length})` : "Missing");
 if (!VAPID_PUBLIC_KEY) {
     console.warn("VITE_VAPID_PUBLIC_KEY is not defined in import.meta.env");
 }
