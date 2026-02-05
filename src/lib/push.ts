@@ -1,9 +1,10 @@
 import { supabase } from "./supabase";
 
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || "BNzX_CIOKvXbvYGpuvPvXSJH1PPPTsbGmM5BBMJvKgJaDarZbMcRY6MUOqP4b4Yy9NSgqqWJSpgz11hVSIZLbsw";
-console.log("VAPID_PUBLIC_KEY final value:", VAPID_PUBLIC_KEY ? `Present (length: ${VAPID_PUBLIC_KEY.length})` : "Missing");
-if (!import.meta.env.VITE_VAPID_PUBLIC_KEY) {
-    console.warn("VITE_VAPID_PUBLIC_KEY is not defined in import.meta.env, using fallback.");
+const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+console.log("VAPID_PUBLIC_KEY Status:", VAPID_PUBLIC_KEY ? `Present (length: ${VAPID_PUBLIC_KEY.length})` : "Missing");
+
+if (!VAPID_PUBLIC_KEY) {
+    console.error("VITE_VAPID_PUBLIC_KEY is not defined. Push subscription will fail.");
 }
 
 /**
