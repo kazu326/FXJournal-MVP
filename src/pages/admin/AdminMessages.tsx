@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Send, Plus, CheckCircle, Loader2, X } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import toast from "react-hot-toast";
+import { useAuth } from "../../contexts/AuthContext";
 
 type UserRow = {
     user_id: string;
@@ -21,6 +22,7 @@ export default function AdminMessages() {
     const [users, setUsers] = useState<UserRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
+    const { user: currentUser } = useAuth();
 
     // Form State
     const [subject, setSubject] = useState("");
@@ -78,7 +80,6 @@ export default function AdminMessages() {
 
         setSending(true);
         try {
-            const { data: { user: currentUser } } = await supabase.auth.getUser();
             if (!currentUser) throw new Error("Not authenticated");
 
             if (targetMode === "broadcast") {
