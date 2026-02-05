@@ -605,18 +605,22 @@ export default function App() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "announcements" },
-        () => {
+        (payload) => {
+          console.log("Realtime: announcement changed", payload.eventType);
           void loadAnnouncements();
         }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "dm_messages" },
-        () => {
+        (payload) => {
+          console.log("Realtime: dm_message changed", payload.eventType, payload.new?.id);
           void loadMemberDm();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("Realtime: subscription status", status);
+      });
 
     return () => {
       void supabase.removeChannel(channel);
