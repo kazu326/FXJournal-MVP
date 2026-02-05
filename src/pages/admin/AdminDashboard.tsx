@@ -135,7 +135,7 @@ export default function AdminDashboard() {
             </thead>
             <tbody>
               {loading ? (
-                <tr>
+                <tr key="loading">
                   <td
                     colSpan={5}
                     className="px-4 py-6 text-center text-slate-400"
@@ -144,7 +144,7 @@ export default function AdminDashboard() {
                   </td>
                 </tr>
               ) : data.length === 0 ? (
-                <tr>
+                <tr key="empty">
                   <td
                     colSpan={5}
                     className="px-4 py-6 text-center text-slate-400"
@@ -215,8 +215,8 @@ export default function AdminDashboard() {
                           最終学習:{" "}
                           {u.last_learning_date
                             ? new Date(
-                                u.last_learning_date
-                              ).toLocaleDateString()
+                              u.last_learning_date
+                            ).toLocaleDateString()
                             : "-"}
                         </span>
                       </div>

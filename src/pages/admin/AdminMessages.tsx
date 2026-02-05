@@ -196,7 +196,7 @@ export default function AdminMessages() {
     return (
         <div className="min-h-screen bg-[#050B14] text-slate-300 font-sans selection:bg-cyan-900/50">
             {/* Ambient Grid Background */}
-            <div className="fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay"></div>
+            <div className="fixed inset-0 opacity-20 pointer-events-none mix-blend-overlay"></div>
 
             <div className="max-w-7xl mx-auto p-6 md:p-8 space-y-6 relative z-10">
                 <header className="flex items-center justify-between border-b border-slate-800/60 pb-4">

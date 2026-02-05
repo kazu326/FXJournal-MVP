@@ -598,6 +598,29 @@ export default function App() {
   useEffect(() => {
     if (!session) return;
     void loadPending();
+
+    // リアルタイム購読
+    const channel = supabase
+      .channel("realtime-updates")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "announcements" },
+        () => {
+          void loadAnnouncements();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "dm_messages" },
+        () => {
+          void loadMemberDm();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.id]);
 
