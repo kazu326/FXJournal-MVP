@@ -3,13 +3,13 @@ import { Activity, Users, GraduationCap, Flame } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 
 type AdminUserStatsRow = {
-  id: string;
+  user_id: string;
   username: string | null;
   avatar_url: string | null;
-  joined_at: string | null;
+  created_at: string | null;
   total_xp: number | null;
   level: number | null;
-  streak_days: number | null;
+  current_streak: number | null;
   total_trades: number | null;
   trading_days: number | null;
   last_trade_date: string | null;
@@ -155,7 +155,7 @@ export default function AdminDashboard() {
               ) : (
                 data.map((u) => (
                   <tr
-                    key={u.id}
+                    key={u.user_id}
                     className="border-b border-slate-800/60 hover:bg-slate-900/60"
                   >
                     <td className="px-4 py-2">
@@ -175,8 +175,8 @@ export default function AdminDashboard() {
                           </span>
                           <span className="text-[10px] text-slate-500">
                             参加日:{" "}
-                            {u.joined_at
-                              ? new Date(u.joined_at).toLocaleDateString()
+                            {u.created_at
+                              ? new Date(u.created_at).toLocaleDateString()
                               : "-"}
                           </span>
                         </div>
@@ -189,7 +189,7 @@ export default function AdminDashboard() {
                           XP: {u.total_xp !== null ? u.total_xp : 0}
                         </span>
                         <span className="text-[10px] text-slate-400">
-                          Lv {u.level ?? 1} / ストリーク {u.streak_days ?? 0} 日
+                          Lv {u.level ?? 1} / ストリーク {u.current_streak ?? 0} 日
                         </span>
                       </div>
                     </td>
