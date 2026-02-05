@@ -1,6 +1,9 @@
 import { supabase } from "./supabase";
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+if (!VAPID_PUBLIC_KEY) {
+    console.warn("VITE_VAPID_PUBLIC_KEY is not defined in import.meta.env");
+}
 
 /**
  * URL Base64 to Uint8Array converter
