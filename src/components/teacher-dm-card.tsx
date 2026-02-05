@@ -10,12 +10,14 @@ interface TeacherDMCardProps {
   timestamp?: string;
   message?: string;
   onSendReply?: (message: string) => void;
+  onClick?: () => void;
 }
 
 export function TeacherDMCard({
   timestamp = "2026/1/20 22:06",
   message = "記録ありがとうございます。取引後のチェック（Step2）が未完のようです。\n\n結果ではなく「想定内/外」の判定だけでOKなので、1分で仕上げてください。",
   onSendReply,
+  onClick,
 }: TeacherDMCardProps) {
   const [reply, setReply] = useState("");
 
@@ -34,7 +36,10 @@ export function TeacherDMCard({
   };
 
   return (
-    <Card className="w-full rounded-2xl glass-panel backdrop-blur-xl bg-accent border-accent">
+    <Card
+      className={`w-full rounded-2xl glass-panel backdrop-blur-xl bg-accent border-accent ${onClick ? "cursor-pointer hover:bg-accent/80 transition-colors" : ""}`}
+      onClick={onClick}
+    >
       <CardContent className="pt-6">
         <div className="flex items-center gap-2 mb-4">
           <MessageCircle className="size-5 text-accent-foreground" />

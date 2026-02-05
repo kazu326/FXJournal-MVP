@@ -9,11 +9,17 @@ export default function NotificationPrompt() {
     const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
     useEffect(() => {
-        // ログイン済み かつ 通知権限が 'default' (未選択) の場合のみ表示
-        if (user && "Notification" in window && Notification.permission === "default") {
-            // 少し遅延させて表示
-            const timer = setTimeout(() => setVisible(true), 3000);
-            return () => clearTimeout(timer);
+        if (!user) return;
+
+        if ("Notification" in window) {
+            if (Notification.permission === "default") {
+                // 通知権限が 'default' (未選択) の場合のみ表示
+                const timer = setTimeout(() => setVisible(true), 3000);
+                return () => clearTimeout(timer);
+            } else if (Notification.permission === "granted") {
+                // 既に許可済みの場合は、バックグラウンドで購読登録を更新
+                void subscribeToPush(user.id);
+            }
         }
     }, [user]);
 

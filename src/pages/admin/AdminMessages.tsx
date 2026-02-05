@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Mail, Send, FileText, Plus, Save, Trash2, CheckCircle, Loader2, X } from "lucide-react";
+import { Send, Plus, CheckCircle, Loader2, X } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import toast from "react-hot-toast";
 

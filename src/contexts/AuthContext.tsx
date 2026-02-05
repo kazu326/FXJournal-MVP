@@ -70,7 +70,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (result.code === "UNAUTHORIZED") {
           console.warn("[claim-org-access] セッション切れ。再ログインしてください。", result.message);
         } else if (result.code === "BAD_REQUEST") {
-          console.warn("[claim-org-access] データ不整合:", result.message);
+          // discord_id がない場合などは、開発環境では info レベルにする（警告をうるさくしない）
+          if (result.message?.includes("discord_id not found")) {
+            console.info("[claim-org-access] 組織権限の自動取得はスキップされました: ", result.message);
+          } else {
+            console.warn("[claim-org-access] データ不整合:", result.message);
+          }
         } else {
           console.warn("[claim-org-access] 失敗（非ブロッキング）:", result.message, result.code);
         }
