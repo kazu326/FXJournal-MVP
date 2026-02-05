@@ -31,9 +31,6 @@ html, body {
   margin: 0;
   padding: 0;
   width: 100%;
-  overflow-x: hidden;
-  -webkit-text-size-adjust: 100%;
-  touch-action: pan-y;
 }
 
 body {
@@ -42,7 +39,7 @@ body {
   background: var(--color-bg);
   color: #1f2328;
   position: relative;
-  overscroll-behavior-y: none;
+  overflow-x: hidden;
 }
 
 #root {

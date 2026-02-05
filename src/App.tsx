@@ -22,6 +22,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminBehavior from "./pages/admin/AdminBehavior";
 import AdminMessages from "./pages/admin/AdminMessages";
 import NotificationPrompt from "./components/NotificationPrompt";
+import MessageDetail from "./pages/MessageDetail";
 
 type Mode = "home" | "pre" | "post" | "history" | "skip";
 
@@ -1511,6 +1512,7 @@ export default function App() {
     );
   }
 
+
   if (isLectureNotesRoute) {
     return (
       <LectureNotesPage
@@ -1521,6 +1523,14 @@ export default function App() {
         }}
         onLectureComplete={(res: unknown) => applyXpResult(res as XpResult | null)}
       />
+    );
+  }
+
+  if (window.location.pathname.startsWith("/messages/")) {
+    return (
+      <Routes>
+        <Route path="/messages/:type/:id" element={<MessageDetail />} />
+      </Routes>
     );
   }
 
@@ -2553,7 +2563,34 @@ export default function App() {
               timestamp={latestMessage ? new Date(latestMessage.created_at).toLocaleString() : "—"}
               message={latestMessage?.body ?? "まだメッセージがありません。"}
               onSendReply={(message) => void sendMemberMessage(message)}
+              onClick={() => {
+                if (latestMessage) window.location.href = `/messages/dm/${latestMessage.id}`;
+              }}
             />
+            {/* DM History List */}
+            {memberMessages.length > 0 && (
+              <UiCard className="w-full rounded-2xl glass-panel backdrop-blur-xl">
+                <UiCardContent className="pt-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <h2 className="text-lg font-semibold text-foreground">メッセージ履歴</h2>
+                  </div>
+                  <div className="space-y-3">
+                    {memberMessages.slice(0, 5).map((m) => (
+                      <div
+                        key={m.id}
+                        onClick={() => window.location.href = `/messages/dm/${m.id}`}
+                        className="rounded-md border border-border bg-card p-3 shadow-sm bg-white/50 cursor-pointer hover:bg-white/80 transition-colors"
+                      >
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(m.created_at).toLocaleString()}
+                        </div>
+                        <div className="text-sm text-foreground mt-1 line-clamp-2">{m.body}</div>
+                      </div>
+                    ))}
+                  </div>
+                </UiCardContent>
+              </UiCard>
+            )}
             <UiCard className="w-full rounded-2xl glass-panel backdrop-blur-xl">
               <UiCardContent className="pt-6">
                 <div className="flex items-center gap-2 mb-3">
@@ -2564,7 +2601,11 @@ export default function App() {
                 ) : (
                   <div className="space-y-3">
                     {announcements.slice(0, 3).map((a) => (
-                      <div key={a.id} className="rounded-md border border-border bg-card p-3 shadow-sm bg-white/50">
+                      <div
+                        key={a.id}
+                        onClick={() => window.location.href = `/messages/announcements/${a.id}`}
+                        className="rounded-md border border-border bg-card p-3 shadow-sm bg-white/50 cursor-pointer hover:bg-white/80 transition-colors"
+                      >
                         <div className="text-xs text-muted-foreground">
                           {new Date(a.created_at).toLocaleString()}
                         </div>

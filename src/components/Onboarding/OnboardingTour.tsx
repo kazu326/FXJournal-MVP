@@ -46,7 +46,7 @@ export default function OnboardingTour({ session, onComplete, onSkip }: Props) {
     {
       title: "準備完了！",
       description:
-        "まずは第1講から学習を始めるか、今日のトレードを記録してみましょう。",
+        "学習が止まると、従来のアシストも見せられませんので、通知をONにすると安心です。",
       icon: "🎉",
     },
   ];
@@ -92,13 +92,12 @@ export default function OnboardingTour({ session, onComplete, onSkip }: Props) {
           {steps.map((_, index) => (
             <div
               key={index}
-              className={`h-2 flex-1 rounded-full transition-all ${
-                index === currentStep
+              className={`h-2 flex-1 rounded-full transition-all ${index === currentStep
                   ? "bg-blue-500"
                   : index < currentStep
                     ? "bg-blue-300"
                     : "bg-gray-200"
-              }`}
+                }`}
             />
           ))}
         </div>
