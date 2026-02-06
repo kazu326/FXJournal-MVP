@@ -1,11 +1,14 @@
 import { supabase } from "./supabase";
 
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
-console.log("VAPID_PUBLIC_KEY Status:", VAPID_PUBLIC_KEY ? `Present (length: ${VAPID_PUBLIC_KEY.length})` : "Missing");
+// Hardcoded for debugging
+const VAPID_PUBLIC_KEY = "BO8GyjqhipEzFiv5tKSMwWpgF-WsdajsM73YKszpzqE-GNc8iQUwumlTdYRMsozoK4uxzRvirOiGecmN5789yLE";
+console.log("VAPID_PUBLIC_KEY Status: Hardcoded (length: " + VAPID_PUBLIC_KEY.length + ")");
 
+/*
 if (!VAPID_PUBLIC_KEY) {
     console.error("VITE_VAPID_PUBLIC_KEY is not defined. Push subscription will fail.");
 }
+*/
 
 /**
  * URL Base64 to Uint8Array converter
