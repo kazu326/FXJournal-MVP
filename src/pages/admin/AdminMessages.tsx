@@ -88,7 +88,9 @@ export default function AdminMessages() {
                     .from("announcements")
                     .insert([{
                         title: subject,
-                        body: body
+                        body: body,
+                        published_at: new Date().toISOString(),
+                        created_by: currentUser.id
                     }])
                     .select()
                     .single();

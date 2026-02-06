@@ -61,6 +61,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const responseTimeMs = Date.now() - start;
       recordClaimOrgAccess(result, responseTimeMs);
 
+      // 通知購読の自動更新（許可済みの場合、DBをクリアした後の復旧用）
+      if (user?.id && "Notification" in window && Notification.permission === "granted") {
+        import("../lib/push").then(({ subscribeToPush }) => {
+          subscribeToPush(user.id).catch(err => console.error("Auto-push sync failed:", err));
+        });
+      }
+
       if (result.ok) {
         if (typeof localStorage !== "undefined") localStorage.setItem(storageKey, "true");
         if (result.created_org || result.staff_added) {

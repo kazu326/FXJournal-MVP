@@ -614,7 +614,8 @@ export default function App() {
         "postgres_changes",
         { event: "*", schema: "public", table: "dm_messages" },
         (payload) => {
-          console.log("Realtime: dm_message changed", payload.eventType, payload.new?.id);
+          const newRecord = payload.new as { id?: string } | null;
+          console.log("Realtime: dm_message changed", payload.eventType, newRecord?.id);
           void loadMemberDm();
         }
       )

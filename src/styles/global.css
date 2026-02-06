@@ -27,7 +27,8 @@
   --color-border: #d6d8dc;
 }
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   width: 100%;
@@ -117,8 +118,15 @@ body {
   }
 }
 
-.backdrop-blur-sm { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
-.backdrop-blur-lg { backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+.backdrop-blur-sm {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.backdrop-blur-lg {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
 
 .hero-card {
   background: linear-gradient(to bottom right, rgba(239, 246, 255, 0.8), rgba(255, 255, 255, 0.7), rgba(250, 245, 255, 0.6)) !important;
@@ -141,10 +149,12 @@ body {
   box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3), 0 4px 6px -4px rgba(59, 130, 246, 0.3);
   transition: filter 0.2s, transform 0.2s;
 }
+
 .btn-cta:hover:not(:disabled) {
   filter: brightness(1.1);
   transform: translateY(-2px);
 }
+
 .btn-cta:active:not(:disabled) {
   transform: translateY(0);
 }
@@ -157,7 +167,10 @@ body {
   box-sizing: border-box;
 }
 
-h1, h2, h3, h4 {
+h1,
+h2,
+h3,
+h4 {
   margin-top: 0;
   line-height: 1.2;
   font-weight: 700;
@@ -171,8 +184,8 @@ button {
   font-size: 15px;
   font-weight: 600;
   font-family: inherit;
-  background-color: var(--color-card);
-  color: var(--color-text);
+  background-color: #ffffff;
+  color: #1f2328;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: inline-flex;
@@ -187,7 +200,7 @@ button:active {
 
 button:hover {
   border-color: var(--color-accent);
-  background-color: rgba(43, 109, 224, 0.05);
+  background-color: #f0f4ff;
 }
 
 button:disabled {
@@ -202,26 +215,32 @@ button.btn-discord {
   color: white !important;
   border-color: #4752C4 !important;
 }
+
 button.btn-discord:hover {
   background-color: #4752C4 !important;
 }
+
 button.btn-discord:active {
   background-color: #3C45A5 !important;
 }
 
-input, select, textarea {
+input,
+select,
+textarea {
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
   padding: 12px 16px;
   min-height: 48px;
   font-size: 15px;
-  background: var(--color-card);
-  color: var(--color-text);
+  background: #ffffff;
+  color: #1f2328;
   outline: none;
   transition: border-color 0.2s;
 }
 
-input:focus, select:focus, textarea:focus {
+input:focus,
+select:focus,
+textarea:focus {
   border-color: var(--color-accent);
   box-shadow: 0 0 0 2px rgba(43, 109, 224, 0.1);
 }
@@ -289,16 +308,23 @@ input:focus, select:focus, textarea:focus {
   will-change: filter;
   transition: filter 300ms;
 }
+
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
 }
+
 .logo.react:hover {
   filter: drop-shadow(0 0 2em #61dafbaa);
 }
 
 @keyframes logo-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -308,19 +334,22 @@ input:focus, select:focus, textarea:focus {
 }
 
 @keyframes shimmer {
-  0% { background-position: 200% center; }
-  100% { background-position: -200% center; }
+  0% {
+    background-position: 200% center;
+  }
+
+  100% {
+    background-position: -200% center;
+  }
 }
 
 .shimmer-text {
-  background: linear-gradient(
-    110deg,
-    #2b6de0 20%,
-    #2b6de0 40%,
-    #00d2ff 50%,
-    #2b6de0 60%,
-    #2b6de0 80%
-  );
+  background: linear-gradient(110deg,
+      #2b6de0 20%,
+      #2b6de0 40%,
+      #00d2ff 50%,
+      #2b6de0 60%,
+      #2b6de0 80%);
   background-size: 200% auto;
   color: #2b6de0;
   -webkit-background-clip: text;
