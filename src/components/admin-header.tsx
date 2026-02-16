@@ -1,4 +1,4 @@
-import { Menu, Home, FileText, Users, LogOut } from "lucide-react";
+import { Menu, Home, FileText, Users, LogOut, Activity } from "lucide-react";
 
 type AdminHeaderProps = {
   title: string;
@@ -10,6 +10,7 @@ type AdminHeaderProps = {
   onGoTeacherHome: () => void;
   onGoLogs: () => void;
   onGoUserView: () => void;
+  onGoInterventions: () => void;
   onLogout: () => void;
 };
 
@@ -23,6 +24,7 @@ export function AdminHeader({
   onGoTeacherHome,
   onGoLogs,
   onGoUserView,
+  onGoInterventions,
   onLogout,
 }: AdminHeaderProps) {
   const btn =
@@ -67,6 +69,11 @@ export function AdminHeader({
             ユーザー画面
           </button>
 
+          <button type="button" className={btn} onClick={onGoInterventions}>
+            <Activity className="h-4 w-4" />
+            施策管理
+          </button>
+
           <button type="button" className={btn} onClick={onLogout}>
             <LogOut className="h-4 w-4" />
             ログアウト
@@ -101,6 +108,11 @@ export function AdminHeader({
                 <button type="button" className={btn} onClick={() => (onCloseMenu(), onGoUserView())}>
                   <Users className="h-4 w-4" />
                   ユーザー画面
+                </button>
+
+                <button type="button" className={btn} onClick={() => (onCloseMenu(), onGoInterventions())}>
+                  <Activity className="h-4 w-4" />
+                  施策管理
                 </button>
 
                 <button type="button" className={btn} onClick={() => (onCloseMenu(), onLogout())}>

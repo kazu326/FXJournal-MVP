@@ -21,6 +21,7 @@ import AdminLayout from "./layouts/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminBehavior from "./pages/admin/AdminBehavior";
 import AdminMessages from "./pages/admin/AdminMessages";
+import { InterventionManagementPage } from "./pages/admin/InterventionManagementPage";
 import NotificationPrompt from "./components/NotificationPrompt";
 import MessageDetail from "./pages/MessageDetail";
 
@@ -1444,6 +1445,7 @@ export default function App() {
           <Route index element={<AdminDashboard />} />
           <Route path="behavior" element={<AdminBehavior />} />
           <Route path="messages" element={<AdminMessages />} />
+          <Route path="interventions" element={<InterventionManagementPage />} />
         </Route>
       </Routes>
     );
@@ -1562,6 +1564,8 @@ export default function App() {
     );
   }
 
+
+
   if (isAdminRoute && !isTeacher) {
     return (
       <div style={{ maxWidth: "100%", margin: "0", padding: "0 var(--space-md)" }}>
@@ -1594,6 +1598,9 @@ export default function App() {
             }}
             onGoUserView={() => {
               window.location.href = "/";
+            }}
+            onGoInterventions={() => {
+              window.location.href = "/admin/interventions";
             }}
             onLogout={signOut}
           />

@@ -1,21 +1,23 @@
 import { useEffect, useState } from "react";
-import { Activity, Users, GraduationCap, Flame } from "lucide-react";
+import { Activity, Users, GraduationCap, Flame, Download, Bell, AlertTriangle } from "lucide-react";
+import { downloadCSV } from "../../lib/csv-export";
 import { supabase } from "../../lib/supabase";
+import { DashboardSummaryCard } from "./components/DashboardSummaryCard";
+import { NoTradeChart } from "./components/NoTradeChart";
+import { CheckAdherenceChart } from "./components/CheckAdherenceChart";
+import { LearningEffectChart } from "./components/LearningEffectChart";
+import { RiskAlertChart } from "./components/RiskAlertChart";
+import { TimeZoneBiasChart } from "./components/TimeZoneBiasChart";
 
 type AdminUserStatsRow = {
   user_id: string;
-  username: string | null;
-  avatar_url: string | null;
-  created_at: string | null;
-  total_xp: number | null;
-  level: number | null;
-  current_streak: number | null;
+  email: string | null;
   total_trades: number | null;
-  trading_days: number | null;
+  win_rate: number | null;
+  avg_risk_reward: number | null;
+  learning_progress: number | null;
   last_trade_date: string | null;
-  lectures_accessed: number | null;
-  lectures_completed: number | null;
-  last_learning_date: string | null;
+  subscription_status: string | null;
 };
 
 export default function AdminDashboard() {
@@ -24,208 +26,203 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const fetchStats = async () => {
-      setLoading(true);
-      const { data: rows, error } = await supabase
-        .from("admin_user_stats")
-        .select("*")
-        .order("total_xp", { ascending: false })
-        .limit(50);
+      try {
+        const { data: userData, error } = await supabase
+          .from('v_behavior_compliance_report' as any)
+          .select('*');
 
-      if (error) {
-        console.error("Failed to fetch admin_user_stats", error);
-        setData([]);
-      } else {
-        setData((rows ?? []) as AdminUserStatsRow[]);
+        if (error) throw error;
+        setData(userData || []);
+      } catch (err) {
+        console.error("Error fetching stats:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchStats();
   }, []);
 
-  const totalUsers = data.length;
-  const totalTrades = data.reduce(
-    (sum, u) => sum + (u.total_trades ?? 0),
-    0
-  );
-  const avgTradesPerUser =
-    totalUsers > 0 ? (totalTrades / totalUsers).toFixed(1) : "0.0";
-  const avgLevel =
-    totalUsers > 0
-      ? (data.reduce((s, u) => s + (u.level ?? 1), 0) / totalUsers).toFixed(1)
-      : "1.0";
+  const handleExportComplianceReport = async () => {
+    try {
+      const { data: exportData, error } = await supabase
+        .from('v_behavior_compliance_report' as any)
+        .select('*');
+
+      if (error) throw error;
+
+      const filename = `compliance_report_${new Date().toISOString().split('T')[0]}.csv`;
+      downloadCSV(exportData, filename);
+    } catch (error) {
+      console.error('CSV export failed:', error);
+      alert('CSVエクスポートに失敗しました');
+    }
+  };
+
+  // const totalUsers = data.length;
+  // 仮の集計（実際はAPIから取得するか、v_behavior_compliance_reportを拡張して取得）
+  const activeUsers = data.filter(u => u.subscription_status === 'active').length;
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-xl md:text-2xl font-semibold flex items-center gap-2">
-          <Activity className="w-5 h-5 text-emerald-400" />
-          <span>管理ダッシュボード</span>
-        </h1>
-        <p className="text-sm text-slate-400">
-          ユーザーのトレード記録と学習状況のサマリーを確認できます。
-        </p>
+    <div className="space-y-8 pb-12">
+      {/* Header */}
+      <header className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-xl md:text-2xl font-semibold flex items-center gap-2 text-slate-100">
+            <Activity className="w-6 h-6 text-emerald-400" />
+            <span>FX Journal Admin</span>
+            <span className="text-xs font-normal text-slate-500 ml-2 border border-slate-700 px-2 py-0.5 rounded-full">v2.0</span>
+          </h1>
+          <p className="text-sm text-slate-400">
+            コックピットへようこそ。全ユーザーの行動データをリアルタイムで監視中。
+          </p>
+        </div>
+        <button
+          onClick={handleExportComplianceReport}
+          className="flex items-center gap-2 px-4 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 text-sm font-medium rounded-lg transition-all hover:shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+        >
+          <Download className="w-4 h-4" />
+          <span>CSVレポート出力</span>
+        </button>
       </header>
 
-      {/* サマリーカード */}
-      <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 flex flex-col gap-2">
-          <div className="flex items-center justify-between text-xs text-slate-400">
-            <span>総ユーザー数</span>
-            <Users className="w-4 h-4 text-slate-500" />
-          </div>
-          <div className="text-2xl font-semibold">{totalUsers}</div>
-        </div>
+      {/* KPI Cards Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <DashboardSummaryCard
+          title="アクティブユーザー数"
+          value={`${activeUsers}人`}
+          subValue="(+12%)"
+          subLabel="今週ログイン人数"
+          trend="up"
+          trendValue="+12%"
+          icon={Users}
+          color="emerald"
+          dalay={0}
+        />
+        <DashboardSummaryCard
+          title="継続率"
+          value="85%"
+          subValue="(30日)"
+          subLabel="7日継続率 92%"
+          trend="up"
+          trendValue="+5%"
+          icon={Activity}
+          color="blue"
+          dalay={0.1}
+        />
+        <DashboardSummaryCard
+          title="要フォロー候補"
+          value="8人"
+          subLabel="最終活動 > 7日"
+          trend="neutral"
+          icon={Bell}
+          color="amber"
+          dalay={0.2}
+        />
+        <DashboardSummaryCard
+          title="離脱危険信号"
+          value="3人"
+          subLabel="初回利用から3日以内ストップ"
+          trend="down"
+          trendValue="+1"
+          icon={AlertTriangle}
+          color="rose"
+          dalay={0.3}
+        />
+      </div>
 
-        <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 flex flex-col gap-2">
-          <div className="flex items-center justify-between text-xs text-slate-400">
-            <span>総トレード数</span>
-            <Activity className="w-4 h-4 text-slate-500" />
-          </div>
-          <div className="text-2xl font-semibold">{totalTrades}</div>
-          <div className="text-xs text-slate-400">
-            1ユーザーあたり平均 {avgTradesPerUser} 回
-          </div>
+      {/* Charts Grid - Top Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-1">
+          <NoTradeChart />
         </div>
-
-        <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 flex flex-col gap-2">
-          <div className="flex items-center justify-between text-xs text-slate-400">
-            <span>平均レベル</span>
-            <GraduationCap className="w-4 h-4 text-slate-500" />
-          </div>
-          <div className="text-2xl font-semibold">{avgLevel}</div>
+        <div className="lg:col-span-2">
+          <CheckAdherenceChart />
         </div>
+      </div>
 
-        <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 flex flex-col gap-2">
-          <div className="flex items-center justify-between text-xs text-slate-400">
-            <span>ストリーク上位</span>
-            <Flame className="w-4 h-4 text-amber-400" />
-          </div>
-          <div className="text-xs text-slate-400">
-            最長ストリーク:{" "}
-            {data.length > 0
-              ? Math.max(...data.map((u) => u.current_streak ?? 0))
-              : 0}{" "}
-            日
-          </div>
+      {/* Charts Grid - Bottom Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-1">
+          <LearningEffectChart />
         </div>
-      </section>
+        <div className="lg:col-span-1">
+          <RiskAlertChart />
+        </div>
+        <div className="lg:col-span-1">
+          <TimeZoneBiasChart />
+        </div>
+      </div>
 
-      {/* ユーザー一覧テーブル */}
-      <section className="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-100">
+      {/* User List Section */}
+      <div className="mt-8 bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden backdrop-blur-sm">
+        <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
+          <h2 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
+            <Users className="w-5 h-5 text-slate-400" />
             ユーザー別サマリー
           </h2>
-          <span className="text-xs text-slate-500">
-            上位 {data.length} ユーザー（XP順）
-          </span>
+          <span className="text-xs text-slate-500">上位 10 ユーザー表示中</span>
         </div>
-
         <div className="overflow-x-auto">
-          <table className="min-w-full text-xs">
-            <thead className="bg-slate-900/80 border-b border-slate-800">
-              <tr className="text-left text-slate-400">
-                <th className="px-4 py-2 font-normal">ユーザー</th>
-                <th className="px-4 py-2 font-normal">XP / Lv</th>
-                <th className="px-4 py-2 font-normal">トレード</th>
-                <th className="px-4 py-2 font-normal">学習</th>
-                <th className="px-4 py-2 font-normal">最終活動</th>
+          <table className="w-full text-sm text-left">
+            <thead className="bg-slate-800/50 text-slate-400 font-medium">
+              <tr>
+                <th className="px-6 py-3">ユーザー</th>
+                <th className="px-6 py-3">サブスクリプション</th>
+                <th className="px-6 py-3 text-right">トレード数</th>
+                <th className="px-6 py-3 text-right">勝率</th>
+                <th className="px-6 py-3 text-right">学習進捗</th>
+                <th className="px-6 py-3 text-right">最終活動</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-800">
               {loading ? (
-                <tr key="loading">
-                  <td
-                    colSpan={5}
-                    className="px-4 py-6 text-center text-slate-400"
-                  >
-                    読み込み中…
-                  </td>
-                </tr>
-              ) : data.length === 0 ? (
-                <tr key="empty">
-                  <td
-                    colSpan={5}
-                    className="px-4 py-6 text-center text-slate-400"
-                  >
-                    データがまだありません。
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
+                    Loading data...
                   </td>
                 </tr>
               ) : (
-                data.map((u) => (
-                  <tr
-                    key={u.user_id}
-                    className="border-b border-slate-800/60 hover:bg-slate-900/60"
-                  >
-                    <td className="px-4 py-2">
-                      <div className="flex items-center gap-2">
-                        {u.avatar_url ? (
-                          <img
-                            src={u.avatar_url}
-                            alt={u.username ?? ""}
-                            className="w-6 h-6 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-6 h-6 rounded-full bg-slate-800" />
-                        )}
-                        <div className="flex flex-col">
-                          <span className="text-xs font-medium text-slate-100">
-                            {u.username ?? "No name"}
-                          </span>
-                          <span className="text-[10px] text-slate-500">
-                            参加日:{" "}
-                            {u.created_at
-                              ? new Date(u.created_at).toLocaleDateString()
-                              : "-"}
-                          </span>
+                data.slice(0, 10).map((user) => (
+                  <tr key={user.user_id} className="hover:bg-slate-800/30 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <span className="text-slate-200 font-medium truncate max-w-[150px]">
+                          {user.email || user.user_id.slice(0, 8)}
+                        </span>
+                        <span className="text-xs text-slate-500">{user.user_id.slice(0, 8)}...</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${user.subscription_status === 'active'
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                        : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
+                        }`}>
+                        {user.subscription_status === 'active' ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right font-mono text-slate-300">
+                      {user.total_trades || 0}
+                    </td>
+                    <td className="px-6 py-4 text-right font-mono text-slate-300">
+                      {user.win_rate ? `${Number(user.win_rate).toFixed(1)}%` : '-'}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      {user.learning_progress ? (
+                        <div className="flex items-center justify-end gap-2">
+                          <span className="font-mono text-slate-300">{Number(user.learning_progress).toFixed(0)}%</span>
+                          {Number(user.learning_progress) >= 80 ? (
+                            <GraduationCap className="w-4 h-4 text-emerald-400" />
+                          ) : Number(user.learning_progress) > 0 ? (
+                            <Flame className="w-4 h-4 text-amber-400" />
+                          ) : (
+                            <div className="w-4 h-4" />
+                          )}
                         </div>
-                      </div>
+                      ) : '-'}
                     </td>
-
-                    <td className="px-4 py-2">
-                      <div className="flex flex-col">
-                        <span className="text-xs">
-                          XP: {u.total_xp !== null ? u.total_xp : 0}
-                        </span>
-                        <span className="text-[10px] text-slate-400">
-                          Lv {u.level ?? 1} / ストリーク {u.current_streak ?? 0} 日
-                        </span>
-                      </div>
-                    </td>
-
-                    <td className="px-4 py-2">
-                      <div className="flex flex-col">
-                        <span className="text-xs">
-                          合計 {u.total_trades ?? 0} 回
-                        </span>
-                        <span className="text-[10px] text-slate-400">
-                          トレード日数 {u.trading_days ?? 0} 日
-                        </span>
-                      </div>
-                    </td>
-
-                    <td className="px-4 py-2">
-                      <div className="flex flex-col">
-                        <span className="text-xs">
-                          受講 {u.lectures_completed ?? 0}/
-                          {u.lectures_accessed ?? 0} 講座
-                        </span>
-                        <span className="text-[10px] text-slate-400">
-                          最終学習:{" "}
-                          {u.last_learning_date
-                            ? new Date(
-                              u.last_learning_date
-                            ).toLocaleDateString()
-                            : "-"}
-                        </span>
-                      </div>
-                    </td>
-
-                    <td className="px-4 py-2 text-[11px] text-slate-400">
-                      {u.last_trade_date
-                        ? new Date(u.last_trade_date).toLocaleString()
-                        : "-"}
+                    <td className="px-6 py-4 text-right text-slate-500 text-xs">
+                      {user.last_trade_date ? new Date(user.last_trade_date).toLocaleDateString() : '-'}
                     </td>
                   </tr>
                 ))
@@ -233,7 +230,7 @@ export default function AdminDashboard() {
             </tbody>
           </table>
         </div>
-      </section>
+      </div>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Activity, ArrowLeft, BarChart3, Mail } from "lucide-react";
+import { LayoutDashboard, Activity, ArrowLeft, BarChart3, Mail, Users } from "lucide-react";
 import { useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -19,8 +19,14 @@ const navItems = [
     label: "メッセージ",
     icon: Mail,
   },
+  {
+    to: "/admin/interventions",
+    label: "施策管理",
+    icon: Users,
+  },
   // 将来 `/admin/users` `/admin/trades` `/admin/learning` を追加予定
 ];
+
 
 export default function AdminLayout() {
   const { user, loading } = useAuth();
