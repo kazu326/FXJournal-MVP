@@ -375,6 +375,20 @@ export default function AdminMessages() {
                                                             }`}>
                                                             {selectedUserIds.includes(user.user_id) && <div className="w-1.5 h-1.5 bg-black" />}
                                                         </div>
+
+                                                        {/* Avatar */}
+                                                        {user.avatar_url ? (
+                                                            <img
+                                                                src={user.avatar_url}
+                                                                alt=""
+                                                                className="w-6 h-6 rounded-full bg-slate-700 object-cover"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-[10px] font-medium text-slate-300 border border-slate-600">
+                                                                {(user.username || user.email || '?').slice(0, 2).toUpperCase()}
+                                                            </div>
+                                                        )}
+
                                                         <div className="truncate">
                                                             <div className={`text-xs font-mono font-medium truncate ${selectedUserIds.includes(user.user_id) ? "text-cyan-400" : "text-slate-400"}`}>
                                                                 {user.username || "UNKNOWN_UNIT"}

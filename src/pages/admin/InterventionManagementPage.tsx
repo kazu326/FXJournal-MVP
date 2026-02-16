@@ -16,6 +16,8 @@ import { Button } from "../../components/ui/button";
 interface ComplianceUserData {
     user_id: string;
     email: string;
+    username: string | null;
+    avatar_url: string | null;
     subscription_status: string;
     last_learning_date: string | null;
     learning_completion_rate: number;
@@ -30,7 +32,7 @@ export const InterventionManagementPage = () => {
     const [loading, setLoading] = useState(true);
     const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
-    const [riskFilter, setRiskFilter] = useState<"all" | "high" | "medium" | "low">("all");
+    const [activeFilter, setActiveFilter] = useState<"all" | "high" | "medium" | "low" | "intervention_needed">("all");
 
     // Modal state
     const [modalOpen, setModalOpen] = useState(false);
@@ -78,10 +80,30 @@ export const InterventionManagementPage = () => {
     };
 
     const filteredUsers = users.filter(user => {
-        const matchesSearch = user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSearch =
+            user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.username?.toLowerCase().includes(searchTerm.toLowerCase());
         const riskLevel = getRiskLevel(user);
-        const matchesRisk = riskFilter === 'all' || riskLevel === riskFilter;
-        return matchesSearch && matchesRisk;
+
+        let matchesFilter = true;
+        switch (activeFilter) {
+            case 'high':
+                matchesFilter = riskLevel === 'high';
+                break;
+            case 'medium':
+                matchesFilter = riskLevel === 'medium';
+                break;
+            case 'low':
+                matchesFilter = riskLevel === 'low';
+                break;
+            case 'intervention_needed':
+                matchesFilter = !user.last_intervention_date && riskLevel !== 'low';
+                break;
+            default:
+                matchesFilter = true;
+        }
+
+        return matchesSearch && matchesFilter;
     });
 
     const highRiskCount = users.filter(u => getRiskLevel(u) === 'high').length;
@@ -118,8 +140,9 @@ export const InterventionManagementPage = () => {
                     icon={AlertTriangle}
                     color="rose"
                     severity={highRiskCount > 0 ? 'danger' : 'info'}
-                    onClick={() => setRiskFilter('high')}
+                    onClick={() => setActiveFilter('high')}
                     clickable={true}
+                    className={activeFilter === 'high' ? 'ring-2 ring-rose-500' : ''}
                 />
                 <DashboardSummaryCard
                     title="未実施の施策"
@@ -128,11 +151,9 @@ export const InterventionManagementPage = () => {
                     icon={Activity}
                     color="amber"
                     severity={interventionNeededCount > 0 ? 'warning' : 'info'}
-                    onClick={() => {
-                        setRiskFilter('all');
-                        // filtering logic could be more complex
-                    }}
+                    onClick={() => setActiveFilter('intervention_needed')}
                     clickable={true}
+                    className={activeFilter === 'intervention_needed' ? 'ring-2 ring-amber-500' : ''}
                 />
                 <DashboardSummaryCard
                     title="実施済み施策"
@@ -146,6 +167,9 @@ export const InterventionManagementPage = () => {
                     value={users.length}
                     icon={Users}
                     color="blue"
+                    onClick={() => setActiveFilter('all')}
+                    clickable={true}
+                    className={activeFilter === 'all' ? 'ring-2 ring-blue-500' : ''}
                 />
             </div>
 
@@ -165,8 +189,8 @@ export const InterventionManagementPage = () => {
                     {(['all', 'high', 'medium', 'low'] as const).map(filter => (
                         <button
                             key={filter}
-                            onClick={() => setRiskFilter(filter)}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${riskFilter === filter
+                            onClick={() => setActiveFilter(filter)}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeFilter === filter
                                 ? 'bg-blue-600 text-white'
                                 : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
                                 }`}
@@ -174,6 +198,15 @@ export const InterventionManagementPage = () => {
                             {filter === 'all' ? '全て' : filter.toUpperCase()}
                         </button>
                     ))}
+                    <button
+                        onClick={() => setActiveFilter('intervention_needed')}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeFilter === 'intervention_needed'
+                            ? 'bg-amber-600 text-white'
+                            : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                            }`}
+                    >
+                        未実施
+                    </button>
                 </div>
             </div>
 
@@ -229,8 +262,25 @@ export const InterventionManagementPage = () => {
                                         />
                                     </td>
                                     <td className="p-4">
-                                        <div className="font-medium text-slate-200">{user.email}</div>
-                                        <div className="text-xs text-slate-500">ID: {user.user_id.slice(0, 8)}...</div>
+                                        <div className="flex items-center gap-3">
+                                            {user.avatar_url ? (
+                                                <img
+                                                    src={user.avatar_url}
+                                                    alt={user.username || user.email}
+                                                    className="w-8 h-8 rounded-full bg-slate-700"
+                                                />
+                                            ) : (
+                                                <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-medium text-slate-300">
+                                                    {(user.username || user.email).slice(0, 2).toUpperCase()}
+                                                </div>
+                                            )}
+                                            <div>
+                                                <div className="font-medium text-slate-200">
+                                                    {user.username || 'No Name'}
+                                                </div>
+                                                <div className="text-xs text-slate-500">{user.email}</div>
+                                            </div>
+                                        </div>
                                     </td>
                                     <td className="p-4">
                                         <div className="flex items-center gap-2">

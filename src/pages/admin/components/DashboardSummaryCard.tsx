@@ -65,7 +65,8 @@ export function DashboardSummaryCard({
     userIds,
     severity = 'info',
     clickable = true,
-}: DashboardSummaryCardProps) {
+    className,
+}: DashboardSummaryCardProps & { className?: string }) {
     const theme = colors[color];
 
     return (
@@ -82,7 +83,8 @@ export function DashboardSummaryCard({
                 theme.bg,
                 clickable && "cursor-pointer hover:scale-105",
                 severity === 'danger' && "ring-2 ring-red-500",
-                severity === 'warning' && "ring-2 ring-yellow-500"
+                severity === 'warning' && "ring-2 ring-yellow-500",
+                className
             )}
         >
             <div className="absolute top-0 right-0 p-4 opacity-10">

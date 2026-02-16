@@ -11,6 +11,8 @@ import { TimeZoneBiasChart } from "./components/TimeZoneBiasChart";
 
 type AdminUserStatsRow = {
   user_id: string;
+  username: string | null;
+  avatar_url: string | null;
   email: string | null;
   total_trades: number | null;
   win_rate: number | null;
@@ -186,11 +188,24 @@ export default function AdminDashboard() {
                 data.slice(0, 10).map((user) => (
                   <tr key={user.user_id} className="hover:bg-slate-800/30 transition-colors">
                     <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <span className="text-slate-200 font-medium truncate max-w-[150px]">
-                          {user.email || user.user_id.slice(0, 8)}
-                        </span>
-                        <span className="text-xs text-slate-500">{user.user_id.slice(0, 8)}...</span>
+                      <div className="flex items-center gap-3">
+                        {user.avatar_url ? (
+                          <img
+                            src={user.avatar_url}
+                            alt={user.username || user.email || ''}
+                            className="w-8 h-8 rounded-full bg-slate-700 object-cover"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-medium text-slate-300 border border-slate-600">
+                            {(user.username || user.email || '?').slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="flex flex-col">
+                          <span className="text-slate-200 font-medium truncate max-w-[150px]">
+                            {user.username || 'No Name'}
+                          </span>
+                          <span className="text-xs text-slate-500">{user.email}</span>
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
