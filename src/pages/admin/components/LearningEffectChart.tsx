@@ -1,12 +1,18 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine, Cell } from 'recharts';
 import { motion } from "framer-motion";
 
-const data = [
-    { name: '受講前', winRate: 40 },
-    { name: '受講後', winRate: 60 },
-];
+interface LearningEffectProps {
+    winRateBefore?: number;
+    winRateAfter?: number;
+}
 
-export function LearningEffectChart() {
+export function LearningEffectChart({ winRateBefore = 40, winRateAfter = 60 }: LearningEffectProps) {
+    const data = [
+        { name: '受講前', winRate: winRateBefore },
+        { name: '受講後', winRate: winRateAfter },
+    ];
+    const improvement = winRateAfter - winRateBefore;
+
     return (
         <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -49,9 +55,9 @@ export function LearningEffectChart() {
             </div>
 
             <div className="mt-4 flex justify-between text-xs text-slate-400 px-8">
-                <div>Win Rate 40%</div>
-                <div className="text-purple-400 font-bold">+20% Improved</div>
-                <div>Win Rate 60%</div>
+                <div>Win Rate {winRateBefore}%</div>
+                <div className="text-purple-400 font-bold">{improvement > 0 ? '+' : ''}{improvement}% Improved</div>
+                <div>Win Rate {winRateAfter}%</div>
             </div>
         </motion.div>
     );

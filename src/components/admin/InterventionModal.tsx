@@ -51,18 +51,24 @@ export const InterventionModal = ({ users, triggerReason, open, onClose }: Inter
         try {
             const user = (await supabase.auth.getUser()).data.user;
 
-            // 各ユーザーに対して施策を記録
-            for (const targetUser of users) {
-                await supabase.from('interventions').insert({
-                    user_id: targetUser.id,
-                    intervention_type: selectedAction,
-                    trigger_reason: triggerReason,
-                    action_taken: customMessage || actionTemplates[selectedAction].template,
-                    expected_outcome: actionTemplates[selectedAction].expectedOutcome,
-                    status: 'completed',
-                    executed_by: user?.id
-                });
-            }
+            const actionTaken = customMessage || actionTemplates[selectedAction]?.template || '';
+            const expectedOutcome = actionTemplates[selectedAction]?.expectedOutcome || '';
+
+            // バッチ処理用のペイロード作成
+            const payload = users.map(targetUser => ({
+                user_id: targetUser.id,
+                intervention_type: selectedAction,
+                trigger_reason: triggerReason,
+                action_taken: actionTaken,
+                expected_outcome: expectedOutcome,
+                status: 'completed',
+                executed_by: user?.id
+            }));
+
+            // 一括挿入実行
+            const { error } = await supabase.from('interventions').insert(payload);
+
+            if (error) throw error;
 
             alert('施策を実施しました');
             onClose();

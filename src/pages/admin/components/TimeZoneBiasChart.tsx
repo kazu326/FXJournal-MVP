@@ -1,7 +1,12 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { motion } from "framer-motion";
 
-const data = [
+export type TimeZoneData = {
+    time: string;
+    count: number;
+};
+
+const defaultData: TimeZoneData[] = [
     { time: '0-4', count: 12 },
     { time: '4-8', count: 5 },
     { time: '8-12', count: 8 },
@@ -10,7 +15,12 @@ const data = [
     { time: '20-24', count: 30 },
 ];
 
-export function TimeZoneBiasChart() {
+interface TimeZoneBiasChartProps {
+    data?: TimeZoneData[];
+    nightShiftRatio?: number;
+}
+
+export function TimeZoneBiasChart({ data = defaultData, nightShiftRatio = 15 }: TimeZoneBiasChartProps) {
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -58,7 +68,7 @@ export function TimeZoneBiasChart() {
 
             <div className="mt-4 flex justify-between items-center bg-slate-800/50 p-3 rounded-lg">
                 <div className="text-xs text-slate-400">深夜帯 (20:00-04:00) 比率</div>
-                <div className="text-xl font-bold text-slate-200">15%</div>
+                <div className="text-xl font-bold text-slate-200">{nightShiftRatio}%</div>
             </div>
         </motion.div>
     );

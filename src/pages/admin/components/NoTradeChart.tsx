@@ -1,14 +1,25 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { motion } from "framer-motion";
 
-const data = [
+export type NoTradeReason = {
+    name: string;
+    value: number;
+    color: string;
+};
+
+const defaultData: NoTradeReason[] = [
     { name: '条件不一致で見送り', value: 50, color: '#3b82f6' }, // blue-500
     { name: '条件外でのエントリー', value: 20, color: '#ef4444' }, // red-500
     { name: 'なんとなく見送り', value: 30, color: '#10b981' }, // emerald-500
 ];
 
+interface NoTradeChartProps {
+    data?: NoTradeReason[];
+    totalNoTradeRate?: number;
+    successRateAfterLoss?: number;
+}
 
-export function NoTradeChart() {
+export function NoTradeChart({ data = defaultData, totalNoTradeRate = 80, successRateAfterLoss = 75 }: NoTradeChartProps) {
     return (
         <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -45,7 +56,7 @@ export function NoTradeChart() {
                 {/* Center Text */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                     <span className="text-xs text-slate-400">合計見送り率</span>
-                    <span className="text-3xl font-bold text-slate-100">80%</span>
+                    <span className="text-3xl font-bold text-slate-100">{totalNoTradeRate}%</span>
                 </div>
             </div>
 
@@ -66,7 +77,7 @@ export function NoTradeChart() {
 
             <div className="mt-6 pt-4 border-t border-slate-800 text-center">
                 <div className="text-sm text-slate-400 mb-1">連敗後見送り成功率</div>
-                <div className="text-2xl font-bold text-emerald-400">75%</div>
+                <div className="text-2xl font-bold text-emerald-400">{successRateAfterLoss}%</div>
             </div>
         </motion.div>
     );

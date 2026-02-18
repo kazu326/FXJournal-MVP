@@ -1,7 +1,12 @@
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion } from "framer-motion";
 
-const data = [
+export type AdherenceData = {
+    week: string;
+    rate: number;
+};
+
+const defaultData: AdherenceData[] = [
     { week: '0週', rate: 60 },
     { week: '1週', rate: 80 },
     { week: '2週', rate: 90 },
@@ -9,7 +14,12 @@ const data = [
     { week: '4週', rate: 95 },
 ];
 
-export function CheckAdherenceChart() {
+interface CheckAdherenceChartProps {
+    data?: AdherenceData[];
+    avgContinuityDays?: number;
+}
+
+export function CheckAdherenceChart({ data = defaultData, avgContinuityDays = 14 }: CheckAdherenceChartProps) {
     return (
         <motion.div
             initial={{ opacity: 0, x: 20 }}
@@ -67,7 +77,7 @@ export function CheckAdherenceChart() {
             </div>
 
             <div className="mt-4 text-center">
-                <div className="text-3xl font-bold text-slate-100">平均継続日数: 14日</div>
+                <div className="text-3xl font-bold text-slate-100">平均継続日数: {avgContinuityDays}日</div>
             </div>
         </motion.div>
     );

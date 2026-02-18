@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../../lib/supabase";
 import { DashboardSummaryCard } from "./components/DashboardSummaryCard";
@@ -58,13 +58,13 @@ export const InterventionManagementPage = () => {
         }
     };
 
-    const toggleUserSelection = (userId: string) => {
+    const toggleUserSelection = useCallback((userId: string) => {
         setSelectedUsers(prev =>
             prev.includes(userId)
                 ? prev.filter(id => id !== userId)
                 : [...prev, userId]
         );
-    };
+    }, []);
 
     const handleBulkIntervention = () => {
         if (selectedUsers.length === 0) return;
@@ -79,35 +79,46 @@ export const InterventionManagementPage = () => {
         return 'low';
     };
 
-    const filteredUsers = users.filter(user => {
-        const matchesSearch =
-            user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.username?.toLowerCase().includes(searchTerm.toLowerCase());
-        const riskLevel = getRiskLevel(user);
+    // [Optimize] Memoized filtered users
+    const filteredUsers = useMemo(() => {
+        return users.filter(user => {
+            const matchesSearch =
+                user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                user.username?.toLowerCase().includes(searchTerm.toLowerCase());
+            const riskLevel = getRiskLevel(user);
 
-        let matchesFilter = true;
-        switch (activeFilter) {
-            case 'high':
-                matchesFilter = riskLevel === 'high';
-                break;
-            case 'medium':
-                matchesFilter = riskLevel === 'medium';
-                break;
-            case 'low':
-                matchesFilter = riskLevel === 'low';
-                break;
-            case 'intervention_needed':
-                matchesFilter = !user.last_intervention_date && riskLevel !== 'low';
-                break;
-            default:
-                matchesFilter = true;
-        }
+            let matchesFilter = true;
+            switch (activeFilter) {
+                case 'high':
+                    matchesFilter = riskLevel === 'high';
+                    break;
+                case 'medium':
+                    matchesFilter = riskLevel === 'medium';
+                    break;
+                case 'low':
+                    matchesFilter = riskLevel === 'low';
+                    break;
+                case 'intervention_needed':
+                    matchesFilter = !user.last_intervention_date && riskLevel !== 'low';
+                    break;
+                default:
+                    matchesFilter = true;
+            }
 
-        return matchesSearch && matchesFilter;
-    });
+            return matchesSearch && matchesFilter;
+        });
+    }, [users, searchTerm, activeFilter]);
 
-    const highRiskCount = users.filter(u => getRiskLevel(u) === 'high').length;
-    const interventionNeededCount = users.filter(u => !u.last_intervention_date && getRiskLevel(u) !== 'low').length;
+    // [Optimize] Memoized counts
+    const highRiskCount = useMemo(() => users.filter(u => getRiskLevel(u) === 'high').length, [users]);
+    const interventionNeededCount = useMemo(() => users.filter(u => !u.last_intervention_date && getRiskLevel(u) !== 'low').length, [users]);
+    const completedInterventionsCount = useMemo(() => users.reduce((sum, u) => sum + (u.intervention_count || 0), 0), [users]);
+
+    // [Optimize] Memoized modal users
+    const modalUsers = useMemo(() =>
+        users.filter(u => selectedUsers.includes(u.user_id)).map(u => ({ id: u.user_id, email: u.email })),
+        [users, selectedUsers]
+    );
 
     return (
         <div className="p-8 space-y-8 bg-slate-950 min-h-screen text-slate-100">
@@ -157,7 +168,7 @@ export const InterventionManagementPage = () => {
                 />
                 <DashboardSummaryCard
                     title="実施済み施策"
-                    value={users.reduce((sum, u) => sum + (u.intervention_count || 0), 0)}
+                    value={completedInterventionsCount}
                     subLabel="累計"
                     icon={CheckCircle}
                     color="emerald"
@@ -346,7 +357,7 @@ export const InterventionManagementPage = () => {
                     setSelectedUsers([]);
                     fetchUsers(); // Refresh data after intervention
                 }}
-                users={users.filter(u => selectedUsers.includes(u.user_id)).map(u => ({ id: u.user_id, email: u.email }))}
+                users={modalUsers}
                 triggerReason={modalTriggerReason}
             />
         </div>

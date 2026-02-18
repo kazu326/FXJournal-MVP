@@ -1445,7 +1445,7 @@ export default function App() {
           <Route index element={<AdminDashboard />} />
           <Route path="behavior" element={<AdminBehavior />} />
           <Route path="messages" element={<AdminMessages />} />
-          <Route path="behavior" element={<AdminBehavior />} />
+
           <Route path="interventions" element={<InterventionManagementPage />} />
         </Route>
       </Routes>

@@ -1,7 +1,14 @@
 import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
 import { motion } from "framer-motion";
 
-const lotData = [
+export type RiskAlertData = {
+    lotData: { day: string; count: number }[];
+    revengeData: { day: string; count: number }[];
+    lotIncreaseCount: number;
+    revengeTradeCount: number;
+};
+
+const defaultLotData = [
     { day: 'Mon', count: 2 },
     { day: 'Tue', count: 5 },
     { day: 'Wed', count: 3 },
@@ -9,7 +16,7 @@ const lotData = [
     { day: 'Fri', count: 1 },
 ];
 
-const revengeData = [
+const defaultRevengeData = [
     { day: 'Mon', count: 1 },
     { day: 'Tue', count: 0 },
     { day: 'Wed', count: 2 },
@@ -17,7 +24,18 @@ const revengeData = [
     { day: 'Fri', count: 0 },
 ];
 
-export function RiskAlertChart() {
+const defaultData: RiskAlertData = {
+    lotData: defaultLotData,
+    revengeData: defaultRevengeData,
+    lotIncreaseCount: 5,
+    revengeTradeCount: 2
+};
+
+interface RiskAlertChartProps {
+    data?: RiskAlertData;
+}
+
+export function RiskAlertChart({ data = defaultData }: RiskAlertChartProps) {
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -34,11 +52,11 @@ export function RiskAlertChart() {
                         <div className="text-xs text-emerald-400">ロット急増</div>
                         <div className="text-xs text-emerald-500 font-bold bg-emerald-500/10 px-1 rounded">↓-2</div>
                     </div>
-                    <div className="text-2xl font-bold text-slate-100 mb-2">5回</div>
+                    <div className="text-2xl font-bold text-slate-100 mb-2">{data.lotIncreaseCount}回</div>
                     <div className="h-[60px]">
                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={lotData}>
-                                <Tooltip cursor={false} content={<></>} />
+                            <AreaChart data={data.lotData}>
+                                <Tooltip cursor={false} content={() => null} />
                                 <Area
                                     type="monotone"
                                     dataKey="count"
@@ -57,11 +75,11 @@ export function RiskAlertChart() {
                         <div className="text-xs text-rose-400">連敗後すぐエントリー</div>
                         <div className="text-xs text-rose-500 font-bold bg-rose-500/10 px-1 rounded">↓-1</div>
                     </div>
-                    <div className="text-2xl font-bold text-slate-100 mb-2">2回</div>
+                    <div className="text-2xl font-bold text-slate-100 mb-2">{data.revengeTradeCount}回</div>
                     <div className="h-[60px]">
                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={revengeData}>
-                                <Tooltip cursor={false} content={<></>} />
+                            <AreaChart data={data.revengeData}>
+                                <Tooltip cursor={false} content={() => null} />
                                 <Area
                                     type="monotone"
                                     dataKey="count"

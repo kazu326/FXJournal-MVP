@@ -46,23 +46,31 @@ export default function AdminMessages() {
 
     const fetchUsers = async () => {
         setLoading(true);
-        // admin_user_stats から取得 (id ではなく user_id を使用)
+        // Users table directly allows checking profiles relation
+        // [Fix] Limit removed to fetch all users
         const { data, error } = await supabase
-            .from("admin_user_stats")
-            .select("user_id, username, avatar_url, email")
-            .limit(100);
+            .from("users")
+            // Fetch email from profiles, NOT users (users table doesn't have email in public schema)
+            .select("id, username, avatar_url, profiles(display_name, email)");
 
         if (error) {
             console.error("User fetch error:", error);
             toast.error("ユーザー一覧の取得に失敗しました");
         } else {
-            // アバターURLがない可能性があるため、適切にキャストまたはマッピング
-            const mappedUsers = (data as any[]).map(u => ({
-                user_id: u.user_id,
-                username: u.username,
-                avatar_url: u.avatar_url ?? null,
-                email: u.email
-            }));
+            const mappedUsers = (data as any[]).map(u => {
+                const userProfile = u.profiles;
+                const profileData = Array.isArray(userProfile) ? userProfile[0] : userProfile;
+                // Prefer display_name
+                const displayName = profileData?.display_name || u.username;
+                const email = profileData?.email || null;
+
+                return {
+                    user_id: u.id, // users table has 'id'
+                    username: displayName,
+                    avatar_url: u.avatar_url ?? null,
+                    email: email
+                };
+            });
             setUsers(mappedUsers);
         }
         setLoading(false);

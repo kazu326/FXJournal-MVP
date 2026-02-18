@@ -30,7 +30,7 @@ export default function AdminBehavior() {
         // Try to join with users to get profile info
         const { data: behaviorData, error: behaviorError } = await supabase
           .from('admin_behavior_change')
-          .select('*, trades_after_learning, trades_before_learning, users(username, avatar_url)');
+          .select('*, trades_after_learning, trades_before_learning, users(username, avatar_url, profiles(display_name))');
 
         if (behaviorError) throw behaviorError;
 
@@ -56,9 +56,15 @@ export default function AdminBehavior() {
             changePct = ((avgAfter - avgBefore) / avgBefore) * 100;
           }
 
+          // Get display name from profile if available, otherwise fallback to username
+          const userProfile = item.users?.profiles;
+          // Handle both array (one-to-many) and object (one-to-one) response
+          const profileData = Array.isArray(userProfile) ? userProfile[0] : userProfile;
+          const displayName = profileData?.display_name || item.users?.username || 'Unknown';
+
           return {
             user_id: item.user_id,
-            username: item.users?.username || 'Unknown',
+            username: displayName,
             avatar_url: item.users?.avatar_url,
             first_learning_date: item.first_learning_date,
             avg_trades_before: avgBefore,
