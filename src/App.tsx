@@ -425,6 +425,7 @@ export default function App() {
     riskPercent,
     gateHelp, setGateHelp,
     resetPre,
+    note, setNote,
   } = useTradeStore();
 
 
@@ -594,7 +595,7 @@ export default function App() {
     () => {
       // tradeMetrics が存在すればpipsベースで判定
       if (tradeMetrics) {
-        return tradeMetrics.isRrOk && tradeMetrics.isRiskOk && gate.gate_rule_ok;
+        return tradeMetrics.isRrOk && tradeMetrics.isRiskOk;
       }
       // tradeMetrics がない場合（通貨ペア未選択等）は旧方式にフォールバック
       const balance = Number(accountBalance);
@@ -604,9 +605,9 @@ export default function App() {
       const riskPct = balance > 0 && stopLoss > 0 ? (stopLoss / balance) * 100 : null;
       const rrOk = rr !== null && rr >= 2.7;
       const riskOk = riskPct !== null && riskPct <= 2;
-      return rrOk && riskOk && gate.gate_rule_ok;
+      return rrOk && riskOk;
     },
-    [tradeMetrics, accountBalance, stopLossAmount, takeProfitAmount, gate.gate_rule_ok]
+    [tradeMetrics, accountBalance, stopLossAmount, takeProfitAmount]
   );
   const dailyLimit = memberSettings?.weekly_limit ?? 2;
   const dailyLocked = !memberSettings?.unlocked && dailyAttempts >= dailyLimit && !isTestMode;
@@ -1053,7 +1054,7 @@ export default function App() {
       applyXpResult(xpRes);
     })();
 
-    await loadWeeklyCount();
+    await loadDailyCount();
   };
 
   const loadHistory = async () => {
@@ -1262,7 +1263,7 @@ export default function App() {
     await loadAdminSettings(userId);
     if (session?.user?.id === userId) {
       await loadMemberSettings();
-      await loadWeeklyCount();
+      await loadDailyCount();
     }
   };
 
@@ -1390,11 +1391,15 @@ export default function App() {
     }
 
     // Gateが全部Noじゃないか等の判定はUIで見せる
-    if (!rrOk || !riskOk || !gate.gate_rule_ok) {
+    // ルール確認は割愛（自動OK扱い）
+    if (!rrOk || !riskOk) {
       return setStatus(copy.gate.verdictBlocked);
     }
     if (!successProb || !expectedValue) {
       return setStatus("仮説（成功確率・期待値）を選んでください。");
+    }
+    if (!note.trim()) {
+      return setStatus("仮説メモ（根拠）を入力してください。");
     }
 
     const payload = {
@@ -1404,8 +1409,10 @@ export default function App() {
       gate_trade_count_ok: true,
       gate_rr_ok: rrOk,
       gate_risk_ok: riskOk,
+      gate_rule_ok: true, // ルールカード削除により自動OK
       success_prob: successProb,
       expected_value: expectedValue,
+      note: note.trim(), // メモ保存
       // Phase 3: 通貨ペア・自動計算データ
       currency_pair_id: selectedPair?.id ?? null,
       currency_pair_symbol: selectedPairSymbol || null,
@@ -1459,7 +1466,7 @@ export default function App() {
     resetPre();
     navigate("/post-trade");
     void loadPending();
-    void loadWeeklyCount();
+    void loadDailyCount();
     void loadHistory();
     void loadMemberSettings();
   };
@@ -1504,7 +1511,7 @@ export default function App() {
     setActiveLog(null);
     setCurrentLogId(null);
     void loadPending();
-    void loadWeeklyCount();
+    void loadDailyCount();
     void loadHistory();
 
     // XP更新
@@ -2848,26 +2855,30 @@ export default function App() {
             </div>
           )}
 
-          {/* 結論 Card */}
+          {/* 今週残り (Orbs) */}
           <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4">
-            <div className="font-bold mb-3 flex items-center justify-between text-zinc-800">
-              <div className="flex items-center gap-2">
-                <IconSafety /> {copy.verdict.title}
-              </div>
-              <span className="text-zinc-400 hover:text-zinc-600 cursor-help text-lg">?</span>
-            </div>
-            <div className="space-y-1">
-              <div className="text-xs text-zinc-500 leading-relaxed">• {copy.verdict.rr}</div>
-              <div className="text-xs text-zinc-500 leading-relaxed">• {copy.verdict.risk}</div>
-              <div className="text-xs text-zinc-500 leading-relaxed">• {copy.verdict.skip}</div>
-            </div>
-          </div>
+            <div className="text-zinc-400 text-[10px] font-bold uppercase tracking-wider mb-2 text-center">本日残り</div>
+            <div className="flex items-center justify-center gap-4 py-1">
+              {[...Array(memberSettings?.weekly_limit ?? 2)].map((_, i) => {
+                const limit = memberSettings?.weekly_limit ?? 2;
+                const remaining = Math.max(0, limit - dailyAttempts);
+                // Active if index is less than remaining count (e.g. remaining 2 -> indices 0, 1 are active)
+                const isActive = i < remaining;
 
-          {/* 今週残り Card */}
-          <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4">
-            <div className="text-zinc-400 text-[10px] font-bold uppercase tracking-wider mb-1">本日残り</div>
-            <div className="text-2xl font-black text-zinc-900 leading-none">
-              あと {Math.max(0, (memberSettings?.weekly_limit ?? 2) - dailyAttempts)} 回
+                return (
+                  <div
+                    key={i}
+                    className={`
+                      w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500
+                      ${isActive
+                        ? "bg-gradient-to-br from-blue-400 to-cyan-300 shadow-[0_4px_12px_rgba(56,189,248,0.4)] border border-white/50"
+                        : "bg-zinc-100 border border-zinc-200 opacity-40 grayscale"}
+                    `}
+                  >
+                    {isActive && <div className="w-3 h-3 rounded-full bg-white/40 blur-[1px]" />}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -3085,34 +3096,19 @@ export default function App() {
             )}
           </div>
 
-          {/* ① ルール条件 Card */}
-          <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4">
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-sm font-bold text-zinc-800 m-0">① {copy.gate.ruleTitle}</h4>
-              <button onClick={() => setGateHelp((h) => ({ ...h, rule: !h.rule }))} className="text-zinc-400 hover:text-zinc-600 cursor-help text-lg">?</button>
-            </div>
-            {gateHelp.rule && (
-              <div className="text-xs text-zinc-500 p-3 bg-zinc-50 rounded-xl mb-4 border border-zinc-100">{copy.gate.ruleHelp}</div>
-            )}
-            <GateRowJP
-              label={copy.gate.ruleLabel}
-              checked={gate.gate_rule_ok}
-              onChange={(v) => setGate((g) => ({ ...g, gate_rule_ok: v }))}
-            />
-          </div>
 
 
           <div className="pt-2">
             {gateAllOk ? (
               <div className="space-y-4">
                 <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4 space-y-6">
-                  <h4 className="text-sm font-bold text-zinc-800 m-0 border-b border-zinc-50 pb-2">仮説ラベル</h4>
+                  <h4 className="text-sm font-bold text-zinc-800 m-0 border-b border-zinc-50 pb-2">仮説・根拠</h4>
 
                   <div>
                     <div className="text-[10px] font-bold text-zinc-400 mb-2 uppercase tracking-wider">成功確率</div>
                     <ChoiceRow>
                       <ChoiceButton active={successProb === "high"} onClick={() => setSuccessProb("high")}>
-                        高<div className="text-[9px] opacity-70 mt-1">根拠あり</div>
+                        高<div className="text-[9px] opacity-70 mt-1">自信あり</div>
                       </ChoiceButton>
                       <ChoiceButton active={successProb === "mid"} onClick={() => setSuccessProb("mid")}>
                         中<div className="text-[9px] opacity-70 mt-1">五分五分</div>
@@ -3136,6 +3132,17 @@ export default function App() {
                         －<div className="text-[9px] opacity-70 mt-1">不利</div>
                       </ChoiceButton>
                     </ChoiceRow>
+                  </div>
+
+                  <div className="pt-2">
+                    <div className="text-[10px] font-bold text-zinc-400 mb-2 uppercase tracking-wider">メモ（根拠・シナリオ）</div>
+                    <textarea
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      className="w-full rounded-xl border-2 border-zinc-100 bg-zinc-50/50 p-3 text-sm focus:border-blue-500 focus:bg-white focus:outline-none transition-all resize-none"
+                      rows={4}
+                      placeholder="なぜこのトレードをするのですか？根拠を言語化してください..."
+                    />
                   </div>
                 </div>
 

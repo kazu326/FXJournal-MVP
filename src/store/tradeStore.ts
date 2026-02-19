@@ -33,6 +33,7 @@ interface TradeState {
 
     // === Pre-Trade（取引前入力） ===
     gate: GateState;
+    note: string;
     successProb: SuccessProb;
     expectedValue: ExpectedValue;
     accountBalance: string;
@@ -59,7 +60,9 @@ interface TradeState {
     // === アクション ===
 
     // Pre-Trade アクション
-    setGate: (updater: GateState | ((prev: GateState) => GateState)) => void;
+    setGate: (value: Partial<GateState> | ((prev: GateState) => Partial<GateState>)) => void;
+    // 仮説メモ更新
+    setNote: (note: string) => void;
     setSuccessProb: (v: SuccessProb) => void;
     setExpectedValue: (v: ExpectedValue) => void;
     setAccountBalance: (v: string) => void;
@@ -99,6 +102,7 @@ const initialGate: GateState = {
 
 const initialPreTrade = {
     gate: initialGate,
+    note: "",
     successProb: 'mid' as SuccessProb,
     expectedValue: 'unknown' as ExpectedValue,
     accountBalance: '',
@@ -135,10 +139,13 @@ export const useTradeStore = create<TradeState>()(
             ...initialPostTrade,
 
             // === Pre-Trade アクション ===
-            setGate: (updater) =>
-                set((state) => ({
-                    gate: typeof updater === 'function' ? updater(state.gate) : updater,
-                })),
+            setGate: (value) =>
+                set((state) => {
+                    const newGate =
+                        typeof value === "function" ? { ...state.gate, ...value(state.gate) } : { ...state.gate, ...value };
+                    return { gate: newGate };
+                }),
+            setNote: (note) => set({ note }),
             setSuccessProb: (successProb) => set({ successProb }),
             setExpectedValue: (expectedValue) => set({ expectedValue }),
             setAccountBalance: (accountBalance) => set({ accountBalance }),
@@ -181,6 +188,7 @@ export const useTradeStore = create<TradeState>()(
             partialize: (state) => ({
                 // Pre-Trade の入力値を永続化
                 gate: state.gate,
+                note: state.note,
                 successProb: state.successProb,
                 expectedValue: state.expectedValue,
                 accountBalance: state.accountBalance,
