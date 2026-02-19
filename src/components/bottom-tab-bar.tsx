@@ -1,20 +1,52 @@
 import React from "react";
 import { Home, History, BookOpen, MessageCircle } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
 
 export type TabKey = "home" | "history" | "lecture" | "messages";
 
 interface BottomTabBarProps {
-  selectedTab: TabKey;
-  onChange: (tab: TabKey) => void;
+  selectedTab?: TabKey;
+  onChange?: (tab: TabKey) => void;
+}
+
+// タブとルートのマッピング
+const tabRoutes: Record<TabKey, string> = {
+  home: "/",
+  history: "/history",
+  lecture: "/lecture-notes",
+  messages: "/messages",
+};
+
+// ルートからタブキーを逆引き
+function getTabFromPath(pathname: string): TabKey {
+  if (pathname.startsWith("/history")) return "history";
+  if (pathname.startsWith("/lecture-notes") || pathname.startsWith("/lecture")) return "lecture";
+  if (pathname.startsWith("/messages")) return "messages";
+  return "home";
 }
 
 export const BottomTabBar: React.FC<BottomTabBarProps> = ({ selectedTab, onChange }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // selectedTabが渡されない場合、URLから自動判定
+  const activeTab = selectedTab ?? getTabFromPath(location.pathname);
+
   const tabs = [
     { key: "home" as const, label: "ホーム", icon: Home },
     { key: "history" as const, label: "履歴", icon: History },
     { key: "lecture" as const, label: "講義", icon: BookOpen },
     { key: "messages" as const, label: "メッセージ", icon: MessageCircle },
   ];
+
+  const handleTabClick = (tab: TabKey) => {
+    // レガシー互換: onChangeが渡されていればそれも呼ぶ
+    if (onChange) {
+      onChange(tab);
+    }
+    // React Routerでナビゲーション
+    navigate(tabRoutes[tab]);
+  };
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pointer-events-none">
@@ -23,7 +55,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({ selectedTab, onChang
       >
         {tabs.map((tab, index) => {
           const Icon = tab.icon;
-          const isActive = selectedTab === tab.key;
+          const isActive = activeTab === tab.key;
           return (
             <React.Fragment key={tab.key}>
               {index > 0 && (
@@ -31,10 +63,9 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({ selectedTab, onChang
               )}
               <button
                 type="button"
-                onClick={() => onChange(tab.key)}
-                className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-all duration-300 !border-0 border-transparent bg-transparent min-w-0 py-2 outline-none ring-0 focus:outline-none focus:ring-0 ${
-                  isActive ? "!text-blue-600" : "!text-slate-600"
-                }`}
+                onClick={() => handleTabClick(tab.key)}
+                className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-all duration-300 !border-0 border-transparent bg-transparent min-w-0 py-2 outline-none ring-0 focus:outline-none focus:ring-0 ${isActive ? "!text-blue-600" : "!text-slate-600"
+                  }`}
               >
                 <div className="flex flex-col items-center justify-center gap-1 transition-all duration-300">
                   <Icon strokeWidth={1.5} className="size-5 shrink-0" />

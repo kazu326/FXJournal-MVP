@@ -4,6 +4,9 @@ import { supabase } from "./lib/supabase";
 import { labels } from "./ui/labels";
 import { copy } from "./ui/copy.ts";
 import { StreakHeader } from "./components/streak-header";
+import { useTradeStore, type TradeLogLite, type SuccessProb, type ExpectedValue } from "./store/tradeStore";
+import { fetchCurrencyPairs, sortPairsForJP, type CurrencyPair } from "./services/currencyPairService";
+import { calculateTradeMetrics } from "./utils/lotCalculator";
 import { TodayTasksCard, type Task } from "./components/today-tasks-card";
 import { WeeklyProgressCard } from "./components/weekly-progress-card";
 import { TeacherDMCard } from "./components/teacher-dm-card";
@@ -16,8 +19,10 @@ import LectureNotesPage from "./pages/LectureNotesPage";
 import HistoryPage from "./pages/HistoryPage";
 import { BottomTabBar, type TabKey } from "./components/bottom-tab-bar";
 import OnboardingTour from "./components/Onboarding/OnboardingTour";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import AdminLayout from "./layouts/AdminLayout";
+import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
+import { getJPYRate } from "./services/exchangeRateService";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminBehavior from "./pages/admin/AdminBehavior";
 import AdminMessages from "./pages/admin/AdminMessages";
@@ -25,7 +30,7 @@ import { InterventionManagementPage } from "./pages/admin/InterventionManagement
 import NotificationPrompt from "./components/NotificationPrompt";
 import MessageDetail from "./pages/MessageDetail";
 
-type Mode = "home" | "pre" | "post" | "history" | "skip";
+// Mode型はtradeStoreで管理（ここでの宣言は不要）
 
 type LearningCard = {
   id: number;
@@ -156,30 +161,10 @@ function getTodayLearningCard(): LearningCard {
   return learningCards[index];
 }
 
-type GateState = {
-  gate_trade_count_ok: boolean;
-  gate_rr_ok: boolean;
-  gate_risk_ok: boolean;
-  gate_rule_ok: boolean;
-};
+// GateState, SuccessProb, ExpectedValue はtradeStoreからimport済み
 
 type LogType = "valid" | "invalid" | "skip";
-type SuccessProb = "high" | "mid" | "low";
-type ExpectedValue = "plus" | "minus" | "unknown";
-
-type TradeLogLite = {
-  id: string;
-  occurred_at: string;
-  log_type: LogType;
-  gate_all_ok: boolean;
-  success_prob: SuccessProb | null;
-  expected_value: ExpectedValue | null;
-  post_gate_kept: boolean | null;
-  post_within_hypothesis: boolean | null;
-  unexpected_reason: string | null;
-  voided_at?: string | null;
-  completed_at?: string | null;
-};
+// TradeLogLite はtradeStoreからimport済み
 
 type HistoryLog = {
   id: string;
@@ -318,12 +303,7 @@ type MemberSettings = {
 };
 
 
-const initialGate: GateState = {
-  gate_trade_count_ok: true,
-  gate_rr_ok: true,
-  gate_risk_ok: true,
-  gate_rule_ok: true,
-};
+// initialGateはtradeStoreに移行済み
 
 function labelProb(v: SuccessProb | null) {
   if (!v) return "未入力";
@@ -363,23 +343,28 @@ function extractCompleteLogId(body: string) {
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [status, setStatus] = useState("");
-  const [mode, setMode] = useState<Mode>("home");
-  const isLectureNotesRoute = window.location.pathname === "/lecture-notes";
-  const [activeTab, setActiveTab] = useState<TabKey>(() => {
-    if (isLectureNotesRoute) return "lecture";
+  // mode はURLパスで管理（Zustandの mode/setMode は不要）
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isLectureNotesRoute = location.pathname === "/lecture-notes";
+  // activeTab は URL パスから自動判定
+  const activeTab: TabKey = (() => {
+    if (location.pathname.startsWith("/history")) return "history";
+    if (location.pathname.startsWith("/lecture-notes") || location.pathname.startsWith("/lecture")) return "lecture";
+    if (location.pathname.startsWith("/messages")) return "messages";
     return "home";
-  });
+  })();
   const [showMenu, setShowMenu] = useState(false);
   const [showAdminMenu, setShowAdminMenu] = useState(false);
   const isAdminRoute =
-    window.location.pathname.startsWith("/admin") || window.location.pathname.startsWith("/staff");
+    location.pathname.startsWith("/admin") || location.pathname.startsWith("/staff");
   const isAdminLogsRoute =
-    window.location.pathname.startsWith("/admin/logs") ||
-    window.location.pathname.startsWith("/staff/logs");
-  const isAuthCallback = window.location.pathname === "/auth/callback";
+    location.pathname.startsWith("/admin/logs") ||
+    location.pathname.startsWith("/staff/logs");
+  const isAuthCallback = location.pathname === "/auth/callback";
   const completeLogId =
-    !isAdminRoute && window.location.pathname.startsWith("/complete/")
-      ? decodeURIComponent(window.location.pathname.replace("/complete/", ""))
+    !isAdminRoute && location.pathname.startsWith("/complete/")
+      ? decodeURIComponent(location.pathname.replace("/complete/", ""))
       : null;
   // login
   const [email, setEmail] = useState("");
@@ -393,10 +378,13 @@ export default function App() {
   });
   const isTestMode = testMode && isTeacher;
 
-  // pending（取引前は書いたけど、取引後チェックが未完のログ）
-  const [pending, setPending] = useState<TradeLogLite | null>(null);
-  const [activeLog, setActiveLog] = useState<TradeLogLite | null>(null);
-  const [currentLogId, setCurrentLogId] = useState<string | null>(null);
+  // pending, activeLog, currentLogId は Zustand ストアで管理
+  const {
+    pending, setPending,
+    activeLog, setActiveLog,
+    currentLogId, setCurrentLogId,
+  } = useTradeStore();
+  // currentLogId は上記で展開済み
   const [profileDisplayName, setProfileDisplayName] = useState<string | null>(null);
   const [level, setLevel] = useState(1);
   const [currentXp, setCurrentXp] = useState(0);
@@ -421,23 +409,90 @@ export default function App() {
   const [nameInput, setNameInput] = useState("");
   const [profileNameMap, setProfileNameMap] = useState<Record<string, string>>({});
 
-  // pre (取引前)
-  const [gate, setGate] = useState<GateState>(initialGate);
-  const [successProb, setSuccessProb] = useState<SuccessProb>("mid");
-  const [expectedValue, setExpectedValue] = useState<ExpectedValue>("unknown");
-  const [accountBalance, setAccountBalance] = useState("");
-  const [stopLossAmount, setStopLossAmount] = useState("");
-  const [takeProfitAmount, setTakeProfitAmount] = useState("");
-  const [gateHelp, setGateHelp] = useState({ rr: false, risk: false, rule: false });
+  // pre (取引前) - Zustand ストアで管理
+  const {
+    gate, setGate,
+    successProb, setSuccessProb,
+    expectedValue, setExpectedValue,
+    accountBalance, setAccountBalance,
+    stopLossAmount,
+    takeProfitAmount,
+    // Phase 3: 通貨ペア・ピップス入力
+    selectedPairSymbol, setSelectedPairSymbol,
+    stopLossPips, setStopLossPips,
+    takeProfitPips, setTakeProfitPips,
+    riskPercent,
+    gateHelp, setGateHelp,
+    resetPre,
+  } = useTradeStore();
 
 
-  // post (取引後)
-  const [postGateKept, setPostGateKept] = useState<boolean | null>(null);
-  const [postWithinHypo, setPostWithinHypo] = useState<boolean | null>(null);
-  const [unexpectedReason, setUnexpectedReason] = useState("");
+  // post (取引後) - Zustand ストアで管理
+  const {
+    postGateKept, setPostGateKept,
+    postWithinHypo, setPostWithinHypo,
+    unexpectedReason, setUnexpectedReason,
+    resetPost,
+  } = useTradeStore();
 
   // progress summary
   const [weeklyAttempts, setWeeklyAttempts] = useState(0);
+
+  // Phase 3: 通貨ペア一覧
+  const [currencyPairs, setCurrencyPairs] = useState<CurrencyPair[]>([]);
+  const selectedPair = useMemo(
+    () => currencyPairs.find(p => p.symbol === selectedPairSymbol) ?? null,
+    [currencyPairs, selectedPairSymbol]
+  );
+
+  // Phase 3: 為替レート取得
+  const [jpyRate, setJpyRate] = useState<number>(1);
+  useEffect(() => {
+    const fetchRate = async () => {
+      if (selectedPair) {
+        const rate = await getJPYRate(selectedPair.quote_currency);
+        setJpyRate(rate);
+      }
+    };
+    fetchRate();
+  }, [selectedPair]);
+
+  // Phase 3: 推奨RR比（定数）
+  const RECOMMENDED_RR = 3.0;
+
+  // Phase 3: 利確pips自動逆算（SL pips × 推奨RR比）
+  const autoTakeProfitPips = useMemo(() => {
+    const slPips = Number(stopLossPips);
+    if (slPips <= 0) return 0;
+    return Number((slPips * RECOMMENDED_RR).toFixed(1));
+  }, [stopLossPips]);
+
+  // 実際に使うTPpips（ユーザーが手動で上書きした場合はそちらを優先）
+  const effectiveTpPips = useMemo(() => {
+    const manual = Number(takeProfitPips);
+    return manual > 0 ? manual : autoTakeProfitPips;
+  }, [takeProfitPips, autoTakeProfitPips]);
+
+  // Phase 3: ロット自動計算
+  const tradeMetrics = useMemo(() => {
+    if (!selectedPair) return null;
+    const balance = Number(accountBalance);
+    const slPips = Number(stopLossPips);
+    const risk = Number(riskPercent) || 2; // デフォルト2%
+    if (balance <= 0 || slPips <= 0) return null;
+
+    const tpPips = effectiveTpPips;
+    if (tpPips <= 0) return null;
+
+    return calculateTradeMetrics({
+      accountBalance: balance,
+      riskPercent: risk,
+      stopLossPips: slPips,
+      takeProfitPips: tpPips,
+      pair: selectedPair,
+      jpyRate,
+    });
+  }, [selectedPair, accountBalance, stopLossPips, effectiveTpPips, riskPercent, jpyRate]);
   const [memberSettings, setMemberSettings] = useState<MemberSettings | null>(null);
   const [historyLogs, setHistoryLogs] = useState<HistoryLog[]>([]);
 
@@ -528,6 +583,11 @@ export default function App() {
 
   const gateAllOk = useMemo(
     () => {
+      // tradeMetrics が存在すればpipsベースで判定
+      if (tradeMetrics) {
+        return tradeMetrics.isRrOk && tradeMetrics.isRiskOk && gate.gate_rule_ok;
+      }
+      // tradeMetrics がない場合（通貨ペア未選択等）は旧方式にフォールバック
       const balance = Number(accountBalance);
       const stopLoss = Number(stopLossAmount);
       const takeProfit = Number(takeProfitAmount);
@@ -537,7 +597,7 @@ export default function App() {
       const riskOk = riskPct !== null && riskPct <= 2;
       return rrOk && riskOk && gate.gate_rule_ok;
     },
-    [accountBalance, stopLossAmount, takeProfitAmount, gate.gate_rule_ok]
+    [tradeMetrics, accountBalance, stopLossAmount, takeProfitAmount, gate.gate_rule_ok]
   );
   const weeklyLimit = memberSettings?.weekly_limit ?? 2;
   const weeklyLocked = weeklyAttempts >= weeklyLimit && !isTestMode;
@@ -660,7 +720,7 @@ export default function App() {
           completed_at: data.completed_at,
         });
 
-        setMode("post"); // post モードに切り替え
+        navigate("/post-trade"); // post モードに切り替え
       } catch (err) {
         console.error("completeLog fetch error:", err);
       }
@@ -694,10 +754,18 @@ export default function App() {
 
   // --- load history when entering history mode ---
   useEffect(() => {
-    if (!session || mode !== "history") return;
+    if (!session || activeTab !== "history") return;
     void loadHistory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user?.id, mode]);
+  }, [session?.user?.id, activeTab]);
+
+  // Phase 3: 通貨ペア一覧を取得
+  useEffect(() => {
+    if (!session) return;
+    fetchCurrencyPairs().then((pairs) => {
+      setCurrencyPairs(sortPairsForJP(pairs));
+    });
+  }, [session?.user?.id]);
 
   const sendMagicLink = async () => {
     setStatus("");
@@ -737,18 +805,14 @@ export default function App() {
     }
   };
 
+  // Zustandのリセットアクションを取得
+  const { resetAll: resetTradeStore } = useTradeStore();
+
   const signOut = async () => {
     await supabase.auth.signOut();
-    setMode("home");
-    setPending(null);
-    setActiveLog(null);
-    setCurrentLogId(null);
-    setGate(initialGate);
-    setSuccessProb("mid");
-    setExpectedValue("unknown");
-    setPostGateKept(null);
-    setPostWithinHypo(null);
-    setUnexpectedReason("");
+    // Zustandの取引関連状態を一括リセット
+    resetTradeStore();
+    // ローカルuseStateのリセット
     setWeeklyAttempts(0);
     setHistoryLogs([]);
     setRole("member");
@@ -952,20 +1016,7 @@ export default function App() {
     if (threads) setMemberThreads((threads ?? []) as DmThread[]);
   };
 
-  const resetPre = () => {
-    setGate(initialGate);
-    setSuccessProb("mid");
-    setExpectedValue("unknown");
-    setAccountBalance("");
-    setStopLossAmount("");
-    setTakeProfitAmount("");
-  };
-
-  const resetPost = () => {
-    setPostGateKept(null);
-    setPostWithinHypo(null);
-    setUnexpectedReason("");
-  };
+  // resetPre, resetPost は Zustand ストアから取得済み
 
   const saveSkipQuick = async () => {
     setStatus("");
@@ -1306,10 +1357,26 @@ export default function App() {
     const balance = Number(accountBalance);
     const stopLoss = Number(stopLossAmount);
     const takeProfit = Number(takeProfitAmount);
-    const rr = stopLoss > 0 && takeProfit > 0 ? takeProfit / stopLoss : null;
-    const riskPct = balance > 0 && stopLoss > 0 ? (stopLoss / balance) * 100 : null;
-    const rrOk = rr !== null && rr >= 2.7;
-    const riskOk = riskPct !== null && riskPct <= 2;
+    const slPips = Number(stopLossPips);
+
+    // pipsベースの判定（tradeMetricsがあればそちらを優先）
+    let rrOk: boolean;
+    let riskOk: boolean;
+    let rr: number | null;
+    let riskPct: number | null;
+
+    if (tradeMetrics) {
+      rrOk = tradeMetrics.isRrOk;
+      riskOk = tradeMetrics.isRiskOk;
+      rr = tradeMetrics.riskRewardRatio;
+      riskPct = balance > 0 ? (tradeMetrics.riskAmount / balance) * 100 : null;
+    } else {
+      // フォールバック（旧方式）
+      rr = stopLoss > 0 && takeProfit > 0 ? takeProfit / stopLoss : null;
+      riskPct = balance > 0 && stopLoss > 0 ? (stopLoss / balance) * 100 : null;
+      rrOk = rr !== null && rr >= 2.7;
+      riskOk = riskPct !== null && riskPct <= 2;
+    }
 
     // Gateが全部Noじゃないか等の判定はUIで見せる
     if (!rrOk || !riskOk || !gate.gate_rule_ok) {
@@ -1328,7 +1395,17 @@ export default function App() {
       gate_risk_ok: riskOk,
       success_prob: successProb,
       expected_value: expectedValue,
-      // post はあとで
+      // Phase 3: 通貨ペア・自動計算データ
+      currency_pair_id: selectedPair?.id ?? null,
+      currency_pair_symbol: selectedPairSymbol || null,
+      account_balance: balance > 0 ? balance : null,
+      stop_loss_pips: slPips > 0 ? slPips : null,
+      take_profit_pips: effectiveTpPips > 0 ? effectiveTpPips : null,
+      stop_loss_amount: tradeMetrics?.riskAmount ?? (stopLoss > 0 ? stopLoss : null),
+      take_profit_amount: tradeMetrics?.takeProfitAmount ?? (takeProfit > 0 ? takeProfit : null),
+      calculated_lot: tradeMetrics?.lotSize ?? null,
+      risk_percent: riskPct,
+      risk_reward_ratio: rr,
     };
     const { data, error } = await supabase
       .from("trade_logs")
@@ -1369,7 +1446,7 @@ export default function App() {
     })();
 
     resetPre();
-    setMode("post");
+    navigate("/post-trade");
     void loadPending();
     void loadWeeklyCount();
     void loadHistory();
@@ -1428,7 +1505,7 @@ export default function App() {
     if (completeLogId) {
       window.history.pushState({}, "", "/");
     }
-    setMode("home");
+    navigate("/");
   };
 
   // ----------------------
@@ -1447,6 +1524,7 @@ export default function App() {
           <Route path="messages" element={<AdminMessages />} />
 
           <Route path="interventions" element={<InterventionManagementPage />} />
+          <Route path="settings" element={<AdminSettingsPage />} />
         </Route>
       </Routes>
     );
@@ -1549,15 +1627,14 @@ export default function App() {
       <LectureNotesPage
         session={session}
         onBack={() => {
-          window.history.pushState({}, "", "/");
-          window.location.reload();
+          navigate("/");
         }}
         onLectureComplete={(res: unknown) => applyXpResult(res as XpResult | null)}
       />
     );
   }
 
-  if (window.location.pathname.startsWith("/messages/")) {
+  if (location.pathname.startsWith("/messages/")) {
     return (
       <Routes>
         <Route path="/messages/:type/:id" element={<MessageDetail />} />
@@ -2326,7 +2403,7 @@ export default function App() {
       return {
         actionLabel: "今日の学びを見る",
         description: `今週の取引は上限に達しました。見送りページで今日の学習カードを確認しましょう。次の取引は${nextMondayLabel()}です。`,
-        onAction: () => setMode("skip"),
+        onAction: () => navigate("/skip"),
         disabled: false,
       };
     }
@@ -2336,7 +2413,7 @@ export default function App() {
       return {
         actionLabel: labels.tradePost + " を入力",
         description: copy.nextAction.incomplete,
-        onAction: () => setMode("post"),
+        onAction: () => navigate("/post-trade"),
       };
     }
 
@@ -2354,10 +2431,10 @@ export default function App() {
     return {
       actionLabel: labels.tradePre + " を記録",
       description: "取引チャンスを待機中。見送る場合は「見送り」ボタンから。",
-      onAction: () => setMode("pre"),
+      onAction: () => navigate("/pre-trade"),
       secondaryAction: {
         label: "見送りを記録する（+5 XP）",
-        onAction: () => setMode("skip"),
+        onAction: () => navigate("/skip"),
       },
     };
   })();
@@ -2403,7 +2480,7 @@ export default function App() {
         }}
         className={session && !isAdminRoute ? "glass-header" : "border-b border-[var(--color-border)] bg-[var(--color-bg)]"}
       >
-        <div onClick={() => setMode("home")} style={{ cursor: "pointer" }}>
+        <div onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
           <h2
             className="shimmer-text"
             style={{
@@ -2461,13 +2538,13 @@ export default function App() {
             }}>
               <div style={{ display: "flex", flexDirection: "column" }}>
                 <button
-                  onClick={() => { setMode("home"); setStatus(""); setShowMenu(false); }}
+                  onClick={() => { navigate("/"); setStatus(""); setShowMenu(false); }}
                   style={{ width: "100%", border: "none", borderRadius: 0, display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-start", padding: "16px 20px" }}
                 >
                   <IconNext /> ホーム
                 </button>
                 <button
-                  onClick={() => { setActiveTab("history"); setShowMenu(false); }}
+                  onClick={() => { navigate("/history"); setShowMenu(false); }}
                   style={{ width: "100%", border: "none", borderRadius: 0, display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-start", padding: "16px 20px" }}
                 >
                   <IconHistory /> 履歴
@@ -2475,7 +2552,7 @@ export default function App() {
                 <button
                   onClick={() => {
                     setShowMenu(false);
-                    setActiveTab("lecture");
+                    navigate("/lecture-notes");
                   }}
                   style={{ width: "100%", border: "none", borderRadius: 0, display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-start", padding: "16px 20px" }}
                 >
@@ -2553,7 +2630,7 @@ export default function App() {
         </div>
       )}
 
-      {activeTab === "home" && mode === "home" && (
+      {activeTab === "home" && location.pathname === "/" && (
         <section>
           <main className="min-h-dvh px-4 py-6">
             <div className="space-y-6 text-left">
@@ -2600,7 +2677,7 @@ export default function App() {
               message={latestMessage?.body ?? "まだメッセージがありません。"}
               onSendReply={(message) => void sendMemberMessage(message)}
               onClick={() => {
-                if (latestMessage) window.location.href = `/messages/dm/${latestMessage.id}`;
+                if (latestMessage) navigate(`/messages/dm/${latestMessage.id}`);
               }}
             />
             {/* DM History List */}
@@ -2614,7 +2691,7 @@ export default function App() {
                     {memberMessages.slice(0, 5).map((m) => (
                       <div
                         key={m.id}
-                        onClick={() => window.location.href = `/messages/dm/${m.id}`}
+                        onClick={() => navigate(`/messages/dm/${m.id}`)}
                         className="rounded-md border border-border bg-card p-3 shadow-sm bg-white/50 cursor-pointer hover:bg-white/80 transition-colors"
                       >
                         <div className="text-xs text-muted-foreground">
@@ -2639,7 +2716,7 @@ export default function App() {
                     {announcements.slice(0, 3).map((a) => (
                       <div
                         key={a.id}
-                        onClick={() => window.location.href = `/messages/announcements/${a.id}`}
+                        onClick={() => navigate(`/messages/announcements/${a.id}`)}
                         className="rounded-md border border-border bg-card p-3 shadow-sm bg-white/50 cursor-pointer hover:bg-white/80 transition-colors"
                       >
                         <div className="text-xs text-muted-foreground">
@@ -2665,7 +2742,7 @@ export default function App() {
         <div className="pb-20">
           <LectureNotesPage
             session={session}
-            onBack={() => setActiveTab("home")}
+            onBack={() => navigate("/")}
             onLectureComplete={(res: unknown) => applyXpResult(res as XpResult | null)}
           />
         </div>
@@ -2675,12 +2752,12 @@ export default function App() {
         <InstallPrompt onClose={() => setShowInstallPrompt(false)} />
       )}
 
-      {mode === "skip" && activeTab === "home" && (
+      {location.pathname === "/skip" && (
         <section className="space-y-4 max-w-md mx-auto relative pb-8">
           {/* ヘッダー */}
           <div className="flex items-center justify-between mb-2 px-1">
             <button
-              onClick={() => setMode("home")}
+              onClick={() => navigate("/")}
               className="text-sm font-semibold text-zinc-600 flex items-center gap-1 hover:text-zinc-800 transition-colors"
             >
               ← 戻る
@@ -2730,7 +2807,7 @@ export default function App() {
             <button
               onClick={() => {
                 void saveSkipQuick();
-                setMode("home");
+                navigate("/");
               }}
               className="w-full rounded-xl bg-zinc-600 px-4 py-3 text-white font-semibold shadow-sm hover:bg-zinc-700 active:bg-zinc-800 transition-colors"
             >
@@ -2740,12 +2817,12 @@ export default function App() {
         </section>
       )}
 
-      {mode === "pre" && activeTab === "home" && (
+      {location.pathname === "/pre-trade" && (
         <section className="space-y-4 max-w-md mx-auto relative pb-8">
           {/* Header with Back button */}
           <div className="flex items-center justify-between mb-2 px-1">
             <button
-              onClick={() => { resetPre(); setMode("home"); }}
+              onClick={() => { resetPre(); navigate("/"); }}
               className="text-sm font-semibold text-zinc-600 flex items-center gap-1 hover:text-zinc-800 transition-colors"
             >
               ← 戻る
@@ -2784,139 +2861,165 @@ export default function App() {
             </div>
           </div>
 
-          {/* ① RR Ratio Card */}
-          <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-sm font-bold text-zinc-800 m-0">① {copy.gate.rrTitle}</h4>
-              <button onClick={() => setGateHelp((h) => ({ ...h, rr: !h.rr }))} className="text-zinc-400 hover:text-zinc-600 cursor-help text-lg">?</button>
+          {/* 📊 トレード設計 Card */}
+          <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4 space-y-4">
+            <div className="font-bold text-zinc-800 flex items-center gap-2">
+              <span className="text-base">📊</span> トレード設計
             </div>
-            {gateHelp.rr && (
-              <div className="text-xs text-zinc-500 p-3 bg-zinc-50 rounded-xl mb-4 border border-zinc-100">{copy.gate.rrHelp}</div>
-            )}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-[10px] font-bold text-zinc-400 mb-1 block">利確</label>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  className="w-full rounded-xl border-2 border-zinc-100 bg-zinc-50/50 px-3 py-2 text-sm font-bold focus:border-blue-500 focus:bg-white focus:outline-none transition-all"
-                  placeholder="金額"
-                  value={takeProfitAmount}
-                  onChange={(e) => setTakeProfitAmount(e.target.value.replace(/[^0-9.]/g, ""))}
-                />
-              </div>
-              <div>
-                <label className="text-[10px] font-bold text-zinc-400 mb-1 block">損切り</label>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  className="w-full rounded-xl border-2 border-zinc-100 bg-zinc-50/50 px-3 py-2 text-sm font-bold focus:border-blue-500 focus:bg-white focus:outline-none transition-all"
-                  placeholder="金額"
-                  value={stopLossAmount}
-                  onChange={(e) => setStopLossAmount(e.target.value.replace(/[^0-9.]/g, ""))}
-                />
-              </div>
-            </div>
-            <div className="mt-4 pt-3 border-t border-zinc-100">
-              <div className="flex justify-between items-center">
-                <span className="text-xs font-bold text-zinc-400">RR比率</span>
-                {(() => {
-                  const stopLoss = Number(stopLossAmount);
-                  const takeProfit = Number(takeProfitAmount);
-                  if (stopLoss > 0 && takeProfit > 0) {
-                    const rr = takeProfit / stopLoss;
-                    let status: "OK" | "注意" | "NG" = "NG";
-                    let color = "text-rose-500";
-                    if (rr >= 3.0) {
-                      status = "OK";
-                      color = "text-blue-600";
-                    } else if (rr >= 2.7) {
-                      status = "注意";
-                      color = "text-amber-500";
-                    }
-                    return (
-                      <div className={`text-sm font-black ${color}`}>
-                        {rr.toFixed(2)} <span className="text-[10px] ml-1">{status}</span>
-                      </div>
-                    );
-                  }
-                  return <span className="text-xs font-bold text-zinc-200 italic">計算中...</span>;
-                })()}
-              </div>
-              {(() => {
-                const stopLoss = Number(stopLossAmount);
-                const takeProfit = Number(takeProfitAmount);
-                if (stopLoss > 0 && takeProfit > 0) {
-                  const rr = takeProfit / stopLoss;
-                  if (rr >= 2.7 && rr < 3.0) {
-                    return (
-                      <div className="mt-2 p-2 bg-amber-50 border border-amber-100 rounded-lg text-[10px] text-amber-700 font-bold leading-relaxed">
-                        ⚠️ RRがやや低めです。安全マージンは減っています。
-                      </div>
-                    );
-                  }
-                }
-                return null;
-              })()}
-            </div>
-          </div>
 
-          {/* ② Risk Card */}
-          <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-sm font-bold text-zinc-800 m-0">② {copy.gate.riskTitle}</h4>
-              <button onClick={() => setGateHelp((h) => ({ ...h, risk: !h.risk }))} className="text-zinc-400 hover:text-zinc-600 cursor-help text-lg">?</button>
+            {/* 学習ポイント：なぜ2%なのか */}
+            <div className="text-[10px] text-zinc-500 bg-blue-50/60 border border-blue-100 rounded-xl p-3 leading-relaxed">
+              💡 リスク2% × RR 3:1 なら、勝率25%でプラマイゼロ。30〜40%でも資金は増える。10連敗しても資金の82%が残ります。
             </div>
-            {gateHelp.risk && (
-              <div className="text-xs text-zinc-500 p-3 bg-zinc-50 rounded-xl mb-4 border border-zinc-100">{copy.gate.riskHelp}</div>
-            )}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-[10px] font-bold text-zinc-400 mb-1 block">資金</label>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  className="w-full rounded-xl border-2 border-zinc-100 bg-zinc-50/50 px-3 py-2 text-sm font-bold focus:border-blue-500 focus:bg-white focus:outline-none transition-all"
-                  placeholder="残高"
-                  value={accountBalance}
-                  onChange={(e) => setAccountBalance(e.target.value.replace(/[^0-9.]/g, ""))}
-                />
-              </div>
-              <div>
-                <label className="text-[10px] font-bold text-zinc-400 mb-1 block">損切り</label>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  className="w-full rounded-xl border-2 border-zinc-100 bg-zinc-50/50 px-3 py-2 text-sm font-bold focus:border-blue-500 focus:bg-white focus:outline-none transition-all"
-                  placeholder="許容額"
-                  value={stopLossAmount}
-                  onChange={(e) => setStopLossAmount(e.target.value.replace(/[^0-9.]/g, ""))}
-                />
-              </div>
+
+            {/* 通貨ペアセレクト */}
+            <div>
+              <label className="text-[10px] font-bold text-zinc-400 mb-1 block uppercase tracking-wider">通貨ペア</label>
+              <select
+                value={selectedPairSymbol}
+                onChange={(e) => setSelectedPairSymbol(e.target.value)}
+                className="w-full rounded-xl border-2 border-zinc-100 bg-zinc-50/50 px-3 py-2.5 text-sm font-bold focus:border-blue-500 focus:bg-white focus:outline-none transition-all appearance-none"
+              >
+                <option value="">選択してください</option>
+                {currencyPairs.map((p) => (
+                  <option key={p.id} value={p.symbol}>{p.symbol}</option>
+                ))}
+              </select>
             </div>
-            <div className="mt-4 pt-3 border-t border-zinc-100 flex justify-between items-center">
-              <span className="text-xs font-bold text-zinc-400">リスク許容</span>
-              {(() => {
-                const balance = Number(accountBalance);
-                const stopLoss = Number(stopLossAmount);
-                if (balance > 0 && stopLoss > 0) {
-                  const riskPct = (stopLoss / balance) * 100;
-                  const ok = riskPct <= 2;
-                  return (
-                    <div className={`text-sm font-black ${ok ? "text-blue-600" : "text-rose-500"}`}>
-                      {riskPct.toFixed(2)}% <span className="text-[10px] ml-1">{ok ? "OK" : "NG"}</span>
+
+            {/* 口座残高 */}
+            <div>
+              <label className="text-[10px] font-bold text-zinc-400 mb-1 block">余剰資金（口座残高）</label>
+              <input
+                type="text"
+                inputMode="decimal"
+                className="w-full rounded-xl border-2 border-zinc-100 bg-zinc-50/50 px-3 py-2 text-sm font-bold focus:border-blue-500 focus:bg-white focus:outline-none transition-all"
+                placeholder="例: 500000"
+                value={accountBalance}
+                onChange={(e) => setAccountBalance(e.target.value.replace(/[^0-9.]/g, ""))}
+              />
+            </div>
+
+            {/* リスク % — 固定推奨  */}
+            <div className="flex items-center justify-between bg-zinc-50 rounded-xl px-3 py-2 border border-zinc-100">
+              <span className="text-xs font-bold text-zinc-500">リスク許容</span>
+              <span className="text-sm font-black text-blue-600">2%（推奨固定）</span>
+            </div>
+
+            {/* 損切り pips（メイン入力） */}
+            <div>
+              <label className="text-[10px] font-bold text-zinc-400 mb-1 block">🎯 損切り幅（pips）</label>
+              <input
+                type="text"
+                inputMode="decimal"
+                className="w-full rounded-xl border-2 border-blue-100 bg-blue-50/30 px-3 py-3 text-lg font-black text-zinc-900 focus:border-blue-500 focus:bg-white focus:outline-none transition-all text-center"
+                placeholder="損切りpipsを入力"
+                value={stopLossPips}
+                onChange={(e) => setStopLossPips(e.target.value.replace(/[^0-9.]/g, ""))}
+              />
+            </div>
+
+            {/* 自動逆算された利確 pips */}
+            {Number(stopLossPips) > 0 && (
+              <div className="rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-100/50 border border-emerald-200 p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">推奨利確（RR 3:1 逆算）</div>
+                    <div className="text-2xl font-black text-emerald-700 mt-1">
+                      {autoTakeProfitPips} <span className="text-sm font-bold">pips</span>
                     </div>
-                  );
-                }
-                return <span className="text-xs font-bold text-zinc-200 italic">計算中...</span>;
-              })()}
-            </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] text-zinc-400">損切り</div>
+                    <div className="text-sm font-bold text-zinc-600">{stopLossPips} pips</div>
+                    <div className="text-[10px] text-zinc-400 mt-1">× 3.0</div>
+                  </div>
+                </div>
+                <div className="text-[10px] text-emerald-600/80 mt-2">
+                  👆 この利確pips数をチャートに反映してください
+                </div>
+              </div>
+            )}
+
+            {/* 任意：利確pips手動調整（上級者向け） */}
+            {Number(stopLossPips) > 0 && (
+              <details className="text-xs">
+                <summary className="text-zinc-400 cursor-pointer hover:text-zinc-600 font-bold">利確pipsを手動調整する（上級）</summary>
+                <div className="mt-2">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    className="w-full rounded-xl border-2 border-zinc-100 bg-zinc-50/50 px-3 py-2 text-sm font-bold focus:border-blue-500 focus:bg-white focus:outline-none transition-all"
+                    placeholder={`推奨: ${autoTakeProfitPips} pips`}
+                    value={takeProfitPips}
+                    onChange={(e) => setTakeProfitPips(e.target.value.replace(/[^0-9.]/g, ""))}
+                  />
+                  {Number(takeProfitPips) > 0 && Number(takeProfitPips) !== autoTakeProfitPips && (
+                    <div className="mt-1 text-[10px] text-amber-600">
+                      ⚠️ RR比が {(Number(takeProfitPips) / Number(stopLossPips)).toFixed(2)}:1 に変更されます（推奨: 3:1）
+                    </div>
+                  )}
+                </div>
+              </details>
+            )}
+
+            {/* 自動計算結果パネル */}
+            {tradeMetrics && (
+              <div className="rounded-xl bg-gradient-to-br from-zinc-50 to-blue-50/30 border border-zinc-100 p-4 space-y-3">
+                <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">計算結果</div>
+
+                {/* ロット数（メイン表示） */}
+                <div className="text-center py-2">
+                  <div className="text-[10px] text-zinc-400 font-bold">適正ロット数</div>
+                  <div className="text-3xl font-black text-zinc-900 mt-1">{tradeMetrics.lotSize}</div>
+                  <div className="text-[10px] text-zinc-400">ロット</div>
+                </div>
+
+                {/* 詳細数値 */}
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="flex justify-between items-center bg-white rounded-lg px-2 py-1.5">
+                    <span className="text-zinc-500 text-xs">リスク金額</span>
+                    <span className={`font-bold ${tradeMetrics.isRiskOk ? 'text-blue-600' : 'text-rose-500'}`}>
+                      ¥{tradeMetrics.riskAmount.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center bg-white rounded-lg px-2 py-1.5">
+                    <span className="text-zinc-500 text-xs">利確金額</span>
+                    <span className="font-bold text-emerald-600">
+                      ¥{tradeMetrics.takeProfitAmount.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center bg-white rounded-lg px-2 py-1.5">
+                    <span className="text-zinc-500 text-xs">RR比</span>
+                    <span className={`font-black ${tradeMetrics.isRrOk ? 'text-blue-600' : 'text-amber-500'}`}>
+                      {tradeMetrics.riskRewardRatio}:1
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center bg-white rounded-lg px-2 py-1.5">
+                    <span className="text-zinc-500 text-xs">1pip価値</span>
+                    <span className="font-bold text-zinc-700">
+                      ¥{tradeMetrics.pipValue.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+
+                {/* ゲート自動判定ステータス */}
+                <div className="flex gap-2 justify-center pt-1">
+                  <span className={`text-[10px] font-bold px-3 py-1 rounded-full ${tradeMetrics.isRrOk ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'}`}>
+                    RR {tradeMetrics.isRrOk ? '✓ OK' : '✗ NG'}
+                  </span>
+                  <span className={`text-[10px] font-bold px-3 py-1 rounded-full ${tradeMetrics.isRiskOk ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'}`}>
+                    リスク {tradeMetrics.isRiskOk ? '✓ OK' : '✗ NG'}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* ③ Rule Condition Card */}
+          {/* ① ルール条件 Card */}
           <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4">
             <div className="flex items-center justify-between mb-2">
-              <h4 className="text-sm font-bold text-zinc-800 m-0">③ {copy.gate.ruleTitle}</h4>
+              <h4 className="text-sm font-bold text-zinc-800 m-0">① {copy.gate.ruleTitle}</h4>
               <button onClick={() => setGateHelp((h) => ({ ...h, rule: !h.rule }))} className="text-zinc-400 hover:text-zinc-600 cursor-help text-lg">?</button>
             </div>
             {gateHelp.rule && (
@@ -2928,6 +3031,7 @@ export default function App() {
               onChange={(v) => setGate((g) => ({ ...g, gate_rule_ok: v }))}
             />
           </div>
+
 
           <div className="pt-2">
             {gateAllOk ? (
@@ -2991,190 +3095,197 @@ export default function App() {
             )}
           </div>
         </section>
-      )}
+      )
+      }
 
-      {mode === "post" && activeTab === "home" && (
-        <section className="space-y-4 max-w-md mx-auto relative pb-8">
-          {/* Header with Back button */}
-          <div className="flex items-center justify-between mb-2 px-1">
-            <button
-              onClick={() => {
-                resetPost();
-                if (completeLogId) {
-                  window.history.pushState({}, "", "/");
-                }
-                setMode("home");
-              }}
-              className="text-sm font-semibold text-zinc-600 flex items-center gap-1 hover:text-zinc-800 transition-colors"
-            >
-              ← 戻る
-            </button>
-            <h3 className="text-lg font-bold m-0">{labels.tradePost}</h3>
-            <div className="w-10"></div>
-          </div>
-
-          {!pending ? (
-            <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-6 text-center">
-              <p className="text-sm text-zinc-600 mb-4">未完の記録がありません。先に「取引前」を記録してください。</p>
+      {
+        location.pathname === "/post-trade" && (
+          <section className="space-y-4 max-w-md mx-auto relative pb-8">
+            {/* Header with Back button */}
+            <div className="flex items-center justify-between mb-2 px-1">
               <button
                 onClick={() => {
+                  resetPost();
                   if (completeLogId) {
                     window.history.pushState({}, "", "/");
                   }
-                  setMode("home");
+                  navigate("/");
                 }}
-                className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 transition-colors"
+                className="text-sm font-semibold text-zinc-600 flex items-center gap-1 hover:text-zinc-800 transition-colors"
               >
-                戻る
+                ← 戻る
               </button>
+              <h3 className="text-lg font-bold m-0">{labels.tradePost}</h3>
+              <div className="w-10"></div>
             </div>
-          ) : (
-            <>
-              {/* 1) 対象情報をカード化 */}
-              <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4 space-y-2">
-                <div className="text-sm font-bold text-zinc-900">対象</div>
-                <div className="text-sm text-zinc-600 space-y-1">
-                  <div>日時：{new Date(pending.occurred_at).toLocaleString()}</div>
-                  <div>仮説：{labelProb(pending.success_prob)}</div>
-                  <div>期待値：{labelEV(pending.expected_value)}</div>
-                  <div>終値率：不明</div>
-                </div>
-              </div>
 
-              {/* 2) 事後チェックをカード化＋選択肢をボタン風に */}
-              <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4 space-y-4">
-                <div className="text-base font-bold text-zinc-900">事後チェック（感情禁止：事実だけ）</div>
-
-                {/* 質問1：ルールは守れたか */}
-                <div className="space-y-2">
-                  <div className="text-sm font-semibold text-zinc-900">ルールは守れたか</div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setPostGateKept(true)}
-                      className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${postGateKept === true
-                        ? "bg-blue-600 text-white shadow-sm"
-                        : "bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50"
-                        }`}
-                    >
-                      はい
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPostGateKept(false)}
-                      className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${postGateKept === false
-                        ? "bg-blue-600 text-white shadow-sm"
-                        : "bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50"
-                        }`}
-                    >
-                      いいえ
-                    </button>
-                  </div>
-                </div>
-
-                {/* 質問2：想定内だったか */}
-                <div className="space-y-2">
-                  <div className="text-sm font-semibold text-zinc-900">想定内だったか</div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setPostWithinHypo(true)}
-                      className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${postWithinHypo === true
-                        ? "bg-blue-600 text-white shadow-sm"
-                        : "bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50"
-                        }`}
-                    >
-                      はい
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPostWithinHypo(false)}
-                      className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${postWithinHypo === false
-                        ? "bg-blue-600 text-white shadow-sm"
-                        : "bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50"
-                        }`}
-                    >
-                      いいえ
-                    </button>
-                  </div>
-                </div>
-
-                {postWithinHypo === false && (
-                  <div className="mt-3 space-y-2 pt-2 border-t border-zinc-100">
-                    <div className="text-sm font-semibold text-zinc-900">理由を教えてください</div>
-                    <textarea
-                      value={unexpectedReason}
-                      onChange={(e) => setUnexpectedReason(e.target.value)}
-                      className="w-full rounded-xl border-2 border-zinc-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none transition-all"
-                      rows={3}
-                      placeholder="何が想定外でしたか..."
-                    />
-                    <div className="flex gap-2 flex-wrap mt-1">
-                      <button
-                        type="button"
-                        onClick={() => setUnexpectedReason("前提条件の破綻")}
-                        className="px-2 py-1 text-[10px] font-bold rounded-lg bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors"
-                      >
-                        前提条件の破綻
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setUnexpectedReason("ルール未達")}
-                        className="px-2 py-1 text-[10px] font-bold rounded-lg bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors"
-                      >
-                        ルール未達
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setUnexpectedReason("記録漏れ")}
-                        className="px-2 py-1 text-[10px] font-bold rounded-lg bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors"
-                      >
-                        記録漏れ
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* 3) ボタンを下部に大きく配置 */}
-              <div className="flex flex-col gap-3">
+            {!pending ? (
+              <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-6 text-center">
+                <p className="text-sm text-zinc-600 mb-4">未完の記録がありません。先に「取引前」を記録してください。</p>
                 <button
-                  type="button"
-                  onClick={() => void savePost()}
-                  className="btn-cta w-full rounded-xl px-4 py-3 font-semibold"
-                >
-                  保存（取引後）
-                </button>
-                <button
-                  type="button"
                   onClick={() => {
-                    resetPost();
                     if (completeLogId) {
                       window.history.pushState({}, "", "/");
                     }
-                    setMode("home");
+                    navigate("/");
                   }}
                   className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 transition-colors"
                 >
                   戻る
                 </button>
               </div>
-            </>
-          )}
-        </section>
-      )}
+            ) : (
+              <>
+                {/* 1) 対象情報をカード化 */}
+                <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4 space-y-2">
+                  <div className="text-sm font-bold text-zinc-900">対象</div>
+                  <div className="text-sm text-zinc-600 space-y-1">
+                    <div>日時：{new Date(pending.occurred_at).toLocaleString()}</div>
+                    <div>仮説：{labelProb(pending.success_prob)}</div>
+                    <div>期待値：{labelEV(pending.expected_value)}</div>
+                    <div>終値率：不明</div>
+                  </div>
+                </div>
 
-      {session && !isAdminRoute && showInstallPrompt && (
-        <InstallPrompt onClose={() => setShowInstallPrompt(false)} />
-      )}
+                {/* 2) 事後チェックをカード化＋選択肢をボタン風に */}
+                <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4 space-y-4">
+                  <div className="text-base font-bold text-zinc-900">事後チェック（感情禁止：事実だけ）</div>
 
-      {session && !isAdminRoute && (
-        <>
-          <NotificationPrompt />
-          <BottomTabBar selectedTab={activeTab} onChange={setActiveTab} />
-        </>
-      )}
-    </div>
+                  {/* 質問1：ルールは守れたか */}
+                  <div className="space-y-2">
+                    <div className="text-sm font-semibold text-zinc-900">ルールは守れたか</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPostGateKept(true)}
+                        className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${postGateKept === true
+                          ? "bg-blue-600 text-white shadow-sm"
+                          : "bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50"
+                          }`}
+                      >
+                        はい
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPostGateKept(false)}
+                        className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${postGateKept === false
+                          ? "bg-blue-600 text-white shadow-sm"
+                          : "bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50"
+                          }`}
+                      >
+                        いいえ
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 質問2：想定内だったか */}
+                  <div className="space-y-2">
+                    <div className="text-sm font-semibold text-zinc-900">想定内だったか</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPostWithinHypo(true)}
+                        className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${postWithinHypo === true
+                          ? "bg-blue-600 text-white shadow-sm"
+                          : "bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50"
+                          }`}
+                      >
+                        はい
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPostWithinHypo(false)}
+                        className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${postWithinHypo === false
+                          ? "bg-blue-600 text-white shadow-sm"
+                          : "bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50"
+                          }`}
+                      >
+                        いいえ
+                      </button>
+                    </div>
+                  </div>
+
+                  {postWithinHypo === false && (
+                    <div className="mt-3 space-y-2 pt-2 border-t border-zinc-100">
+                      <div className="text-sm font-semibold text-zinc-900">理由を教えてください</div>
+                      <textarea
+                        value={unexpectedReason}
+                        onChange={(e) => setUnexpectedReason(e.target.value)}
+                        className="w-full rounded-xl border-2 border-zinc-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none transition-all"
+                        rows={3}
+                        placeholder="何が想定外でしたか..."
+                      />
+                      <div className="flex gap-2 flex-wrap mt-1">
+                        <button
+                          type="button"
+                          onClick={() => setUnexpectedReason("前提条件の破綻")}
+                          className="px-2 py-1 text-[10px] font-bold rounded-lg bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors"
+                        >
+                          前提条件の破綻
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setUnexpectedReason("ルール未達")}
+                          className="px-2 py-1 text-[10px] font-bold rounded-lg bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors"
+                        >
+                          ルール未達
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setUnexpectedReason("記録漏れ")}
+                          className="px-2 py-1 text-[10px] font-bold rounded-lg bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors"
+                        >
+                          記録漏れ
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 3) ボタンを下部に大きく配置 */}
+                <div className="flex flex-col gap-3">
+                  <button
+                    type="button"
+                    onClick={() => void savePost()}
+                    className="btn-cta w-full rounded-xl px-4 py-3 font-semibold"
+                  >
+                    保存（取引後）
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      resetPost();
+                      if (completeLogId) {
+                        window.history.pushState({}, "", "/");
+                      }
+                      navigate("/");
+                    }}
+                    className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 transition-colors"
+                  >
+                    戻る
+                  </button>
+                </div>
+              </>
+            )}
+          </section>
+        )
+      }
+
+      {
+        session && !isAdminRoute && showInstallPrompt && (
+          <InstallPrompt onClose={() => setShowInstallPrompt(false)} />
+        )
+      }
+
+      {
+        session && !isAdminRoute && (
+          <>
+            <NotificationPrompt />
+            <BottomTabBar />
+          </>
+        )
+      }
+    </div >
   );
 }
 

@@ -19,16 +19,16 @@ interface BehaviorUserListProps {
 
 export const BehaviorUserList: React.FC<BehaviorUserListProps> = ({ users }) => {
 
-    // Calculates trades per week based on total trades and elapsed time since learning
-    const calculateWeeklyFreq = (trades: number, startDateStr: string | null): number => {
-        if (!startDateStr || trades === 0) return 0;
-        const start = new Date(startDateStr);
-        const now = new Date();
-        const diffTime = Math.abs(now.getTime() - start.getTime());
-        const diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-        const weeks = diffDays / 7;
-        return trades / weeks; // trades pe week
-    };
+    // TODO: 将来使用予定のユーティリティ関数（現在未使用のためコメントアウト）
+    // const calculateWeeklyFreq = (trades: number, startDateStr: string | null): number => {
+    //     if (!startDateStr || trades === 0) return 0;
+    //     const start = new Date(startDateStr);
+    //     const now = new Date();
+    //     const diffTime = Math.abs(now.getTime() - start.getTime());
+    //     const diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+    //     const weeks = diffDays / 7;
+    //     return trades / weeks;
+    // };
 
     return (
         <div className="bg-slate-900/50 rounded-xl border border-slate-800 overflow-hidden">
