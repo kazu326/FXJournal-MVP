@@ -29,6 +29,7 @@ import AdminMessages from "./pages/admin/AdminMessages";
 import { InterventionManagementPage } from "./pages/admin/InterventionManagementPage";
 import NotificationPrompt from "./components/NotificationPrompt";
 import MessageDetail from "./pages/MessageDetail";
+import { getPipValue } from "./utils/marketData";
 
 // Mode型はtradeStoreで管理（ここでの宣言は不要）
 
@@ -65,11 +66,11 @@ const learningCards: LearningCard[] = [
   {
     id: 3,
     emoji: "🚦",
-    title: "なぜ週2回までなのか？",
+    title: "なぜ1日2回までなのか？",
     content: [
       "初心者が破産する最大の原因は「やりすぎ」です。",
-      "週2回の制限で、焦らず・丁寧に・記録を振り返る習慣を作ります。",
-      "学習と記録が積み重なると、週3回以上に段階的に解放されます。",
+      "1日2回の制限で、焦らず・丁寧に・記録を振り返る習慣を作ります。",
+      "学習と記録が積み重なると、上限が段階的に解放されます。",
       "「制限」ではなく「守り」のための設計です。",
     ],
   },
@@ -436,7 +437,7 @@ export default function App() {
   } = useTradeStore();
 
   // progress summary
-  const [weeklyAttempts, setWeeklyAttempts] = useState(0);
+  const [dailyAttempts, setDailyAttempts] = useState(0);
 
   // Phase 3: 通貨ペア一覧
   const [currencyPairs, setCurrencyPairs] = useState<CurrencyPair[]>([]);
@@ -444,6 +445,14 @@ export default function App() {
     () => currencyPairs.find(p => p.symbol === selectedPairSymbol) ?? null,
     [currencyPairs, selectedPairSymbol]
   );
+
+  // 参考レート（手動入力）・損切り価格表示
+  const [currentRate, setCurrentRate] = useState<string>("");
+
+  // 通貨ペア変更時にレートをクリアする（または前回値を保持するかは要件によるが、今回はクリアが無難）
+  useEffect(() => {
+    setCurrentRate("");
+  }, [selectedPairSymbol]);
 
   // Phase 3: 為替レート取得
   const [jpyRate, setJpyRate] = useState<number>(1);
@@ -599,8 +608,8 @@ export default function App() {
     },
     [tradeMetrics, accountBalance, stopLossAmount, takeProfitAmount, gate.gate_rule_ok]
   );
-  const weeklyLimit = memberSettings?.weekly_limit ?? 2;
-  const weeklyLocked = weeklyAttempts >= weeklyLimit && !isTestMode;
+  const dailyLimit = memberSettings?.weekly_limit ?? 2;
+  const dailyLocked = !memberSettings?.unlocked && dailyAttempts >= dailyLimit && !isTestMode;
 
   // 今日のログを導出（フックは早期リターンの前に配置）
   const todayLogs = useMemo(
@@ -731,7 +740,7 @@ export default function App() {
   useEffect(() => {
     if (!session) return;
     void loadMyRole();
-    void loadWeeklyCount();
+    void loadDailyCount();
     void loadMemberSettings();
     void loadAnnouncements();
     void loadMemberDm();
@@ -813,7 +822,7 @@ export default function App() {
     // Zustandの取引関連状態を一括リセット
     resetTradeStore();
     // ローカルuseStateのリセット
-    setWeeklyAttempts(0);
+    setDailyAttempts(0);
     setHistoryLogs([]);
     setRole("member");
     setAnnouncements([]);
@@ -872,24 +881,26 @@ export default function App() {
     setCurrentLogId(next?.id ?? null);
   };
 
-  const loadWeeklyCount = async () => {
+  const loadDailyCount = async () => {
     setStatus("");
     if (!session?.user?.id) return;
-    const { data, error } = await supabase
-      .from("v_weekly_counts")
-      .select("attempts_week")
+
+    // 今日の0時（JST）をISO文字列で生成
+    const now = new Date();
+    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayIso = todayMidnight.toISOString();
+
+    const { count, error } = await supabase
+      .from("trade_logs")
+      .select("id", { count: "exact", head: true })
       .eq("user_id", session.user.id)
-      .maybeSingle();
+      .neq("log_type", "skip")      // 見送りはカウント対象外
+      .gte("occurred_at", todayIso);
 
     if (error) {
-      if (error.code === "PGRST116") {
-        setWeeklyAttempts(0);
-        return;
-      }
-      return reportError("進捗取得失敗", error);
+      return reportError("日次進捗取得失敗", error);
     }
-    const attempts = data?.attempts_week ?? 0;
-    setWeeklyAttempts(attempts);
+    setDailyAttempts(count ?? 0);
   };
 
   const loadMemberSettings = async () => {
@@ -1350,7 +1361,7 @@ export default function App() {
   const savePre = async () => {
     setStatus("");
     if (!session?.user?.id) return setStatus("未ログインです。");
-    if (weeklyLocked && !isTestMode) {
+    if (dailyLocked && !isTestMode) {
       return setStatus(labels.weeklyLimitReached);
     }
 
@@ -2368,13 +2379,13 @@ export default function App() {
       id: "pre",
       label: labels.tradePre,
       completed: hasValidToday,
-      disabled: weeklyLocked,
+      disabled: dailyLocked,
     },
     {
       id: "post",
       label: labels.tradePost,
       completed: hasCompletedTradeToday,
-      disabled: weeklyLocked || !pending,
+      disabled: dailyLocked || !pending,
     },
     {
       id: "skip",
@@ -2398,11 +2409,11 @@ export default function App() {
   }
 
   const nextAction = (() => {
-    // 1. 週次制限（最優先）
-    if (weeklyLocked) {
+    // 1. 日次制限（最優先）
+    if (dailyLocked) {
       return {
         actionLabel: "今日の学びを見る",
-        description: `今週の取引は上限に達しました。見送りページで今日の学習カードを確認しましょう。次の取引は${nextMondayLabel()}です。`,
+        description: `本日の取引は上限に達しました。見送りページで今日の学習カードを確認しましょう。次の取引は明日です。`,
         onAction: () => navigate("/skip"),
         disabled: false,
       };
@@ -2660,7 +2671,7 @@ export default function App() {
                 secondaryAction={nextAction.secondaryAction}
               />
               <TodayTasksCard tasks={todayTasks} />
-              <WeeklyProgressCard usedTrades={weeklyAttempts} maxTrades={weeklyLimit} />
+              <WeeklyProgressCard usedTrades={dailyAttempts} maxTrades={dailyLimit} />
             </div>
           </main>
         </section>
@@ -2831,7 +2842,7 @@ export default function App() {
             <div className="w-10"></div>
           </div>
 
-          {memberSettings && !memberSettings.unlocked && weeklyAttempts >= memberSettings.weekly_limit && !isTestMode && (
+          {memberSettings && !memberSettings.unlocked && dailyAttempts >= memberSettings.weekly_limit && !isTestMode && (
             <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm font-medium">
               {labels.weeklyLimitReached}
             </div>
@@ -2854,10 +2865,9 @@ export default function App() {
 
           {/* 今週残り Card */}
           <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4">
-            <div className="text-zinc-400 text-[10px] font-bold uppercase tracking-wider mb-1">今週残り</div>
+            <div className="text-zinc-400 text-[10px] font-bold uppercase tracking-wider mb-1">本日残り</div>
             <div className="text-2xl font-black text-zinc-900 leading-none">
-              {Math.max(0, (memberSettings?.weekly_limit ?? 2) - weeklyAttempts)}
-              <span className="text-sm font-bold text-zinc-400 ml-1">/ {memberSettings?.weekly_limit ?? 2} 回</span>
+              あと {Math.max(0, (memberSettings?.weekly_limit ?? 2) - dailyAttempts)} 回
             </div>
           </div>
 
@@ -2918,6 +2928,65 @@ export default function App() {
                 onChange={(e) => setStopLossPips(e.target.value.replace(/[^0-9.]/g, ""))}
               />
             </div>
+
+            {/* 参考レートと損切り価格のイメージ */}
+            {(selectedPairSymbol) && (
+              <div className="space-y-3">
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-3">
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                      エントリー予定レート
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      className="flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-bold focus:outline-none focus:border-blue-500"
+                      placeholder={selectedPairSymbol?.includes('JPY') ? '例: 154.50' : '例: 1.9120'}
+                      value={currentRate}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9.]/g, "");
+                        setCurrentRate(val);
+                      }}
+                    />
+                    <span className="text-xl">✏️</span>
+                  </div>
+                  <div className="text-[10px] text-zinc-400 mt-1">📍 チャートでエントリーしたい価格を入力してください</div>
+                </div>
+
+                {currentRate !== "" && Number(stopLossPips) >= 1 && (
+                  <div className="rounded-xl border-2 border-blue-500 bg-blue-50/30 p-4 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="font-bold text-sm text-blue-900 mb-3 flex items-center gap-2">
+                      <span>📍</span> 損切り価格のイメージ
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-end">
+                        <span className="text-xs text-zinc-600 font-medium">買いエントリーの場合</span>
+                        <div className="text-right">
+                          <span className="text-xs text-zinc-400 mr-2">→</span>
+                          <span className="text-lg font-black text-rose-600">
+                            {(Number(currentRate) - Number(stopLossPips) * getPipValue(selectedPairSymbol || "")).toFixed(selectedPairSymbol?.includes('JPY') || selectedPairSymbol?.includes('XAU') ? 2 : 4)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-end border-t border-blue-100 pt-3">
+                        <span className="text-xs text-zinc-600 font-medium">売りエントリーの場合</span>
+                        <div className="text-right">
+                          <span className="text-xs text-zinc-400 mr-2">→</span>
+                          <span className="text-lg font-black text-blue-600">
+                            {(Number(currentRate) + Number(stopLossPips) * getPipValue(selectedPairSymbol || "")).toFixed(selectedPairSymbol?.includes('JPY') || selectedPairSymbol?.includes('XAU') ? 2 : 4)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-blue-700/70 mt-3 font-medium text-center">
+                      チャートのこの価格帯が損切りラインです
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* 自動逆算された利確 pips */}
             {Number(stopLossPips) > 0 && (
@@ -3072,7 +3141,7 @@ export default function App() {
 
                 <button
                   onClick={() => void savePre()}
-                  disabled={weeklyLocked && !isTestMode}
+                  disabled={dailyLocked && !isTestMode}
                   className="btn-cta w-full h-14 rounded-xl font-bold disabled:opacity-50 disabled:pointer-events-none"
                 >
                   {labels.tradePre} を保存

@@ -53,7 +53,7 @@ export function WeeklyProgressCard({
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <TrendingDown className="size-6 text-primary" />
-            <h2 className="text-lg font-bold text-slate-700">今週のトレード枠</h2>
+            <h2 className="text-lg font-bold text-slate-700">本日のトレード枠</h2>
           </div>
           <div className={`flex items-center justify-center size-8 rounded-full ${status.badge}`}>
             <StatusIcon className={`size-5 ${status.iconColor}`} />
@@ -69,11 +69,10 @@ export function WeeklyProgressCard({
             {Array.from({ length: maxTrades }).map((_, i) => (
               <div
                 key={i}
-                className={`flex-1 h-12 rounded-xl flex items-center justify-center font-bold text-sm transition-all ${
-                  i < usedTrades
+                className={`flex-1 h-12 rounded-xl flex items-center justify-center font-bold text-sm transition-all ${i < usedTrades
                     ? "bg-slate-200/80 text-slate-500"
                     : "bg-primary/15 text-primary"
-                }`}
+                  }`}
               >
                 {i < usedTrades ? "使用済" : "残り"}
               </div>
@@ -95,9 +94,8 @@ export function WeeklyProgressCard({
         </div>
 
         <div
-          className={`flex items-start gap-3 p-4 rounded-xl ${
-            isOverTrading ? "bg-warning/10" : isAtLimit ? "bg-success/10" : "bg-slate-100/60"
-          }`}
+          className={`flex items-start gap-3 p-4 rounded-xl ${isOverTrading ? "bg-warning/10" : isAtLimit ? "bg-success/10" : "bg-slate-100/60"
+            }`}
         >
           {isOverTrading ? (
             <>
@@ -105,7 +103,7 @@ export function WeeklyProgressCard({
               <div>
                 <p className="font-bold text-warning-foreground">過剰トレード警告</p>
                 <p className="text-sm text-slate-500 mt-1">
-                  週{maxTrades}回の上限を{overCount}回超過しています。リベンジトレードになっていませんか？
+                  1日{maxTrades}回の上限を{overCount}回超過しています。リベンジトレードになっていませんか？
                 </p>
               </div>
             </>
@@ -113,9 +111,9 @@ export function WeeklyProgressCard({
             <>
               <ShieldCheck className="size-6 text-success shrink-0 mt-0.5" />
               <div>
-                <p className="font-bold text-success-foreground">今週の枠を使い切りました</p>
+                <p className="font-bold text-success-foreground">本日の枠を使い切りました</p>
                 <p className="text-sm text-slate-500 mt-1">
-                  素晴らしい自制心です。来週まで見送りに徹しましょう。
+                  素晴らしい自制心です。明日まで見送りに徹しましょう。
                 </p>
               </div>
             </>

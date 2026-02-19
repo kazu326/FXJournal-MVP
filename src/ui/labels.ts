@@ -4,7 +4,7 @@ export const labels = {
   tradePre: "取引前（30秒）",
   tradePost: "取引後（60秒）",
   skip: "見送り（15秒）",
-  weeklyLimitReached: "今週の上限に達しました。次は見送りを記録してください。",
+  weeklyLimitReached: "本日の上限に達しました。次は見送りを記録してください。",
   incompleteNotice: "未完が1件あります。完了すると記録が締まります。",
   adminTitle: "管理/先生ポータル",
   adminTodo: "今日やること（3つ）",
