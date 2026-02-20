@@ -321,15 +321,6 @@ function daysAgo(n: number) {
   return d;
 }
 
-function nextMondayLabel(): string {
-  const now = new Date();
-  const day = now.getDay();
-  const daysUntilMonday = day === 0 ? 1 : 8 - day;
-  const nextMonday = new Date(now);
-  nextMonday.setDate(now.getDate() + daysUntilMonday);
-  return `${nextMonday.getMonth() + 1}/${nextMonday.getDate()}（月）`;
-}
-
 function isToday(d: string | number | Date) {
   const dt = new Date(d);
   const now = new Date();
@@ -412,7 +403,7 @@ export default function App() {
 
   // pre (取引前) - Zustand ストアで管理
   const {
-    gate, setGate,
+    gate,
     successProb, setSuccessProb,
     expectedValue, setExpectedValue,
     accountBalance, setAccountBalance,
@@ -423,7 +414,6 @@ export default function App() {
     stopLossPips, setStopLossPips,
     takeProfitPips, setTakeProfitPips,
     riskPercent,
-    gateHelp, setGateHelp,
     resetPre,
     note, setNote,
   } = useTradeStore();
@@ -3415,21 +3405,6 @@ function Card(props: { children: React.ReactNode; style?: CSSProperties; classNa
     >
       {props.children}
     </div>
-  );
-}
-
-function GateRowJP(props: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", cursor: "pointer" }}>
-      <input
-        type="checkbox"
-        checked={props.checked}
-        onChange={(e) => props.onChange(e.target.checked)}
-        style={{ width: 18, height: 18 }}
-      />
-      <span style={{ fontWeight: 500 }}>{props.label}</span>
-      <span style={{ marginLeft: "auto", opacity: 0.75, fontSize: 12 }}>{props.checked ? "はい" : "いいえ"}</span>
-    </label>
   );
 }
 
