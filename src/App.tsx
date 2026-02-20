@@ -30,6 +30,7 @@ import { InterventionManagementPage } from "./pages/admin/InterventionManagement
 import NotificationPrompt from "./components/NotificationPrompt";
 import MessageDetail from "./pages/MessageDetail";
 import { getPipValue } from "./utils/marketData";
+import { PreTradeChecklist } from "./components/PreTradeChecklist";
 
 // Mode型はtradeStoreで管理（ここでの宣言は不要）
 
@@ -414,6 +415,7 @@ export default function App() {
     stopLossPips, setStopLossPips,
     takeProfitPips, setTakeProfitPips,
     riskPercent,
+    gateHelp, setGateHelp,
     resetPre,
     note, setNote,
   } = useTradeStore();
@@ -3136,12 +3138,26 @@ export default function App() {
                   </div>
                 </div>
 
+                <div className="pt-2">
+                  <PreTradeChecklist
+                    items={[
+                      { id: "rr" as any, label: "リスクリワードは 1:3 以上になっているか？", checked: gateHelp.rr },
+                      { id: "risk" as any, label: "許容損失は資金の 2% 以内か？", checked: gateHelp.risk },
+                      { id: "rule" as any, label: "上位足のトレンド・ルールは成立しているか？", checked: gateHelp.rule }
+                    ]}
+                    onToggle={(id, checked) => setGateHelp((prev: any) => ({ ...prev, [id]: checked }))}
+                  />
+                </div>
+
                 <button
                   onClick={() => void savePre()}
-                  disabled={dailyLocked && !isTestMode}
-                  className="btn-cta w-full h-14 rounded-xl font-bold disabled:opacity-50 disabled:pointer-events-none"
+                  disabled={(dailyLocked && !isTestMode) || !(gateHelp.rr && gateHelp.risk && gateHelp.rule)}
+                  className={`btn-cta w-full h-14 rounded-xl font-bold transition-all duration-700 ${!(gateHelp.rr && gateHelp.risk && gateHelp.rule) || (dailyLocked && !isTestMode)
+                      ? "opacity-50 pointer-events-none grayscale"
+                      : "animate-pulse shadow-[0_0_20px_rgba(37,99,235,0.6)]"
+                    }`}
                 >
-                  {labels.tradePre} を保存
+                  {labels.tradePre} を記録する
                 </button>
               </div>
             ) : (
