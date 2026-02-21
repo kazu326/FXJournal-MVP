@@ -26,5 +26,10 @@ create policy "Users can delete their own subscriptions"
   on public.push_subscriptions for delete
   using (auth.uid() = user_id);
 
+create policy "Users can update their own subscriptions"
+  on public.push_subscriptions for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
 -- Add index
 create index if not exists push_subscriptions_user_id_idx on public.push_subscriptions (user_id);

@@ -28,7 +28,7 @@ function urlBase64ToUint8Array(base64String: string) {
 /**
  * ユーザーをWeb Push通知に登録する
  */
-export async function subscribeToPush(userId: string) {
+export async function subscribeToPush(_userId: string) {
     if (!("serviceWorker" in navigator)) {
         throw new Error("Service Worker not supported");
     }
@@ -61,19 +61,12 @@ export async function subscribeToPush(userId: string) {
         const auth = rawSub.keys?.auth;
 
         if (endpoint && p256dh && auth) {
-            const { error } = await supabase
-                .from("push_subscriptions")
-                .upsert(
-                    {
-                        user_id: userId,
-                        endpoint,
-                        p256dh,
-                        auth,
-                        user_agent: navigator.userAgent,
-                        updated_at: new Date().toISOString(),
-                    },
-                    { onConflict: "endpoint" }
-                );
+            const { error } = await (supabase.rpc as any)("save_push_subscription", {
+                sub_endpoint: endpoint,
+                sub_p256dh: p256dh,
+                sub_auth: auth,
+                sub_user_agent: navigator.userAgent,
+            });
 
             if (error) {
                 console.error("Failed to save subscription:", error);

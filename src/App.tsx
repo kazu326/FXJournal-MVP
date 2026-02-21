@@ -405,8 +405,8 @@ export default function App() {
   // pre (取引前) - Zustand ストアで管理
   const {
     gate,
-    successProb, setSuccessProb,
-    expectedValue, setExpectedValue,
+    successProb,
+    expectedValue,
     accountBalance, setAccountBalance,
     stopLossAmount,
     takeProfitAmount,
@@ -3093,51 +3093,6 @@ export default function App() {
           <div className="pt-2">
             {gateAllOk ? (
               <div className="space-y-4">
-                <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4 space-y-6">
-                  <h4 className="text-sm font-bold text-zinc-800 m-0 border-b border-zinc-50 pb-2">仮説・根拠</h4>
-
-                  <div>
-                    <div className="text-[10px] font-bold text-zinc-400 mb-2 uppercase tracking-wider">成功確率</div>
-                    <ChoiceRow>
-                      <ChoiceButton active={successProb === "high"} onClick={() => setSuccessProb("high")}>
-                        高<div className="text-[9px] opacity-70 mt-1">自信あり</div>
-                      </ChoiceButton>
-                      <ChoiceButton active={successProb === "mid"} onClick={() => setSuccessProb("mid")}>
-                        中<div className="text-[9px] opacity-70 mt-1">五分五分</div>
-                      </ChoiceButton>
-                      <ChoiceButton active={successProb === "low"} onClick={() => setSuccessProb("low")}>
-                        低<div className="text-[9px] opacity-70 mt-1">自信なし</div>
-                      </ChoiceButton>
-                    </ChoiceRow>
-                  </div>
-
-                  <div>
-                    <div className="text-[10px] font-bold text-zinc-400 mb-2 uppercase tracking-wider">期待値</div>
-                    <ChoiceRow>
-                      <ChoiceButton active={expectedValue === "plus"} onClick={() => setExpectedValue("plus")}>
-                        ＋<div className="text-[9px] opacity-70 mt-1">有利</div>
-                      </ChoiceButton>
-                      <ChoiceButton active={expectedValue === "unknown"} onClick={() => setExpectedValue("unknown")}>
-                        不明<div className="text-[9px] opacity-70 mt-1">判断不能</div>
-                      </ChoiceButton>
-                      <ChoiceButton active={expectedValue === "minus"} onClick={() => setExpectedValue("minus")}>
-                        －<div className="text-[9px] opacity-70 mt-1">不利</div>
-                      </ChoiceButton>
-                    </ChoiceRow>
-                  </div>
-
-                  <div className="pt-2">
-                    <div className="text-[10px] font-bold text-zinc-400 mb-2 uppercase tracking-wider">メモ（根拠・シナリオ）</div>
-                    <textarea
-                      value={note}
-                      onChange={(e) => setNote(e.target.value)}
-                      className="w-full rounded-xl border-2 border-zinc-100 bg-zinc-50/50 p-3 text-sm focus:border-blue-500 focus:bg-white focus:outline-none transition-all resize-none"
-                      rows={4}
-                      placeholder="なぜこのトレードをするのですか？根拠を言語化してください..."
-                    />
-                  </div>
-                </div>
-
                 <div className="pt-2">
                   <PreTradeChecklist
                     items={[
@@ -3149,12 +3104,26 @@ export default function App() {
                   />
                 </div>
 
+                <div className="pt-2">
+                  <div className="text-[10px] font-bold text-zinc-400 mb-2 uppercase tracking-wider flex items-center gap-1">
+                    <span>メモ</span>
+                    <span className="text-zinc-300 font-normal">（任意）</span>
+                  </div>
+                  <textarea
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    className="w-full rounded-xl border border-zinc-100 bg-zinc-50/50 p-3 text-xs text-zinc-600 focus:border-blue-500 focus:bg-white focus:outline-none transition-all resize-none"
+                    rows={2}
+                    placeholder="トレードの根拠やシナリオなど..."
+                  />
+                </div>
+
                 <button
                   onClick={() => void savePre()}
                   disabled={(dailyLocked && !isTestMode) || !(gateHelp.rr && gateHelp.risk && gateHelp.rule)}
                   className={`btn-cta w-full h-14 rounded-xl font-bold transition-all duration-700 ${!(gateHelp.rr && gateHelp.risk && gateHelp.rule) || (dailyLocked && !isTestMode)
-                      ? "opacity-50 pointer-events-none grayscale"
-                      : "animate-pulse shadow-[0_0_20px_rgba(37,99,235,0.6)]"
+                    ? "opacity-50 pointer-events-none grayscale"
+                    : "animate-pulse shadow-[0_0_20px_rgba(37,99,235,0.6)]"
                     }`}
                 >
                   {labels.tradePre} を記録する
@@ -3424,32 +3393,7 @@ function Card(props: { children: React.ReactNode; style?: CSSProperties; classNa
   );
 }
 
-function ChoiceRow(props: { children: React.ReactNode }) {
-  return (
-    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 8 }}>
-      {props.children}
-    </div>
-  );
-}
 
-function ChoiceButton(props: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      onClick={props.onClick}
-      style={{
-        padding: "12px 16px",
-        minWidth: 100,
-        textAlign: "center",
-        borderColor: props.active ? "var(--color-accent)" : "var(--color-border)",
-        backgroundColor: props.active ? "rgba(43, 109, 224, 0.1)" : "var(--color-card)",
-        color: props.active ? "var(--color-accent)" : "var(--color-text)",
-        fontWeight: props.active ? 700 : 500,
-      }}
-    >
-      {props.children}
-    </button>
-  );
-}
 
 function PrimaryButton(props: { onClick: () => void; children: React.ReactNode; disabled?: boolean; className?: string; style?: CSSProperties }) {
   return (
