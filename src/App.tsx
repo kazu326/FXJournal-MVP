@@ -31,6 +31,8 @@ import NotificationPrompt from "./components/NotificationPrompt";
 import MessageDetail from "./pages/MessageDetail";
 import { getPipValue } from "./utils/marketData";
 import { PreTradeChecklist } from "./components/PreTradeChecklist";
+import MascotOverlay from "./components/Mascot/MascotOverlay";
+import { useMascotStore } from "./store/mascotStore";
 
 // Mode型はtradeStoreで管理（ここでの宣言は不要）
 
@@ -334,6 +336,7 @@ function extractCompleteLogId(body: string) {
 }
 
 export default function App() {
+  const { showMascot } = useMascotStore();
   const [session, setSession] = useState<Session | null>(null);
   const [status, setStatus] = useState("");
   // mode はURLパスで管理（Zustandの mode/setMode は不要）
@@ -393,11 +396,18 @@ export default function App() {
       if (nextLevel > prevLevel) {
         // TODO: レベルアップ演出（モーダルやトースト）をここに追加
         console.log(`Level up! ${prevLevel} -> ${nextLevel}`);
+        showMascot("levelUp");
       }
       return nextLevel;
     });
+    setLoginStreak((prevStreak) => {
+      const nextStreak = res.loginStreak;
+      if (nextStreak > prevStreak) {
+        showMascot("streakUpdated");
+      }
+      return nextStreak;
+    });
     setCurrentXp(res.currentXp);
-    setLoginStreak(res.loginStreak);
   };
   const [nameInput, setNameInput] = useState("");
   const [profileNameMap, setProfileNameMap] = useState<Record<string, string>>({});
@@ -628,6 +638,17 @@ export default function App() {
     [todayLogs]
   );
 
+  // --- Loading Trigger ---
+  useEffect(() => {
+    if ((isAuthCallback && !session) || (session && !isAdminRoute && onboardingLoading)) {
+      showMascot("loading");
+    } else {
+      if (useMascotStore.getState().currentEvent === "loading") {
+        useMascotStore.getState().hideMascot();
+      }
+    }
+  }, [isAuthCallback, session, isAdminRoute, onboardingLoading, showMascot]);
+
   // --- Auth bootstrap ---
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -644,6 +665,9 @@ export default function App() {
       if (event === "SIGNED_IN" && window.location.pathname === "/auth/callback") {
         console.log("OAuth callback completed, redirecting to home");
         window.history.replaceState({}, "", "/");
+      }
+      if (event === "SIGNED_IN" && s?.user) {
+        showMascot("login");
       }
     });
 
@@ -811,6 +835,7 @@ export default function App() {
   const { resetAll: resetTradeStore } = useTradeStore();
 
   const signOut = async () => {
+    showMascot("logout");
     await supabase.auth.signOut();
     // Zustandの取引関連状態を一括リセット
     resetTradeStore();
@@ -1039,6 +1064,7 @@ export default function App() {
 
     if (error) return setStatus(`保存失敗: ${error.message}`);
     setStatus("✅ 見送りとして記録しました。");
+    showMascot("sessionEnd");
 
     // XP更新
     void (async () => {
@@ -1448,6 +1474,7 @@ export default function App() {
     setCurrentLogId(newLog.id);
     setPending(newLog);
     setStatus("✅ 記録しました。取引後のチェックを入れてください。");
+    showMascot("tradeSaved");
 
     // XP更新
     void (async () => {
@@ -1498,6 +1525,7 @@ export default function App() {
     }
 
     setStatus("✅ 事後チェックを記録しました（感想は不要。事実だけ積み上がりました）。");
+    showMascot("sessionEnd");
     resetPost();
     setPending(null);
     setActiveLog(null);
@@ -1548,7 +1576,7 @@ export default function App() {
           <div className="blob blob-2" />
         </div>
         <div className="text-center glass-panel p-8 rounded-3xl relative z-10">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <MascotOverlay />
           <p className="text-zinc-600 font-medium">認証中...</p>
         </div>
       </div>
@@ -1639,7 +1667,10 @@ export default function App() {
         onBack={() => {
           navigate("/");
         }}
-        onLectureComplete={(res: unknown) => applyXpResult(res as XpResult | null)}
+        onLectureComplete={(res: unknown) => {
+          applyXpResult(res as XpResult | null);
+          showMascot("lessonComplete");
+        }}
       />
     );
   }
@@ -2401,7 +2432,7 @@ export default function App() {
   if (session && !isAdminRoute && onboardingLoading) {
     return (
       <div className="min-h-dvh flex flex-col items-center justify-center gap-3 bg-zinc-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+        <MascotOverlay />
         <p className="text-zinc-600 font-medium">読み込み中...</p>
       </div>
     );
@@ -2459,6 +2490,7 @@ export default function App() {
         minHeight: "100dvh",
       }}
     >
+      <MascotOverlay />
       {showOnboarding && session && !isAdminRoute && (
         <OnboardingTour
           session={session}
@@ -2753,7 +2785,10 @@ export default function App() {
           <LectureNotesPage
             session={session}
             onBack={() => navigate("/")}
-            onLectureComplete={(res: unknown) => applyXpResult(res as XpResult | null)}
+            onLectureComplete={(res: unknown) => {
+              applyXpResult(res as XpResult | null);
+              showMascot("lessonComplete");
+            }}
           />
         </div>
       )}

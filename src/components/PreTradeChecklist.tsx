@@ -2,6 +2,8 @@ import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import { haptics } from "../lib/haptics";
 import type { GateState } from "../store/tradeStore";
+import { useEffect } from "react";
+import { useMascotStore } from "../store/mascotStore";
 
 interface PreTradeChecklistProps {
     items: {
@@ -54,6 +56,28 @@ function ChecklistItem({
 }
 
 export function PreTradeChecklist({ items, onToggle }: PreTradeChecklistProps) {
+    const showMascot = useMascotStore(state => state.showMascot);
+
+    const allChecked = items.length > 0 && items.every(item => item.checked);
+
+    useEffect(() => {
+        if (items.length === 0) return;
+        if (allChecked) {
+            showMascot('gateAllClear');
+        } else {
+            showMascot('gateNG');
+        }
+    }, [allChecked, items.length, showMascot]);
+
+    useEffect(() => {
+        return () => {
+            const currentEvent = useMascotStore.getState().currentEvent;
+            if (currentEvent === 'gateNG' || currentEvent === 'gateAllClear') {
+                useMascotStore.getState().hideMascot();
+            }
+        };
+    }, []);
+
     return (
         <div className="space-y-3">
             <h4 className="text-sm font-bold text-zinc-800 m-0 border-b border-zinc-50 pb-2">
