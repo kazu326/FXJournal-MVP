@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { Flame } from "lucide-react";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import confetti from "canvas-confetti";
-import { haptics } from "../lib/haptics";
 
 interface StreakHeaderProps {
   streakDays: number;
@@ -13,9 +11,6 @@ interface StreakHeaderProps {
   nextLevelXP: number;
 }
 
-// 頂点上向きの六角形パス
-const HEXAGON_PATH = "M50 4 L90 27 L90 73 L50 96 L10 73 L10 27 Z";
-
 export function StreakHeader({
   streakDays = 5,
   level = 3,
@@ -23,9 +18,20 @@ export function StreakHeader({
   nextLevelXP = 100,
 }: StreakHeaderProps) {
   const isLevelUp = nextLevelXP > 0 && currentXP >= nextLevelXP;
-  // xpPercent は 0〜100 の範囲
-  const displayXP = Math.min(currentXP, nextLevelXP || 1);
-  const xpPercent = nextLevelXP > 0 ? (displayXP / nextLevelXP) * 100 : 0;
+
+  // --- レベルからバッジ画像を決定するロジック ---
+  const getBadgeImage = (lv: number) => {
+    if (lv < 5) return "/badges/bronze-simple.png";
+    if (lv < 10) return "/badges/silver-simple.png";
+    if (lv < 15) return "/badges/gold-simple.png";
+    if (lv < 20) return "/badges/bronze-laurel.png";
+    if (lv < 25) return "/badges/silver-laurel.png";
+    if (lv < 30) return "/badges/gold-laurel.png";
+    return "/badges/legend.png";
+  };
+
+  const badgeSrc = getBadgeImage(level);
+  const xpPercent = Math.min((currentXP / Math.max(nextLevelXP, 1)) * 100, 100);
 
   // カウントアップアニメーション用のMotionValue
   const countValue = useMotionValue(0);
@@ -76,75 +82,103 @@ export function StreakHeader({
   }, [isLevelUp]);
 
   return (
-    <div className="flex items-center justify-between gap-4">
-      {/* Left: Streak with orange gradient icon */}
-      <div className="flex items-center gap-3">
-        <div className="flex items-center justify-center size-12 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 shadow-lg shadow-orange-500/25">
-          <Flame className="size-6 text-white" />
-        </div>
-        <div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-3xl font-bold leading-none text-slate-700">{streakDays}</span>
-            <span className="text-sm text-slate-500">日連続</span>
-          </div>
-        </div>
-      </div>
+    <div
+      className="relative w-full mx-auto rounded-[15px] sm:rounded-[20px] shadow-sm mt-6 overflow-hidden shrink-0 aspect-[600/270]"
+      style={{
+        backgroundImage: 'url(/background-image.png)',
+        backgroundSize: '100% 100%',
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'center',
+      }}
+    >
+      {/* ---------- コンテンツコンテナ ---------- */}
+      {/* 
+        背景画像(600x270 aspect ratio ~2.22)に対して、パーセンテージや絶対ピクセルで各要素を配置する
+        親要素のminHeight: 175px (または高さをアスペクト比で固定) に応じて調整
+      */}
+      <div className="absolute inset-0 w-full h-full">
 
-      {/* Right: XP / Lv with Hexagon Progress */}
-      <div className="flex-1 min-w-0 flex items-center justify-end gap-5">
-        {/* XP Text */}
-        <div className="flex flex-col items-end mt-1">
-          <div className="flex items-baseline gap-1.5 text-slate-700 font-bold tabular-nums">
-            <motion.span className="text-3xl leading-none tracking-tight">{roundedXP}</motion.span>
-            <span className="text-slate-400 text-sm font-semibold uppercase tracking-wider">XP</span>
-          </div>
+        {/* ---------- Left: Streak Text ---------- */}
+        <div
+          className="absolute flex items-center justify-center gap-[2px]"
+          // 日数テキスト（"X 日連続"）
+          style={{
+            left: '4.5%', top: '65.6%',
+            width: '24%', height: '14%'
+          }}
+        >
+          <span className="text-[20px] sm:text-[28px] font-black text-slate-800 leading-none">{streakDays}</span>
+          <span className="text-[12px] sm:text-[14px] font-bold text-slate-500 leading-none tracking-tighter">日連続</span>
         </div>
 
-        {/* Hexagon Indicator */}
-        <div className="relative size-[80px] shrink-0 flex items-center justify-center flex-col">
-          <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full overflow-visible">
-            {/* Background Hexagon */}
-            <path
-              d={HEXAGON_PATH}
-              fill="rgba(241, 245, 249, 0.5)"
-              stroke="currentColor"
-              strokeWidth="12"
-              className="text-slate-200"
-              strokeLinejoin="round"
-            />
-            {/* Foreground Animated Hexagon */}
-            <motion.path
-              d={HEXAGON_PATH}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="12"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className={
-                isLevelUp
-                  ? "text-yellow-400 drop-shadow-[0_0_12px_rgba(250,204,21,0.9)]"
-                  : "text-blue-500 drop-shadow-[0_0_10px_rgba(59,130,246,0.8)]"
-              }
-              initial={{ pathLength: 0 }}
-              animate={{ pathLength: xpPercent / 100 }}
-              transition={{ type: "spring", stiffness: 60, damping: 12, delay: 0.2 }}
-              onAnimationComplete={() => {
-                if (isLevelUp) {
-                  haptics.success();
-                } else if (xpPercent > 0) {
-                  haptics.light();
-                }
+        {/* ---------- Center: Badge Image ---------- */}
+        <div
+          className="absolute flex items-center justify-center pointer-events-none"
+          // 中央バッジ（ガイドの赤枠位置・盾アイコンの中心）
+          style={{ left: '49%', top: '34%', transform: 'translate(-50%, -50%)', width: '32%', height: '70%' }}
+        >
+          <img
+            src={badgeSrc}
+            alt={`Lv${level} Badge`}
+            className="w-full h-full object-contain drop-shadow-xl z-20"
+          />
+        </div>
+
+        {/* ---------- Right: Lv, XP, Progress Bar ---------- */}
+        {/* レベルテキスト (金文字) */}
+        <div
+          className="absolute flex items-center justify-center"
+          // Lv.テキスト赤枠
+          style={{
+            left: '68.0%', top: '30.0%',
+            width: '26%', height: '26%'
+          }}
+        >
+          <span
+            className="text-[44px] sm:text-[64px] font-black leading-none bg-clip-text text-transparent bg-gradient-to-b from-[#fcd34d] via-[#fbbf24] to-[#b45309]"
+            style={{
+              filter: "drop-shadow(0px 2px 4px rgba(0,0,0,0.4))",
+              letterSpacing: "-0.02em"
+            }}
+          >
+            Lv.{level}
+          </span>
+        </div>
+
+        {/* XPテキスト (肉球アイコンは背景にあるため数字とXPのみ) */}
+        <div
+          className="absolute flex items-center justify-center gap-[4px]"
+          // XPテキスト（"25/100 XP"）
+          style={{
+            left: '46.7%', top: '65.6%',
+            width: '32%', height: '12%'
+          }}
+        >
+          <motion.span className="text-[14px] sm:text-[18px] font-black text-white tracking-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]">{roundedXP}</motion.span>
+          <span className="text-[12px] sm:text-[14px] font-bold text-white/90 drop-shadow-sm">/{nextLevelXP}</span>
+          <span className="text-[10px] sm:text-[12px] font-black text-white drop-shadow-sm ml-1">XP</span>
+        </div>
+
+        {/* プログレスバー */}
+        <div
+          className="absolute"
+          // XPバー（背景 + 進捗）の起点と全体の幅
+          style={{ left: '39.2%', top: '78.5%', width: '55%' }}
+        >
+          {/* 約1.8倍に太く (h-[8px] -> 14px, sm:h-[12px] -> 22px) */}
+          <div className="w-full h-[14px] sm:h-[22px] rounded-full bg-[#829bf9]/60 overflow-hidden shadow-inner flex justify-start pl-[2px] pr-[2px] items-center">
+            <motion.div
+              className="h-[10px] sm:h-[16px] rounded-full bg-gradient-to-r from-[#fb923c] to-[#fcd34d]"
+              initial={{ width: 0 }}
+              animate={{ width: `${xpPercent}%` }}
+              transition={{ type: "spring", stiffness: 60, damping: 15 }}
+              style={{
+                boxShadow: "0 1px 3px rgba(0,0,0,0.2)"
               }}
             />
-          </svg>
-
-          <div className="relative z-10 flex flex-col items-center justify-center mt-[-2px]">
-            <span className="text-[11px] font-bold text-slate-400 leading-none mb-[2px]">Lv.</span>
-            <span className={`text-3xl font-black leading-none ${isLevelUp ? 'text-yellow-600 drop-shadow-sm' : 'text-slate-700'}`}>
-              {level}
-            </span>
           </div>
         </div>
+
       </div>
     </div>
   );

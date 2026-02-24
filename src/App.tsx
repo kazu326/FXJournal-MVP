@@ -2676,16 +2676,14 @@ export default function App() {
         <section>
           <main className="min-h-dvh px-4 py-6">
             <div className="space-y-6 text-left">
-              <header>
+              <header className="mb-6">
                 <p className="text-sm text-slate-500 mb-4">トレード記録 & 振り返り</p>
-                <UiCard className="w-full rounded-2xl glass-panel backdrop-blur-xl p-5">
-                  <StreakHeader
-                    streakDays={loginStreak}
-                    level={level}
-                    currentXP={currentXp % 100}
-                    nextLevelXP={100}
-                  />
-                </UiCard>
+                <StreakHeader
+                  streakDays={loginStreak}
+                  level={level}
+                  currentXP={currentXp % 100}
+                  nextLevelXP={100}
+                />
               </header>
 
               {isTestMode && (

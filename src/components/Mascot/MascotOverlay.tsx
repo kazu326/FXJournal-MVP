@@ -52,7 +52,7 @@ const MascotOverlay: React.FC = () => {
                     initial: { opacity: 0, y: 100, x: 0 },
                     animate: { opacity: 1, y: 0, x: 0, type: 'spring', bounce: 0.5 },
                     exit: { opacity: 0, y: 50 },
-                    className: 'fixed bottom-8 right-8 w-40 h-40 z-50 pointer-events-none',
+                    className: 'fixed bottom-24 right-8 w-40 h-40 z-50 pointer-events-none',
                 };
             case 'gateNG':
                 // 右下に小さく常駐（要望によりサイズアップして位置を少し上に。揺れを削除。）
@@ -68,7 +68,7 @@ const MascotOverlay: React.FC = () => {
                     initial: { opacity: 0, y: 150 },
                     animate: { opacity: 1, y: 0, type: 'spring', stiffness: 100 },
                     exit: { opacity: 0, y: 150 },
-                    className: 'fixed bottom-8 right-8 w-40 h-40 z-50 pointer-events-none',
+                    className: 'fixed bottom-24 right-8 w-40 h-40 z-50 pointer-events-none',
                 };
             case 'lessonComplete':
                 // 講義完了
@@ -76,7 +76,7 @@ const MascotOverlay: React.FC = () => {
                     initial: { opacity: 0, scale: 0.5 },
                     animate: { opacity: 1, scale: 1, type: 'spring' },
                     exit: { opacity: 0, scale: 0.5 },
-                    className: 'fixed bottom-8 right-8 w-40 h-40 z-50 pointer-events-none',
+                    className: 'fixed bottom-24 right-8 w-40 h-40 z-50 pointer-events-none',
                 };
             case 'streakUpdated':
                 // バナー横（今回は上部中央寄りに配置）
@@ -108,14 +108,14 @@ const MascotOverlay: React.FC = () => {
                     initial: { opacity: 0, x: 100, y: 100 },
                     animate: { opacity: 1, x: 0, y: 0, rotate: [-10, 10, -10, 0], transition: { duration: 1.5 } },
                     exit: { opacity: 0, x: 100, y: 100 },
-                    className: 'fixed bottom-8 right-8 w-40 h-40 z-50 pointer-events-none',
+                    className: 'fixed bottom-24 right-8 w-40 h-40 z-50 pointer-events-none',
                 };
             default:
                 return {
                     initial: { opacity: 0 },
                     animate: { opacity: 1 },
                     exit: { opacity: 0 },
-                    className: 'fixed bottom-8 right-8 w-40 h-40 z-50 pointer-events-none',
+                    className: 'fixed bottom-24 right-8 w-40 h-40 z-50 pointer-events-none',
                 };
         }
     };
