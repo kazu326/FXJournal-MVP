@@ -33,6 +33,7 @@ import { getPipValue } from "./utils/marketData";
 import { PreTradeChecklist } from "./components/PreTradeChecklist";
 import MascotOverlay from "./components/Mascot/MascotOverlay";
 import { useMascotStore } from "./store/mascotStore";
+import MyPage from "./pages/MyPage";
 
 // Mode型はtradeStoreで管理（ここでの宣言は不要）
 
@@ -2683,6 +2684,7 @@ export default function App() {
                   level={level}
                   currentXP={currentXp % 100}
                   nextLevelXP={100}
+                  onClick={() => navigate("/mypage")}
                 />
               </header>
 
@@ -3352,6 +3354,12 @@ export default function App() {
               </>
             )}
           </section>
+        )
+      }
+
+      {
+        location.pathname === "/mypage" && (
+          <MyPage level={level} />
         )
       }
 

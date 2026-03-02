@@ -9,6 +9,7 @@ interface StreakHeaderProps {
   level: number;
   currentXP: number;
   nextLevelXP: number;
+  onClick?: () => void;
 }
 
 export function StreakHeader({
@@ -16,6 +17,7 @@ export function StreakHeader({
   level = 3,
   currentXP = 75,
   nextLevelXP = 100,
+  onClick,
 }: StreakHeaderProps) {
   const isLevelUp = nextLevelXP > 0 && currentXP >= nextLevelXP;
 
@@ -83,7 +85,8 @@ export function StreakHeader({
 
   return (
     <div
-      className="relative w-full mx-auto rounded-[15px] sm:rounded-[20px] shadow-sm mt-6 overflow-hidden shrink-0 aspect-[600/270]"
+      onClick={onClick}
+      className={`relative w-full mx-auto rounded-[15px] sm:rounded-[20px] shadow-sm mt-6 overflow-hidden shrink-0 aspect-[600/270] ${onClick ? 'cursor-pointer hover:opacity-95 transition-opacity' : ''}`}
       style={{
         backgroundImage: 'url(/background-image.png)',
         backgroundSize: '100% 100%',
