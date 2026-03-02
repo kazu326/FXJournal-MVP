@@ -12,6 +12,17 @@ export default function MyPage({ level }: MyPageProps) {
 
 
             <main className="px-3 pt-6 pb-6 space-y-6 max-w-md mx-auto">
+                {/* Header with Back button */}
+                <div className="flex items-center justify-between mb-4 px-1">
+                    <button
+                        onClick={() => navigate("/")}
+                        className="text-sm font-semibold text-zinc-600 flex items-center gap-1 hover:text-zinc-800 transition-colors"
+                    >
+                        ← 戻る
+                    </button>
+                    <div className="w-10"></div> {/* Spacer to keep flex balance if title was needed */}
+                </div>
+
                 {/* Top rectangular card (Image-based Level Card) */}
                 <div className="relative w-full rounded-[40px] overflow-hidden shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)]">
                     <img src="/mypage/mypage.png" alt="マイページ" className="w-full h-auto object-cover" />
@@ -43,7 +54,10 @@ export default function MyPage({ level }: MyPageProps) {
                 {/* 4 Cards Grid - Images render as cards */}
                 <div className="grid grid-cols-2 gap-4 mb-8">
                     {/* 学習コンテンツ */}
-                    <div className="relative shadow-[0_8px_24px_rgba(0,0,0,0.06)] rounded-3xl overflow-hidden cursor-pointer hover:shadow-[0_12px_28px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-all">
+                    <div
+                        className="relative shadow-[0_8px_24px_rgba(0,0,0,0.06)] rounded-3xl overflow-hidden cursor-pointer hover:shadow-[0_12px_28px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-all"
+                        onClick={() => navigate("/learning-contents")}
+                    >
                         <img src="/mypage/learning.png" alt="学習コンテンツ" className="w-full h-auto object-cover" />
                     </div>
 

@@ -34,6 +34,7 @@ import { PreTradeChecklist } from "./components/PreTradeChecklist";
 import MascotOverlay from "./components/Mascot/MascotOverlay";
 import { useMascotStore } from "./store/mascotStore";
 import MyPage from "./pages/MyPage";
+import LearningContentsPage from "./pages/LearningContentsPage";
 
 // Mode型はtradeStoreで管理（ここでの宣言は不要）
 
@@ -3360,6 +3361,12 @@ export default function App() {
       {
         location.pathname === "/mypage" && (
           <MyPage level={level} />
+        )
+      }
+
+      {
+        location.pathname === "/learning-contents" && (
+          <LearningContentsPage />
         )
       }
 
