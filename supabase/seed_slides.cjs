@@ -13,7 +13,16 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function seedSlides() {
     const bucketName = 'learning-contents';
-    const prefix = '';
+    const prefix = 'slides/';
+
+    console.log("--- Checking root of learning-contents bucket ---");
+    const { data: rootFiles, error: rootError } = await supabase.storage.from(bucketName).list();
+    if (rootError) {
+        console.error("Error listing root:", rootError);
+    } else {
+        console.log("Root contents:", rootFiles?.map(f => f.name));
+    }
+    console.log("-------------------------------------------------");
 
     // モジュール1〜8を処理
     for (let i = 1; i <= 8; i++) {

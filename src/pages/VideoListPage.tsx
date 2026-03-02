@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { updateXpAndStreak } from "../lib/xp";
-import { useTradeStore } from "../store/tradeStore";
 import { useMascotStore } from "../store/mascotStore";
 import toast from "react-hot-toast";
 
@@ -158,8 +157,8 @@ export default function VideoListPage() {
                                             onClick={() => handleComplete(video)}
                                             disabled={isCompleted}
                                             className={`w-full font-bold py-3 rounded-xl transition-colors ${isCompleted
-                                                    ? 'bg-emerald-50 text-emerald-600 cursor-default'
-                                                    : 'bg-zinc-100 hover:bg-blue-50 text-zinc-600 hover:text-blue-700'
+                                                ? 'bg-emerald-50 text-emerald-600 cursor-default'
+                                                : 'bg-zinc-100 hover:bg-blue-50 text-zinc-600 hover:text-blue-700'
                                                 }`}
                                         >
                                             {isCompleted ? '視聴済み' : `視聴済みにする (+${video.reward_xp} XP)`}
