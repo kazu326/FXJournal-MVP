@@ -35,6 +35,8 @@ import MascotOverlay from "./components/Mascot/MascotOverlay";
 import { useMascotStore } from "./store/mascotStore";
 import MyPage from "./pages/MyPage";
 import LearningContentsPage from "./pages/LearningContentsPage";
+import SlideViewerPage from "./pages/SlideViewerPage";
+import VideoListPage from "./pages/VideoListPage";
 
 // Mode型はtradeStoreで管理（ここでの宣言は不要）
 
@@ -3367,6 +3369,18 @@ export default function App() {
       {
         location.pathname === "/learning-contents" && (
           <LearningContentsPage />
+        )
+      }
+
+      {
+        location.pathname === "/learning/slides" && (
+          <SlideViewerPage />
+        )
+      }
+
+      {
+        location.pathname === "/learning/videos" && (
+          <VideoListPage />
         )
       }
 

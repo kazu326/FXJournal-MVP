@@ -23,7 +23,10 @@ export default function LearningContentsPage() {
                 {/* Content Images */}
                 <div className="space-y-6">
                     {/* 初心者ガイド */}
-                    <div className="relative shadow-[0_8px_24px_rgba(0,0,0,0.06)] rounded-[32px] overflow-hidden cursor-pointer hover:shadow-[0_12px_28px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-all group">
+                    <div
+                        className="relative shadow-[0_8px_24px_rgba(0,0,0,0.06)] rounded-[32px] overflow-hidden cursor-pointer hover:shadow-[0_12px_28px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-all group"
+                        onClick={() => navigate("/learning/slides")}
+                    >
                         <img
                             src="/mypage/beginnerlearning.png"
                             alt="FX初心者学習ガイド"
@@ -33,7 +36,10 @@ export default function LearningContentsPage() {
                     </div>
 
                     {/* 基礎知識解説動画 */}
-                    <div className="relative shadow-[0_8px_24px_rgba(0,0,0,0.06)] rounded-[32px] overflow-hidden cursor-pointer hover:shadow-[0_12px_28px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-all group">
+                    <div
+                        className="relative shadow-[0_8px_24px_rgba(0,0,0,0.06)] rounded-[32px] overflow-hidden cursor-pointer hover:shadow-[0_12px_28px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-all group"
+                        onClick={() => navigate("/learning/videos")}
+                    >
                         <img
                             src="/mypage/basicknowledge.png"
                             alt="FX基礎知識解説動画"
@@ -43,7 +49,10 @@ export default function LearningContentsPage() {
                     </div>
 
                     {/* 講義動画 */}
-                    <div className="relative shadow-[0_8px_24px_rgba(0,0,0,0.06)] rounded-[32px] overflow-hidden cursor-pointer hover:shadow-[0_12px_28px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-all group">
+                    <div
+                        className="relative shadow-[0_8px_24px_rgba(0,0,0,0.06)] rounded-[32px] overflow-hidden cursor-pointer hover:shadow-[0_12px_28px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-all group"
+                        onClick={() => navigate("/lecture")}
+                    >
                         <img
                             src="/mypage/lecturevideo.png"
                             alt="講義動画 E-effort"
