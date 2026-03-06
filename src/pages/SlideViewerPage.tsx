@@ -5,11 +5,34 @@ import { updateXpAndStreak } from "../lib/xp";
 import { useMascotStore } from "../store/mascotStore";
 import toast from "react-hot-toast";
 
+const STAGE_BACKGROUNDS = [
+    '/images/stages/stage1.png',
+    '/images/stages/stage2.png',
+    '/images/stages/stage3.png',
+    '/images/stages/stage4.png',
+    '/images/stages/stage5.png',
+    '/images/stages/stage6.png',
+    '/images/stages/stage7.png',
+    '/images/stages/stage8.png',
+];
+
+const STAGE_LABELS = [
+    '基礎① 1〜3章',
+    '基礎② 4〜6章',
+    '基礎③ 7〜9章',
+    '基礎④ 10〜12章',
+    'LV① 1〜3章',
+    'LV② 4〜6章',
+    'LV③ 7〜9章',
+    'LV④ 10〜12章',
+];
+
 type SlideModule = {
     id: string;
     title: string;
     image_urls: string[];
     reward_xp: number;
+    order_index: number;
 };
 
 export default function SlideViewerPage() {
@@ -21,6 +44,8 @@ export default function SlideViewerPage() {
     const [isLoading, setIsLoading] = useState(true);
 
     const slideContainerRef = useRef<HTMLDivElement>(null);
+
+    const currentStage = module?.order_index ?? 1;
 
     useEffect(() => {
         loadData();
@@ -34,7 +59,7 @@ export default function SlideViewerPage() {
             // スライドモジュールを取得（一番ORDERの小さいものをとりあえず取得）
             const { data: slidesData, error: slidesError } = await supabase
                 .from("learning_slides_modules")
-                .select("id, title, image_urls, reward_xp")
+                .select("id, title, image_urls, reward_xp, order_index")
                 .eq("is_published", true)
                 .order("order_index", { ascending: true })
                 .limit(1)
@@ -253,6 +278,119 @@ export default function SlideViewerPage() {
                     </button>
                 )}
             </div>
+
+            {/* Learning Map Component */}
+            <section className="w-full mt-2 px-4 pb-6">
+                <h3 className="text-sm font-bold text-gray-500 mb-3">学習マップ</h3>
+                <style>
+                    {`
+                    @keyframes gentle-bounce {
+                        0%, 100% {
+                            transform: translateY(-8%);
+                            animation-timing-function: cubic-bezier(0.8,0,1,1);
+                        }
+                        50% {
+                            transform: translateY(0);
+                            animation-timing-function: cubic-bezier(0,0,0.2,1);
+                        }
+                    }
+                    .animate-gentle-bounce {
+                        animation: gentle-bounce 4s infinite;
+                    }
+                    `}
+                </style>
+
+                {/* 背景画像コンテナ（相対配置の基準） */}
+                <div
+                    className="relative w-full rounded-2xl overflow-hidden"
+                    style={{
+                        backgroundImage: `url(${STAGE_BACKGROUNDS[currentStage - 1]})`,
+                        backgroundSize: 'cover',
+                        backgroundRepeat: 'no-repeat',
+                        backgroundPosition: 'center center',
+                        aspectRatio: '1360 / 1100',
+                    }}
+                >
+                    {/* ジグザグすごろくレイアウト
+                        上段（左→右）：ステージ1〜4
+                        下段（右→左）：ステージ5〜8
+                        各マスは表示サイズ 60×60px（120pxの2倍解像度のため50%表示） */}
+
+                    {/* 上段：1→2→3→4 （左から右へ） */}
+                    {[1, 2, 3, 4].map((stageNum, i) => {
+                        const isCompleted = stageNum < currentStage
+                        const isCurrent = stageNum === currentStage
+                        const src = isCompleted
+                            ? '/images/stages/mas/mas_done.png'
+                            : isCurrent
+                                ? '/images/stages/mas/mas_current.png'
+                                : '/images/stages/mas/mas_locked.png'
+
+                        return (
+                            <div
+                                key={stageNum}
+                                className="absolute flex flex-col items-center"
+                                style={{
+                                    width: '60px',
+                                    top: '8%',
+                                    left: `${8 + i * 23}%`,
+                                }}
+                            >
+                                <img
+                                    src={src}
+                                    alt={`ステージ${stageNum}`}
+                                    className={`w-[60px] h-[60px] ${isCurrent ? 'animate-gentle-bounce' : ''}`}
+                                />
+                                <span className="text-white text-[10px] font-bold mt-1 drop-shadow">
+                                    {stageNum}
+                                </span>
+                            </div>
+                        )
+                    })}
+
+                    {/* 下段：5→6→7→8 （右から左へ・すごろくのジグザグ） */}
+                    {[5, 6, 7, 8].map((stageNum, i) => {
+                        const isCompleted = stageNum < currentStage
+                        const isCurrent = stageNum === currentStage
+                        const src = isCompleted
+                            ? '/images/stages/mas/mas_done.png'
+                            : isCurrent
+                                ? '/images/stages/mas/mas_current.png'
+                                : '/images/stages/mas/mas_locked.png'
+
+                        return (
+                            <div
+                                key={stageNum}
+                                className="absolute flex flex-col items-center"
+                                style={{
+                                    width: '60px',
+                                    top: '55%',
+                                    // 右から左へ並べる（8→7→6→5の順で右から）
+                                    left: `${8 + (3 - i) * 23}%`,
+                                }}
+                            >
+                                <img
+                                    src={src}
+                                    alt={`ステージ${stageNum}`}
+                                    className={`w-[60px] h-[60px] ${isCurrent ? 'animate-gentle-bounce' : ''}`}
+                                />
+                                <span className="text-white text-[10px] font-bold mt-1 drop-shadow">
+                                    {stageNum}
+                                </span>
+                            </div>
+                        )
+                    })}
+
+                    {/* 現在地のラベル表示 */}
+                    {currentStage && (
+                        <div
+                            className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-blue-500/90 text-white text-xs font-bold px-4 py-1 rounded-full shadow whitespace-nowrap"
+                        >
+                            現在：{STAGE_LABELS[currentStage - 1]}
+                        </div>
+                    )}
+                </div>
+            </section>
         </div>
     );
 }
