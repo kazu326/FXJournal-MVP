@@ -216,7 +216,7 @@ export default function SlideViewerPage() {
             </header>
 
             {/* Progress Bar */}
-            <div className="w-full h-1 bg-gray-200 shrink-0">
+            <div className="w-full h-3 bg-gray-200 shrink-0">
                 <div
                     className="h-full bg-blue-500 transition-all duration-300"
                     style={{ width: `${((currentSlideIndex + 1) / slides.length) * 100}%` }}
@@ -246,11 +246,11 @@ export default function SlideViewerPage() {
             </main>
 
             {/* Navigation Controls */}
-            <div className="flex justify-between items-center px-4 py-3 bg-white border-t border-gray-100 gap-4 shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+            <div className="flex justify-between items-center px-4 py-2 bg-white border-t border-gray-100 gap-4 shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
                 <button
                     onClick={handlePrev}
                     disabled={currentSlideIndex === 0}
-                    className={`flex-1 py-3 px-6 rounded-xl font-bold border-2 transition-colors ${currentSlideIndex === 0
+                    className={`flex-1 py-1.5 px-6 rounded-xl font-bold border-2 transition-colors ${currentSlideIndex === 0
                         ? 'border-gray-200 text-gray-300 cursor-not-allowed bg-gray-50'
                         : 'border-blue-100 text-blue-600 hover:bg-blue-50 bg-white'
                         }`}
@@ -262,7 +262,7 @@ export default function SlideViewerPage() {
                     <button
                         onClick={handleComplete}
                         disabled={isCompleted}
-                        className={`flex-1 py-3 px-6 rounded-xl font-bold border-2 transition-colors ${isCompleted
+                        className={`flex-1 py-1.5 px-6 rounded-xl font-bold border-2 transition-colors ${isCompleted
                             ? 'border-transparent bg-emerald-600 text-white cursor-default'
                             : 'border-transparent bg-blue-600 hover:bg-blue-500 text-white shadow-sm'
                             }`}
@@ -272,7 +272,7 @@ export default function SlideViewerPage() {
                 ) : (
                     <button
                         onClick={handleNext}
-                        className="flex-1 py-3 px-6 rounded-xl font-bold border-2 border-transparent bg-blue-600 hover:bg-blue-500 text-white shadow-sm transition-colors"
+                        className="flex-1 py-1.5 px-6 rounded-xl font-bold border-2 border-transparent bg-blue-600 hover:bg-blue-500 text-white shadow-sm transition-colors"
                     >
                         次へ →
                     </button>
@@ -281,7 +281,6 @@ export default function SlideViewerPage() {
 
             {/* Learning Map Component */}
             <section className="w-full mt-2 px-4 pb-6">
-                <h3 className="text-sm font-bold text-gray-500 mb-3">学習マップ</h3>
                 <style>
                     {`
                     @keyframes gentle-bounce {
