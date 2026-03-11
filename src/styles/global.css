@@ -102,147 +102,152 @@ body {
   }
 }
 
-.glass-header {
-  background: rgba(255, 255, 255, 0.85) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-  isolation: isolate;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.5) !important;
-}
+@layer components {
 
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  /* Discordログインボタン: グローバル button の白背景を上書き */
+  .btn-discord {
+    background-color: #5865F2 !important;
+    color: white !important;
+    border-color: #4752C4 !important;
+  }
+
+  .btn-discord:hover {
+    background-color: #4752C4 !important;
+  }
+
+  .btn-discord:active {
+    background-color: #3C45A5 !important;
+  }
+
   .glass-header {
-    background: rgba(255, 255, 255, 0.98) !important;
+    background: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    isolation: isolate;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.5) !important;
+  }
+
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass-header {
+      background: rgba(255, 255, 255, 0.98) !important;
+    }
+  }
+
+  .backdrop-blur-sm {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+
+  .backdrop-blur-lg {
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .hero-card {
+    background: linear-gradient(to bottom right, rgba(239, 246, 255, 0.8), rgba(255, 255, 255, 0.7), rgba(250, 245, 255, 0.6)) !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    box-shadow:
+      20px 20px 60px rgba(190, 190, 190, 0.35),
+      -20px -20px 60px rgba(255, 255, 255, 0.7),
+      0 25px 50px -12px rgba(30, 58, 138, 0.06),
+      0 20px 50px -12px rgba(59, 130, 246, 0.25),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
+  }
+
+  .btn-cta {
+    background: linear-gradient(to right, #2563eb, #3b82f6) !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3), 0 4px 6px -4px rgba(59, 130, 246, 0.3);
+    transition: filter 0.2s, transform 0.2s;
+  }
+
+  .btn-cta:hover:not(:disabled) {
+    filter: brightness(1.1);
+    transform: translateY(-2px);
+  }
+
+  .btn-cta:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  .shadow-blue-glow {
+    box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3), 0 4px 6px -4px rgba(59, 130, 246, 0.3);
   }
 }
 
-.backdrop-blur-sm {
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-}
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
 
-.backdrop-blur-lg {
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-}
+  h1,
+  h2,
+  h3,
+  h4 {
+    margin-top: 0;
+    line-height: 1.2;
+    font-weight: 700;
+  }
 
-.hero-card {
-  background: linear-gradient(to bottom right, rgba(239, 246, 255, 0.8), rgba(255, 255, 255, 0.7), rgba(250, 245, 255, 0.6)) !important;
-  border: 1px solid rgba(255, 255, 255, 0.5) !important;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-  box-shadow:
-    20px 20px 60px rgba(190, 190, 190, 0.35),
-    -20px -20px 60px rgba(255, 255, 255, 0.7),
-    0 25px 50px -12px rgba(30, 58, 138, 0.06),
-    0 20px 50px -12px rgba(59, 130, 246, 0.25),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
-}
+  button {
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    padding: 12px 20px;
+    min-height: 48px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+    background-color: #ffffff;
+    color: #1f2328;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
 
-.btn-cta {
-  background: linear-gradient(to right, #2563eb, #3b82f6) !important;
-  color: #fff !important;
-  border: none !important;
-  border-radius: 0.75rem;
-  box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3), 0 4px 6px -4px rgba(59, 130, 246, 0.3);
-  transition: filter 0.2s, transform 0.2s;
-}
+  button:active {
+    transform: scale(0.96);
+  }
 
-.btn-cta:hover:not(:disabled) {
-  filter: brightness(1.1);
-  transform: translateY(-2px);
-}
+  button:hover {
+    border-color: var(--color-accent);
+    background-color: #f0f4ff;
+  }
 
-.btn-cta:active:not(:disabled) {
-  transform: translateY(0);
-}
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
 
-.shadow-blue-glow {
-  box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3), 0 4px 6px -4px rgba(59, 130, 246, 0.3);
-}
+  input,
+  select,
+  textarea {
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    padding: 12px 16px;
+    min-height: 48px;
+    font-size: 15px;
+    background: #ffffff;
+    color: #1f2328;
+    outline: none;
+    transition: border-color 0.2s;
+  }
 
-* {
-  box-sizing: border-box;
-}
-
-h1,
-h2,
-h3,
-h4 {
-  margin-top: 0;
-  line-height: 1.2;
-  font-weight: 700;
-}
-
-button {
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  padding: 12px 20px;
-  min-height: 48px;
-  font-size: 15px;
-  font-weight: 600;
-  font-family: inherit;
-  background-color: #ffffff;
-  color: #1f2328;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-button:active {
-  transform: scale(0.96);
-}
-
-button:hover {
-  border-color: var(--color-accent);
-  background-color: #f0f4ff;
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* Discordログインボタン: グローバル button の白背景を上書き */
-button.btn-discord {
-  background-color: #5865F2 !important;
-  color: white !important;
-  border-color: #4752C4 !important;
-}
-
-button.btn-discord:hover {
-  background-color: #4752C4 !important;
-}
-
-button.btn-discord:active {
-  background-color: #3C45A5 !important;
-}
-
-input,
-select,
-textarea {
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-  padding: 12px 16px;
-  min-height: 48px;
-  font-size: 15px;
-  background: #ffffff;
-  color: #1f2328;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-input:focus,
-select:focus,
-textarea:focus {
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 2px rgba(43, 109, 224, 0.1);
+  input:focus,
+  select:focus,
+  textarea:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 2px rgba(43, 109, 224, 0.1);
+  }
 }
 
 .card {
