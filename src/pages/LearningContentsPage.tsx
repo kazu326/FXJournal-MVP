@@ -25,7 +25,7 @@ export default function LearningContentsPage() {
                     {/* 初心者ガイド */}
                     <div
                         className="relative shadow-[0_8px_24px_rgba(0,0,0,0.06)] rounded-[32px] overflow-hidden cursor-pointer hover:shadow-[0_12px_28px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-all group"
-                        onClick={() => navigate("/learning/slides")}
+                        onClick={() => navigate("/learning/slides/1")}
                     >
                         <img
                             src="/mypage/beginnerlearning.png"

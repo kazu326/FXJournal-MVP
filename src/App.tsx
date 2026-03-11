@@ -3373,7 +3373,7 @@ export default function App() {
       }
 
       {
-        location.pathname === "/learning/slides" && (
+        location.pathname.startsWith("/learning/slides") && (
           <SlideViewerPage />
         )
       }
