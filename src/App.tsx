@@ -2489,8 +2489,10 @@ export default function App() {
       style={{
         maxWidth: "100%",
         margin: "0",
-        padding: `0 16px ${session && !isAdminRoute ? "100px" : "var(--space-xl)"} 16px`,
         paddingTop: session && !isAdminRoute ? "72px" : "0",
+        paddingRight: location.pathname.startsWith("/learning/slides") ? "0" : "16px",
+        paddingBottom: session && !isAdminRoute ? "100px" : "var(--space-xl)",
+        paddingLeft: location.pathname.startsWith("/learning/slides") ? "0" : "16px",
         minHeight: "100dvh",
       }}
     >
