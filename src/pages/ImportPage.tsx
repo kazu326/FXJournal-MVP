@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import * as XLSX from 'xlsx';
-import Encoding from 'encoding-japanese';
 import { supabase } from '../lib/supabaseClient';
 
 
-const RULE_TAGS = ['トレンドフォロー', '逆張り', 'ブレイクアウト', 'レンジ'];
+
 
 function parseMT4Sheet(workbook: XLSX.WorkBook): any[] {
     const sheet = workbook.Sheets[workbook.SheetNames[0]];

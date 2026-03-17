@@ -7,7 +7,8 @@ export type XpActionType =
   | "TRADE_PRE"
   | "TRADE_POST"
   | "WEEKLY_LECTURE_NOTE"
-  | "SLIDE_COMPLETE";
+  | "SLIDE_COMPLETE"
+  | "LECTURE_COMPLETE";
 
 export interface XpUpdateResult {
   level: number;
