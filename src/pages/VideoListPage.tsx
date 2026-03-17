@@ -18,6 +18,7 @@ export default function VideoListPage() {
     const [videos, setVideos] = useState<VideoItem[]>([]);
     const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
     const [isLoading, setIsLoading] = useState(true);
+    const [playingIds, setPlayingIds] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         loadData();
@@ -142,14 +143,33 @@ export default function VideoListPage() {
                                     </div>
 
                                     <div className="relative w-full pt-[56.25%] bg-zinc-900">
-                                        <iframe
-                                            src={`https://www.youtube.com/embed/${video.youtube_url}`}
-                                            title={video.title}
-                                            className="absolute top-0 left-0 w-full h-full"
-                                            frameBorder="0"
-                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                            allowFullScreen
-                                        />
+                                        {playingIds.has(video.id) ? (
+                                            <iframe
+                                                src={`https://www.youtube.com/embed/${video.youtube_url}?autoplay=1&rel=0&modestbranding=1`}
+                                                title={video.title}
+                                                className="absolute top-0 left-0 w-full h-full"
+                                                frameBorder="0"
+                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                allowFullScreen
+                                            />
+                                        ) : (
+                                            <div
+                                                className="absolute top-0 left-0 w-full h-full"
+                                                style={{ cursor: 'pointer' }}
+                                                onClick={() => setPlayingIds(prev => new Set(prev).add(video.id))}
+                                            >
+                                                <img
+                                                    src={`https://img.youtube.com/vi/${video.youtube_url}/hqdefault.jpg`}
+                                                    alt={video.title}
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                                />
+                                                <div className="absolute inset-0 flex items-center justify-center">
+                                                    <div className="w-16 h-16 bg-black/60 rounded-full flex items-center justify-center">
+                                                        <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><polygon points="5,3 19,12 5,21" /></svg>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="p-4">

@@ -1,12 +1,13 @@
 import { supabase } from "./supabase";
 
+// DB の xp_action_type ENUM と一致させる
 export type XpActionType =
   | "LOGIN"
   | "DAILY_LESSON_SKIP"
   | "TRADE_PRE"
   | "TRADE_POST"
   | "WEEKLY_LECTURE_NOTE"
-  | "LECTURE_COMPLETE";
+  | "SLIDE_COMPLETE";
 
 export interface XpUpdateResult {
   level: number;
@@ -27,14 +28,14 @@ export async function updateXpAndStreak(
       return null;
     }
 
-    // The RPC returns a table/array of rows
+    // RPC は TABLE型（配列）を返す
     const result = data?.[0] || data;
     if (!result) return null;
 
     return {
-      level: result.new_level,
-      currentXp: result.new_current_xp,
-      loginStreak: result.new_login_streak,
+      level: result.level,
+      currentXp: result.current_xp,
+      loginStreak: result.login_streak,
     };
   } catch (err) {
     console.error("Unexpected error during XP update:", err);

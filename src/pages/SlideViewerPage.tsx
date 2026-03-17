@@ -133,7 +133,7 @@ export default function SlideViewerPage() {
                         throw progressError;
                     }
                 } else {
-                    const result = await updateXpAndStreak("LECTURE_COMPLETE");
+                    const result = await updateXpAndStreak("SLIDE_COMPLETE");
                     if (result) {
                         showMascot("levelUp");
                         toast.success(`学習完了！ +${module.reward_xp}XP`);

@@ -37,6 +37,7 @@ import MyPage from "./pages/MyPage";
 import LearningContentsPage from "./pages/LearningContentsPage";
 import SlideViewerPage from "./pages/SlideViewerPage";
 import VideoListPage from "./pages/VideoListPage";
+import ImportPage from "./pages/ImportPage";
 
 // Mode型はtradeStoreで管理（ここでの宣言は不要）
 
@@ -3383,6 +3384,12 @@ export default function App() {
       {
         location.pathname === "/learning/videos" && (
           <VideoListPage />
+        )
+      }
+
+      {
+        location.pathname === "/import" && (
+          <ImportPage />
         )
       }
 
