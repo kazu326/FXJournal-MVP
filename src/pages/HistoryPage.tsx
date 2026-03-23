@@ -10,7 +10,6 @@ import {
   Activity,
   HelpCircle,
   X,
-  FileText,
   ChevronRight,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
