@@ -5,6 +5,9 @@ import { persist } from 'zustand/middleware';
 export type TradeStatus = 'idle' | 'pre-entry' | 'active' | 'post-entry';
 export type SuccessProb = 'high' | 'mid' | 'low';
 export type ExpectedValue = 'plus' | 'minus' | 'unknown';
+export type TradeMode = 'live' | 'practice';
+export type PostResult = 'win' | 'loss' | 'be';
+export type PostSide = 'long' | 'short';
 
 export interface GateState {
     gate_trade_count_ok: boolean;
@@ -20,9 +23,18 @@ export interface TradeLogLite {
     gate_all_ok: boolean;
     success_prob: SuccessProb | null;
     expected_value: ExpectedValue | null;
-    post_gate_kept: boolean | null;
-    post_within_hypothesis: boolean | null;
-    unexpected_reason: string | null;
+
+    // 新仕様：取引後（post）
+    post_side?: PostSide | null;
+    post_result?: PostResult | null;
+    post_pl?: number | null;
+    post_rr_text?: string | null;
+    post_rule_respected?: boolean | null;
+    post_in_expected_range?: boolean | null;
+    post_good_participation?: boolean | null;
+    post_reference_point?: string | null;
+    post_note?: string | null;
+
     voided_at?: string | null;
     completed_at?: string | null;
 }
@@ -32,6 +44,7 @@ interface TradeState {
     // mode は URL パスで管理（ストアでは不要）
 
     // === Pre-Trade（取引前入力） ===
+    mode: TradeMode;
     gate: GateState;
     note: string;
     successProb: SuccessProb;
@@ -46,6 +59,18 @@ interface TradeState {
     riskPercent: string;          // リスク割合（%）デフォルト2%
     gateHelp: { rr: boolean; risk: boolean; rule: boolean };
 
+    // 環境認識タグ（10個）
+    preEnvSign: boolean;
+    preEnvTrend4hUp: boolean;
+    preEnvRange4h: boolean;
+    preEnvSupport15m: boolean;
+    preEnvLongWick15m: boolean;
+    preEnvFlag: boolean;
+    preEnvTriangle: boolean;
+    preEnvLondon: boolean;
+    preEnvNewyork: boolean;
+    preEnvAsPlanned: boolean;
+
     // === Trade-Active（進行中の取引） ===
     tradeStatus: TradeStatus;
     pending: TradeLogLite | null;
@@ -53,13 +78,20 @@ interface TradeState {
     currentLogId: string | null;
 
     // === Post-Trade（取引後振り返り） ===
-    postGateKept: boolean | null;
-    postWithinHypo: boolean | null;
-    unexpectedReason: string;
+    postSide: PostSide | null;
+    postResult: PostResult | null;
+    postPl: string; // 入力時は string で管理
+    postRrText: string;
+    postRuleRespected: boolean | null;
+    postInExpectedRange: boolean | null;
+    postGoodParticipation: boolean | null;
+    postReferencePoint: string;
+    postNote: string;
 
     // === アクション ===
 
     // Pre-Trade アクション
+    setMode: (v: TradeMode) => void;
     setGate: (value: Partial<GateState> | ((prev: GateState) => Partial<GateState>)) => void;
     // 仮説メモ更新
     setNote: (note: string) => void;
@@ -74,6 +106,21 @@ interface TradeState {
     setTakeProfitPips: (v: string) => void;
     setRiskPercent: (v: string) => void;
     setGateHelp: (updater: { rr: boolean; risk: boolean; rule: boolean } | ((prev: { rr: boolean; risk: boolean; rule: boolean }) => { rr: boolean; risk: boolean; rule: boolean })) => void;
+
+    // 環境認識タグ setter
+    setPreEnv: (update: Partial<{
+        preEnvSign: boolean;
+        preEnvTrend4hUp: boolean;
+        preEnvRange4h: boolean;
+        preEnvSupport15m: boolean;
+        preEnvLongWick15m: boolean;
+        preEnvFlag: boolean;
+        preEnvTriangle: boolean;
+        preEnvLondon: boolean;
+        preEnvNewyork: boolean;
+        preEnvAsPlanned: boolean;
+    }>) => void;
+
     resetPre: () => void;
 
     // Trade-Active アクション
@@ -83,9 +130,15 @@ interface TradeState {
     setCurrentLogId: (id: string | null) => void;
 
     // Post-Trade アクション
-    setPostGateKept: (v: boolean | null) => void;
-    setPostWithinHypo: (v: boolean | null) => void;
-    setUnexpectedReason: (v: string) => void;
+    setPostSide: (v: PostSide | null) => void;
+    setPostResult: (v: PostResult | null) => void;
+    setPostPl: (v: string) => void;
+    setPostRrText: (v: string) => void;
+    setPostRuleRespected: (v: boolean | null) => void;
+    setPostInExpectedRange: (v: boolean | null) => void;
+    setPostGoodParticipation: (v: boolean | null) => void;
+    setPostReferencePoint: (v: string) => void;
+    setPostNote: (v: string) => void;
     resetPost: () => void;
 
     // 全リセット
@@ -101,6 +154,7 @@ const initialGate: GateState = {
 };
 
 const initialPreTrade = {
+    mode: 'live' as TradeMode,
     gate: initialGate,
     note: "",
     successProb: 'mid' as SuccessProb,
@@ -114,12 +168,30 @@ const initialPreTrade = {
     takeProfitPips: '',
     riskPercent: '2',              // デフォルト2%
     gateHelp: { rr: false, risk: false, rule: false },
+
+    // 環境認識タグ初期値
+    preEnvSign: false,
+    preEnvTrend4hUp: false,
+    preEnvRange4h: false,
+    preEnvSupport15m: false,
+    preEnvLongWick15m: false,
+    preEnvFlag: false,
+    preEnvTriangle: false,
+    preEnvLondon: false,
+    preEnvNewyork: false,
+    preEnvAsPlanned: false,
 };
 
 const initialPostTrade = {
-    postGateKept: null as boolean | null,
-    postWithinHypo: null as boolean | null,
-    unexpectedReason: '',
+    postSide: null as PostSide | null,
+    postResult: null as PostResult | null,
+    postPl: '',
+    postRrText: '',
+    postRuleRespected: null as boolean | null,
+    postInExpectedRange: null as boolean | null,
+    postGoodParticipation: null as boolean | null,
+    postReferencePoint: '',
+    postNote: '',
 };
 
 const initialTradeActive = {
@@ -139,6 +211,7 @@ export const useTradeStore = create<TradeState>()(
             ...initialPostTrade,
 
             // === Pre-Trade アクション ===
+            setMode: (mode) => set({ mode }),
             setGate: (value) =>
                 set((state) => {
                     const newGate =
@@ -160,6 +233,7 @@ export const useTradeStore = create<TradeState>()(
                 set((state) => ({
                     gateHelp: typeof updater === 'function' ? updater(state.gateHelp) : updater,
                 })),
+            setPreEnv: (update) => set((state) => ({ ...state, ...update })),
             resetPre: () => set(initialPreTrade),
 
             // === Trade-Active アクション ===
@@ -169,9 +243,15 @@ export const useTradeStore = create<TradeState>()(
             setCurrentLogId: (currentLogId) => set({ currentLogId }),
 
             // === Post-Trade アクション ===
-            setPostGateKept: (postGateKept) => set({ postGateKept }),
-            setPostWithinHypo: (postWithinHypo) => set({ postWithinHypo }),
-            setUnexpectedReason: (unexpectedReason) => set({ unexpectedReason }),
+            setPostSide: (postSide) => set({ postSide }),
+            setPostResult: (postResult) => set({ postResult }),
+            setPostPl: (postPl) => set({ postPl }),
+            setPostRrText: (postRrText) => set({ postRrText }),
+            setPostRuleRespected: (postRuleRespected) => set({ postRuleRespected }),
+            setPostInExpectedRange: (postInExpectedRange) => set({ postInExpectedRange }),
+            setPostGoodParticipation: (postGoodParticipation) => set({ postGoodParticipation }),
+            setPostReferencePoint: (postReferencePoint) => set({ postReferencePoint }),
+            setPostNote: (postNote) => set({ postNote }),
             resetPost: () => set(initialPostTrade),
 
             // === 全リセット ===
@@ -187,6 +267,7 @@ export const useTradeStore = create<TradeState>()(
             // 永続化するフィールドを選択（UIヘルプトグルなどは除外）
             partialize: (state) => ({
                 // Pre-Trade の入力値を永続化
+                mode: state.mode,
                 gate: state.gate,
                 note: state.note,
                 successProb: state.successProb,
@@ -199,15 +280,35 @@ export const useTradeStore = create<TradeState>()(
                 stopLossPips: state.stopLossPips,
                 takeProfitPips: state.takeProfitPips,
                 riskPercent: state.riskPercent,
+
+                // 環境認識タグ
+                preEnvSign: state.preEnvSign,
+                preEnvTrend4hUp: state.preEnvTrend4hUp,
+                preEnvRange4h: state.preEnvRange4h,
+                preEnvSupport15m: state.preEnvSupport15m,
+                preEnvLongWick15m: state.preEnvLongWick15m,
+                preEnvFlag: state.preEnvFlag,
+                preEnvTriangle: state.preEnvTriangle,
+                preEnvLondon: state.preEnvLondon,
+                preEnvNewyork: state.preEnvNewyork,
+                preEnvAsPlanned: state.preEnvAsPlanned,
+
                 // Trade-Active（進行中の取引情報）を永続化
                 tradeStatus: state.tradeStatus,
                 pending: state.pending,
                 activeLog: state.activeLog,
                 currentLogId: state.currentLogId,
+
                 // Post-Trade の入力値を永続化
-                postGateKept: state.postGateKept,
-                postWithinHypo: state.postWithinHypo,
-                unexpectedReason: state.unexpectedReason,
+                postSide: state.postSide,
+                postResult: state.postResult,
+                postPl: state.postPl,
+                postRrText: state.postRrText,
+                postRuleRespected: state.postRuleRespected,
+                postInExpectedRange: state.postInExpectedRange,
+                postGoodParticipation: state.postGoodParticipation,
+                postReferencePoint: state.postReferencePoint,
+                postNote: state.postNote,
             }),
         }
     )

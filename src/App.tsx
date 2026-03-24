@@ -29,7 +29,7 @@ import AdminMessages from "./pages/admin/AdminMessages";
 import { InterventionManagementPage } from "./pages/admin/InterventionManagementPage";
 import NotificationPrompt from "./components/NotificationPrompt";
 import MessageDetail from "./pages/MessageDetail";
-import { getPipValue } from "./utils/marketData";
+import { getPipValue, getEntryPricePlaceholder, getStopLossPricePlaceholder } from "./utils/marketData";
 import { PreTradeChecklist } from "./components/PreTradeChecklist";
 import MascotOverlay from "./components/Mascot/MascotOverlay";
 import { useMascotStore } from "./store/mascotStore";
@@ -419,6 +419,7 @@ export default function App() {
 
   // pre (取引前) - Zustand ストアで管理
   const {
+    mode, setMode,
     gate,
     successProb,
     expectedValue,
@@ -433,14 +434,24 @@ export default function App() {
     gateHelp, setGateHelp,
     resetPre,
     note, setNote,
+    // 環境認識タグ
+    preEnvSign, preEnvTrend4hUp, preEnvRange4h, preEnvSupport15m,
+    preEnvLongWick15m, preEnvFlag, preEnvTriangle, preEnvLondon,
+    preEnvNewyork, preEnvAsPlanned, setPreEnv
   } = useTradeStore();
 
 
   // post (取引後) - Zustand ストアで管理
   const {
-    postGateKept, setPostGateKept,
-    postWithinHypo, setPostWithinHypo,
-    unexpectedReason, setUnexpectedReason,
+    postSide, setPostSide,
+    postResult, setPostResult,
+    postPl, setPostPl,
+    postRrText, setPostRrText,
+    postRuleRespected, setPostRuleRespected,
+    postInExpectedRange, setPostInExpectedRange,
+    postGoodParticipation, setPostGoodParticipation,
+    postReferencePoint, setPostReferencePoint,
+    postNote: postNoteValue, setPostNote,
     resetPost,
   } = useTradeStore();
 
@@ -456,10 +467,34 @@ export default function App() {
 
   // 参考レート（手動入力）・損切り価格表示
   const [currentRate, setCurrentRate] = useState<string>("");
+  const [stopLossPrice, setStopLossPrice] = useState<string>("");
+
+  useEffect(() => {
+    const entry = Number(currentRate);
+    const slPrice = Number(stopLossPrice);
+    if (!currentRate || !stopLossPrice || isNaN(entry) || isNaN(slPrice)) {
+      setStopLossPips("");
+      return;
+    }
+    const diff = Math.abs(entry - slPrice);
+    let pips = 0;
+
+    if (selectedPairSymbol?.includes('JPY')) {
+      pips = Math.round(diff / 0.01);        // 1pip = 0.01
+    } else if (selectedPairSymbol?.startsWith('XAU')) {
+      pips = Math.round(diff / 0.01);        // 1pip = 0.01
+    } else if (selectedPairSymbol?.startsWith('XAG')) {
+      pips = Math.round(diff / 0.01);       // 1pip = 0.01
+    } else {
+      pips = Math.round(diff / 0.0001 * 10) / 10; // 1pip = 0.0001
+    }
+    setStopLossPips(pips.toString());
+  }, [currentRate, stopLossPrice, selectedPairSymbol, setStopLossPips]);
 
   // 通貨ペア変更時にレートをクリアする（または前回値を保持するかは要件によるが、今回はクリアが無難）
   useEffect(() => {
     setCurrentRate("");
+    setStopLossPrice("");
   }, [selectedPairSymbol]);
 
   // Phase 3: 為替レート取得
@@ -1427,7 +1462,9 @@ export default function App() {
 
     const payload = {
       user_id: session.user.id,
+      trade_datetime: new Date().toISOString(),
       log_type: "valid" as const,
+      mode: mode,
       ...gate,
       gate_trade_count_ok: true,
       gate_rr_ok: rrOk,
@@ -1436,6 +1473,20 @@ export default function App() {
       success_prob: successProb,
       expected_value: expectedValue,
       note: note.trim(), // メモ保存
+      pre_note: note.trim(), // 新仕様のフィールド
+
+      // 環境認識タグ（10個）
+      pre_env_sign: preEnvSign,
+      pre_env_trend4h_up: preEnvTrend4hUp,
+      pre_env_range4h: preEnvRange4h,
+      pre_env_support15m: preEnvSupport15m,
+      pre_env_long_wick15m: preEnvLongWick15m,
+      pre_env_flag: preEnvFlag,
+      pre_env_triangle: preEnvTriangle,
+      pre_env_london: preEnvLondon,
+      pre_env_newyork: preEnvNewyork,
+      pre_env_as_planned: preEnvAsPlanned,
+
       // Phase 3: 通貨ペア・自動計算データ
       currency_pair_id: selectedPair?.id ?? null,
       currency_pair_symbol: selectedPairSymbol || null,
@@ -1452,7 +1503,7 @@ export default function App() {
       .from("trade_logs")
       .insert([payload])
       .select(
-        "id, occurred_at, log_type, gate_all_ok, success_prob, expected_value, post_gate_kept, post_within_hypothesis, unexpected_reason, voided_at, completed_at"
+        "id, occurred_at, log_type, gate_all_ok, success_prob, expected_value, post_side, post_result, post_pl, post_rr_text, post_rule_respected, post_in_expected_range, post_good_participation, post_reference_point, post_note, voided_at, completed_at"
       )
       .single();
 
@@ -1468,9 +1519,15 @@ export default function App() {
       gate_all_ok: data.gate_all_ok ?? gateAllOk,
       success_prob: data.success_prob ?? successProb,
       expected_value: data.expected_value ?? expectedValue,
-      post_gate_kept: data.post_gate_kept ?? null,
-      post_within_hypothesis: data.post_within_hypothesis ?? null,
-      unexpected_reason: data.unexpected_reason ?? null,
+      post_side: (data as any).post_side ?? null,
+      post_result: (data as any).post_result ?? null,
+      post_pl: (data as any).post_pl ?? null,
+      post_rr_text: (data as any).post_rr_text ?? null,
+      post_rule_respected: (data as any).post_rule_respected ?? null,
+      post_in_expected_range: (data as any).post_in_expected_range ?? null,
+      post_good_participation: (data as any).post_good_participation ?? null,
+      post_reference_point: (data as any).post_reference_point ?? null,
+      post_note: (data as any).post_note ?? null,
       voided_at: data.voided_at ?? null,
       completed_at: data.completed_at ?? null,
     };
@@ -1506,20 +1563,27 @@ export default function App() {
       return setStatus("未完の記録がありません（取引前を先に記録してください）。");
     }
 
-    if (postGateKept === null || postWithinHypo === null) {
-      return setStatus("事後チェック（はい/いいえ）を選んでください。");
+    if (postSide === null || postResult === null) {
+      return setStatus("売買方向と結果を選んでください。");
     }
-    const isUnexpected = postGateKept === false || postWithinHypo === false;
-    if (isUnexpected && unexpectedReason.trim().length === 0) {
-      return setStatus("想定外がある場合は、原因（事実）を1行で入力してください。");
+    if (postRuleRespected === null || postInExpectedRange === null || postGoodParticipation === null) {
+      return setStatus("チェック項目をすべて選んでください。");
     }
 
     const { error } = await supabase
       .from("trade_logs")
       .update({
-        post_gate_kept: postGateKept,
-        post_within_hypothesis: postWithinHypo,
-        unexpected_reason: unexpectedReason.trim() ? unexpectedReason.trim() : null,
+        // 新仕様
+        post_side: postSide,
+        post_result: postResult,
+        post_pl: postPl ? Number(postPl) : null,
+        post_rr_text: postRrText.trim() || null,
+        post_rule_respected: postRuleRespected,
+        post_in_expected_range: postInExpectedRange,
+        post_good_participation: postGoodParticipation,
+        post_reference_point: postReferencePoint.trim() || null,
+        post_note: postNoteValue.trim() || null,
+
         completed_at: new Date().toISOString(),
       })
       .eq("id", targetId);
@@ -2954,26 +3018,37 @@ export default function App() {
               />
             </div>
 
+            {/* モード切替 & リスク % */}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setMode('live')}
+                className={`flex-1 rounded-xl py-3 text-sm font-bold border-2 transition-all ${mode === 'live'
+                    ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                    : "bg-white border-zinc-100 text-zinc-400"
+                  }`}
+              >
+                本番
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('practice')}
+                className={`flex-1 rounded-xl py-3 text-sm font-bold border-2 transition-all ${mode === 'practice'
+                    ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                    : "bg-white border-zinc-100 text-zinc-400"
+                  }`}
+              >
+                練習
+              </button>
+            </div>
+
             {/* リスク % — 固定推奨  */}
             <div className="flex items-center justify-between bg-zinc-50 rounded-xl px-3 py-2 border border-zinc-100">
               <span className="text-xs font-bold text-zinc-500">リスク許容</span>
               <span className="text-sm font-black text-blue-600">2%（推奨固定）</span>
             </div>
 
-            {/* 損切り pips（メイン入力） */}
-            <div>
-              <label className="text-[10px] font-bold text-zinc-400 mb-1 block">🎯 損切り幅（pips）</label>
-              <input
-                type="text"
-                inputMode="decimal"
-                className="w-full rounded-xl border-2 border-blue-100 bg-blue-50/30 px-3 py-3 text-lg font-black text-zinc-900 focus:border-blue-500 focus:bg-white focus:outline-none transition-all text-center"
-                placeholder="損切りpipsを入力"
-                value={stopLossPips}
-                onChange={(e) => setStopLossPips(e.target.value.replace(/[^0-9.]/g, ""))}
-              />
-            </div>
-
-            {/* 参考レートと損切り価格のイメージ */}
+            {/* 参考レートと損切り価格 */}
             {(selectedPairSymbol) && (
               <div className="space-y-3">
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-3">
@@ -2986,8 +3061,8 @@ export default function App() {
                     <input
                       type="text"
                       inputMode="decimal"
-                      className="flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-bold focus:outline-none focus:border-blue-500"
-                      placeholder={selectedPairSymbol?.includes('JPY') ? '例: 154.50' : '例: 1.9120'}
+                      className="flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-bold focus:outline-none focus:border-blue-500 transition-all font-mono"
+                      placeholder={getEntryPricePlaceholder(selectedPairSymbol)}
                       value={currentRate}
                       onChange={(e) => {
                         const val = e.target.value.replace(/[^0-9.]/g, "");
@@ -2999,36 +3074,30 @@ export default function App() {
                   <div className="text-[10px] text-zinc-400 mt-1">📍 チャートでエントリーしたい価格を入力してください</div>
                 </div>
 
-                {currentRate !== "" && Number(stopLossPips) >= 1 && (
-                  <div className="rounded-xl border-2 border-blue-500 bg-blue-50/30 p-4 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
-                    <div className="font-bold text-sm text-blue-900 mb-3 flex items-center gap-2">
-                      <span>📍</span> 損切り価格のイメージ
-                    </div>
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-end">
-                        <span className="text-xs text-zinc-600 font-medium">買いエントリーの場合</span>
-                        <div className="text-right">
-                          <span className="text-xs text-zinc-400 mr-2">→</span>
-                          <span className="text-lg font-black text-rose-600">
-                            {(Number(currentRate) - Number(stopLossPips) * getPipValue(selectedPairSymbol || "")).toFixed(selectedPairSymbol?.includes('JPY') || selectedPairSymbol?.includes('XAU') ? 2 : 4)}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-end border-t border-blue-100 pt-3">
-                        <span className="text-xs text-zinc-600 font-medium">売りエントリーの場合</span>
-                        <div className="text-right">
-                          <span className="text-xs text-zinc-400 mr-2">→</span>
-                          <span className="text-lg font-black text-blue-600">
-                            {(Number(currentRate) + Number(stopLossPips) * getPipValue(selectedPairSymbol || "")).toFixed(selectedPairSymbol?.includes('JPY') || selectedPairSymbol?.includes('XAU') ? 2 : 4)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-[10px] text-blue-700/70 mt-3 font-medium text-center">
-                      チャートのこの価格帯が損切りラインです
-                    </div>
+                <div className="rounded-xl border-2 border-rose-100 bg-rose-50/30 p-3">
+                  <label className="text-[10px] font-bold text-rose-500 uppercase tracking-wider mb-1 block">
+                    🎯 損切りレート（決済ライン）
+                  </label>
+                  <div className="flex items-center gap-2 mb-2">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      className="w-full rounded-xl border-2 border-rose-200 bg-white px-3 py-3 text-lg font-black text-rose-700 focus:border-rose-500 focus:outline-none transition-all text-center font-mono"
+                      placeholder={getStopLossPricePlaceholder(selectedPairSymbol)}
+                      value={stopLossPrice ?? ''}
+                      onChange={(e) => setStopLossPrice(e.target.value.replace(/[^0-9.]/g, ""))}
+                    />
                   </div>
-                )}
+                  {/* 参考表示：差分を小さく表示 */}
+                  {Number(stopLossPips) > 0 && currentRate !== "" && stopLossPrice !== "" && (
+                    <div className="text-[11px] font-medium text-rose-600/80 text-center animate-in fade-in duration-300 bg-white/50 py-1.5 rounded-lg border border-rose-100/50">
+                      差: {Math.abs(Number(currentRate) - Number(stopLossPrice)).toFixed(selectedPairSymbol?.includes('JPY') || selectedPairSymbol?.includes('XAU') ? 2 : 4)}
+                      <span className="mx-1">/</span>
+                      <span className="font-bold text-rose-600">（{stopLossPips} pips）</span>
+                    </div>
+                  )}
+                  <div className="text-[10px] text-rose-400 mt-1 text-center">この価格を割ったら撤退するラインです</div>
+                </div>
               </div>
             )}
 
@@ -3133,29 +3202,67 @@ export default function App() {
 
           <div className="pt-2">
             {gateAllOk ? (
-              <div className="space-y-4">
-                <div className="pt-2">
-                  <PreTradeChecklist
-                    items={[
-                      { id: "rr" as any, label: "リスクリワードは 1:3 以上になっているか？", checked: gateHelp.rr },
-                      { id: "risk" as any, label: "許容損失は資金の 2% 以内か？", checked: gateHelp.risk },
-                      { id: "rule" as any, label: "上位足のトレンド・ルールは成立しているか？", checked: gateHelp.rule }
-                    ]}
-                    onToggle={(id, checked) => setGateHelp((prev: any) => ({ ...prev, [id]: checked }))}
-                  />
+              <div className="space-y-6">
+                {/* 📝 環境認識タグ（10個） */}
+                <div className="space-y-3">
+                  <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                    環境認識タグ（複数選択可）
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { id: "preEnvSign", label: "✅ サイン点灯" },
+                      { id: "preEnvTrend4hUp", label: "📈 4Hトレンド一致" },
+                      { id: "preEnvRange4h", label: "↔️ 4Hレンジ内" },
+                      { id: "preEnvSupport15m", label: "🛡️ 15Mサポレジ" },
+                      { id: "preEnvLongWick15m", label: "🕯️ 15M長髭" },
+                      { id: "preEnvFlag", label: "🚩 フラッグ" },
+                      { id: "preEnvTriangle", label: "📐 三角持ち合い" },
+                      { id: "preEnvLondon", label: "🇬🇧 ロンドン時間" },
+                      { id: "preEnvNewyork", label: "🇺🇸 NY時間" },
+                      { id: "preEnvAsPlanned", label: "📝 シナリオ通り" },
+                    ].map((tag) => {
+                      const isActive = (useTradeStore.getState() as any)[tag.id];
+                      return (
+                        <button
+                          key={tag.id}
+                          type="button"
+                          onClick={() => setPreEnv({ [tag.id]: !isActive })}
+                          className={`rounded-xl px-3 py-2.5 text-left text-xs font-bold border-2 transition-all ${isActive
+                              ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                              : "bg-white border-zinc-100 text-zinc-600 hover:bg-zinc-50"
+                            }`}
+                        >
+                          {tag.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
-                <div className="pt-2">
-                  <div className="text-[10px] font-bold text-zinc-400 mb-2 uppercase tracking-wider flex items-center gap-1">
-                    <span>メモ</span>
-                    <span className="text-zinc-300 font-normal">（任意）</span>
+                {/* 📝 メモ */}
+                <div className="space-y-2">
+                  <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1">
+                    <span>仮説メモ（根拠）</span>
+                    <span className="text-rose-500 font-bold">*必須</span>
                   </div>
                   <textarea
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
-                    className="w-full rounded-xl border border-zinc-100 bg-zinc-50/50 p-3 text-xs text-zinc-600 focus:border-blue-500 focus:bg-white focus:outline-none transition-all resize-none"
-                    rows={2}
-                    placeholder="トレードの根拠やシナリオなど..."
+                    className="w-full rounded-xl border border-zinc-200 bg-white p-4 text-sm text-zinc-800 focus:border-blue-500 focus:outline-none transition-all resize-none shadow-inner"
+                    rows={3}
+                    placeholder="なぜここでエントリーするのか？根拠を記入してください..."
+                  />
+                </div>
+
+                {/* 既存のチェックリスト（隠しまたは削除可だが、gateHelpの整合性のため一度残すかロジックのみ利用） */}
+                <div className="hidden">
+                  <PreTradeChecklist
+                    items={[
+                      { id: "rr" as any, label: "RR 1:3+", checked: gateHelp.rr },
+                      { id: "risk" as any, label: "Risk 2%-", checked: gateHelp.risk },
+                      { id: "rule" as any, label: "Rule OK", checked: gateHelp.rule }
+                    ]}
+                    onToggle={(id, checked) => setGateHelp((prev: any) => ({ ...prev, [id]: checked }))}
                   />
                 </div>
 
@@ -3239,99 +3346,153 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* 2) 事後チェックをカード化＋選択肢をボタン風に */}
-                <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4 space-y-4">
-                  <div className="text-base font-bold text-zinc-900">事後チェック（感情禁止：事実だけ）</div>
+                {/* 2) 振り返りフォーム */}
+                <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4 space-y-6">
+                  <div className="text-base font-bold text-zinc-900">振り返り（事実だけを記録）</div>
 
-                  {/* 質問1：ルールは守れたか */}
-                  <div className="space-y-2">
-                    <div className="text-sm font-semibold text-zinc-900">ルールは守れたか</div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setPostGateKept(true)}
-                        className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${postGateKept === true
-                          ? "bg-blue-600 text-white shadow-sm"
-                          : "bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50"
-                          }`}
-                      >
-                        はい
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPostGateKept(false)}
-                        className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${postGateKept === false
-                          ? "bg-blue-600 text-white shadow-sm"
-                          : "bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50"
-                          }`}
-                      >
-                        いいえ
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* 質問2：想定内だったか */}
-                  <div className="space-y-2">
-                    <div className="text-sm font-semibold text-zinc-900">想定内だったか</div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setPostWithinHypo(true)}
-                        className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${postWithinHypo === true
-                          ? "bg-blue-600 text-white shadow-sm"
-                          : "bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50"
-                          }`}
-                      >
-                        はい
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPostWithinHypo(false)}
-                        className={`rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${postWithinHypo === false
-                          ? "bg-blue-600 text-white shadow-sm"
-                          : "bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50"
-                          }`}
-                      >
-                        いいえ
-                      </button>
-                    </div>
-                  </div>
-
-                  {postWithinHypo === false && (
-                    <div className="mt-3 space-y-2 pt-2 border-t border-zinc-100">
-                      <div className="text-sm font-semibold text-zinc-900">理由を教えてください</div>
-                      <textarea
-                        value={unexpectedReason}
-                        onChange={(e) => setUnexpectedReason(e.target.value)}
-                        className="w-full rounded-xl border-2 border-zinc-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none transition-all"
-                        rows={3}
-                        placeholder="何が想定外でしたか..."
-                      />
-                      <div className="flex gap-2 flex-wrap mt-1">
+                  {/* 売買方向 & 結果 */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">売買方向</div>
+                      <div className="flex gap-1 bg-zinc-100 p-1 rounded-xl">
                         <button
                           type="button"
-                          onClick={() => setUnexpectedReason("前提条件の破綻")}
-                          className="px-2 py-1 text-[10px] font-bold rounded-lg bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors"
+                          onClick={() => setPostSide('long')}
+                          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                            postSide === 'long' ? "bg-white text-blue-600 shadow-sm" : "text-zinc-400"
+                          }`}
                         >
-                          前提条件の破綻
+                          ロング
                         </button>
                         <button
                           type="button"
-                          onClick={() => setUnexpectedReason("ルール未達")}
-                          className="px-2 py-1 text-[10px] font-bold rounded-lg bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors"
+                          onClick={() => setPostSide('short')}
+                          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                            postSide === 'short' ? "bg-white text-rose-600 shadow-sm" : "text-zinc-400"
+                          }`}
                         >
-                          ルール未達
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setUnexpectedReason("記録漏れ")}
-                          className="px-2 py-1 text-[10px] font-bold rounded-lg bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors"
-                        >
-                          記録漏れ
+                          ショート
                         </button>
                       </div>
                     </div>
-                  )}
+                    <div className="space-y-2">
+                       <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">結果</div>
+                       <div className="flex gap-1 bg-zinc-100 p-1 rounded-xl">
+                        <button
+                          type="button"
+                          onClick={() => setPostResult('win')}
+                          className={`flex-1 py-1 text-[10px] font-bold rounded-lg transition-all ${
+                            postResult === 'win' ? "bg-emerald-500 text-white shadow-sm" : "text-zinc-400"
+                          }`}
+                        >
+                          勝
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPostResult('loss')}
+                          className={`flex-1 py-1 text-[10px] font-bold rounded-lg transition-all ${
+                            postResult === 'loss' ? "bg-rose-500 text-white shadow-sm" : "text-zinc-400"
+                          }`}
+                        >
+                          負
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPostResult('be')}
+                          className={`flex-1 py-1 text-[10px] font-bold rounded-lg transition-all ${
+                            postResult === 'be' ? "bg-zinc-500 text-white shadow-sm" : "text-zinc-400"
+                          }`}
+                        >
+                          分
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 損益 & RR */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">損益 (JPY)</div>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={postPl}
+                        onChange={(e) => setPostPl(e.target.value.replace(/[^0-9.-]/g, ""))}
+                        placeholder="例: 5000"
+                        className="w-full rounded-xl border-2 border-zinc-100 bg-zinc-50/50 px-3 py-2 text-sm font-bold focus:border-blue-500 focus:outline-none transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">実際のRR</div>
+                      <input
+                        type="text"
+                        value={postRrText}
+                        onChange={(e) => setPostRrText(e.target.value)}
+                        placeholder="例: 1:3.2"
+                        className="w-full rounded-xl border-2 border-zinc-100 bg-zinc-50/50 px-3 py-2 text-sm font-bold focus:border-blue-500 focus:outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* チェック項目 */}
+                  <div className="space-y-3">
+                    <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">チェック項目</div>
+                    <div className="space-y-2">
+                      {[
+                        { id: "postRuleRespected", label: "📏 ルールを遵守したか", value: postRuleRespected, setter: setPostRuleRespected },
+                        { id: "postInExpectedRange", label: "🎯 想定内の動きだったか", value: postInExpectedRange, setter: setPostInExpectedRange },
+                        { id: "postGoodParticipation", label: "🤝 納得のいく参入だったか", value: postGoodParticipation, setter: setPostGoodParticipation },
+                      ].map((item) => (
+                        <div key={item.id} className="flex items-center justify-between bg-zinc-50 rounded-xl p-3 border border-zinc-100">
+                          <span className="text-xs font-bold text-zinc-700">{item.label}</span>
+                          <div className="flex gap-1 bg-zinc-200 p-0.5 rounded-lg">
+                            <button
+                              type="button"
+                              onClick={() => item.setter(true)}
+                              className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${
+                                item.value === true ? "bg-white text-blue-600 shadow-sm" : "text-zinc-500"
+                              }`}
+                            >
+                              YES
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => item.setter(false)}
+                              className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${
+                                item.value === false ? "bg-white text-rose-600 shadow-sm" : "text-zinc-500"
+                              }`}
+                            >
+                              NO
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 参考ポイント */}
+                  <div className="space-y-2">
+                    <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">参考ポイント（次回への活かし等）</div>
+                    <textarea
+                      value={postReferencePoint}
+                      onChange={(e) => setPostReferencePoint(e.target.value)}
+                      className="w-full rounded-xl border border-zinc-200 bg-white p-3 text-xs text-zinc-800 focus:border-blue-500 focus:outline-none transition-all resize-none shadow-inner"
+                      rows={2}
+                      placeholder="よかった点、改善点など..."
+                    />
+                  </div>
+
+                  {/* 事後メモ */}
+                  <div className="space-y-2">
+                    <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">事後メモ</div>
+                    <textarea
+                      value={postNoteValue}
+                      onChange={(e) => setPostNote(e.target.value)}
+                      className="w-full rounded-xl border border-zinc-200 bg-white p-3 text-xs text-zinc-800 focus:border-blue-500 focus:outline-none transition-all resize-none shadow-inner"
+                      rows={2}
+                      placeholder="その他記録しておきたいこと..."
+                    />
+                  </div>
                 </div>
 
                 {/* 3) ボタンを下部に大きく配置 */}

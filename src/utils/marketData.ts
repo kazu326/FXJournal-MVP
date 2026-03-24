@@ -33,3 +33,27 @@ export async function fetchFrankfurterRate(pair: string): Promise<number | null>
         return null;
     }
 }
+
+/**
+ * 通貨ペアに応じたエントリー価格の入力例（プレースホルダー）を返す
+ */
+export function getEntryPricePlaceholder(symbol: string | undefined): string {
+    if (!symbol) return '例: 1.0850';
+    if (symbol.includes('JPY')) return '例: 154.50';
+    if (symbol.startsWith('XAU')) return '例: 4520.00'; // 金スポット
+    if (symbol.startsWith('XAG')) return '例: 68.50';   // 銀スポット
+    if (symbol.includes('GBP')) return '例: 1.2950';
+    if (symbol.includes('AUD') || symbol.includes('NZD')) return '例: 0.6250';
+    if (symbol.includes('EUR')) return '例: 1.0850';
+    return '例: 1.0850'; // デフォルト
+}
+
+/**
+ * 通貨ペアに応じた損切り価格の入力例（プレースホルダー）を返す
+ */
+export function getStopLossPricePlaceholder(symbol: string | undefined): string {
+    if (symbol?.startsWith('XAU')) return '例: 4495.00';
+    if (symbol?.startsWith('XAG')) return '例: 67.50';
+    if (symbol?.includes('JPY')) return '例: 153.50';
+    return '例: 1.0800';
+}
