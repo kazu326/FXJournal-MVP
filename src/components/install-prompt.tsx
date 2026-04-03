@@ -56,7 +56,7 @@ export function InstallPrompt({ onClose }: InstallPromptProps) {
   if (isIOS && localStorage.getItem("installPromptDismissed")) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-black/40 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-end justify-center px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+80px)] bg-black/40 backdrop-blur-sm">
       <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl">
         <div className="flex items-start justify-between mb-3">
           <div className="text-lg font-bold text-zinc-900">

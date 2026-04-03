@@ -29,7 +29,7 @@ import AdminMessages from "./pages/admin/AdminMessages";
 import { InterventionManagementPage } from "./pages/admin/InterventionManagementPage";
 import NotificationPrompt from "./components/NotificationPrompt";
 import MessageDetail from "./pages/MessageDetail";
-import { getPipValue, getEntryPricePlaceholder, getStopLossPricePlaceholder } from "./utils/marketData";
+import { getEntryPricePlaceholder, getStopLossPricePlaceholder } from "./utils/marketData";
 import { PreTradeChecklist } from "./components/PreTradeChecklist";
 import MascotOverlay from "./components/Mascot/MascotOverlay";
 import { useMascotStore } from "./store/mascotStore";
@@ -3024,8 +3024,8 @@ export default function App() {
                 type="button"
                 onClick={() => setMode('live')}
                 className={`flex-1 rounded-xl py-3 text-sm font-bold border-2 transition-all ${mode === 'live'
-                    ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                    : "bg-white border-zinc-100 text-zinc-400"
+                  ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                  : "bg-white border-zinc-100 text-zinc-400"
                   }`}
               >
                 本番
@@ -3034,8 +3034,8 @@ export default function App() {
                 type="button"
                 onClick={() => setMode('practice')}
                 className={`flex-1 rounded-xl py-3 text-sm font-bold border-2 transition-all ${mode === 'practice'
-                    ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
-                    : "bg-white border-zinc-100 text-zinc-400"
+                  ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                  : "bg-white border-zinc-100 text-zinc-400"
                   }`}
               >
                 練習
@@ -3228,8 +3228,8 @@ export default function App() {
                           type="button"
                           onClick={() => setPreEnv({ [tag.id]: !isActive })}
                           className={`rounded-xl px-3 py-2.5 text-left text-xs font-bold border-2 transition-all ${isActive
-                              ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                              : "bg-white border-zinc-100 text-zinc-600 hover:bg-zinc-50"
+                            ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                            : "bg-white border-zinc-100 text-zinc-600 hover:bg-zinc-50"
                             }`}
                         >
                           {tag.label}
@@ -3268,8 +3268,8 @@ export default function App() {
 
                 <button
                   onClick={() => void savePre()}
-                  disabled={(dailyLocked && !isTestMode) || !(gateHelp.rr && gateHelp.risk && gateHelp.rule)}
-                  className={`btn-cta w-full h-14 rounded-xl font-bold transition-all duration-700 ${!(gateHelp.rr && gateHelp.risk && gateHelp.rule) || (dailyLocked && !isTestMode)
+                  disabled={(dailyLocked && !isTestMode) || !note.trim()}
+                  className={`btn-cta w-full h-14 rounded-xl font-bold transition-all duration-700 ${!note.trim() || (dailyLocked && !isTestMode)
                     ? "opacity-50 pointer-events-none grayscale"
                     : "animate-pulse shadow-[0_0_20px_rgba(37,99,235,0.6)]"
                     }`}
@@ -3358,50 +3358,45 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => setPostSide('long')}
-                          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
-                            postSide === 'long' ? "bg-white text-blue-600 shadow-sm" : "text-zinc-400"
-                          }`}
+                          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${postSide === 'long' ? "bg-white text-blue-600 shadow-sm" : "text-zinc-400"
+                            }`}
                         >
                           ロング
                         </button>
                         <button
                           type="button"
                           onClick={() => setPostSide('short')}
-                          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
-                            postSide === 'short' ? "bg-white text-rose-600 shadow-sm" : "text-zinc-400"
-                          }`}
+                          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${postSide === 'short' ? "bg-white text-rose-600 shadow-sm" : "text-zinc-400"
+                            }`}
                         >
                           ショート
                         </button>
                       </div>
                     </div>
                     <div className="space-y-2">
-                       <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">結果</div>
-                       <div className="flex gap-1 bg-zinc-100 p-1 rounded-xl">
+                      <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">結果</div>
+                      <div className="flex gap-1 bg-zinc-100 p-1 rounded-xl">
                         <button
                           type="button"
                           onClick={() => setPostResult('win')}
-                          className={`flex-1 py-1 text-[10px] font-bold rounded-lg transition-all ${
-                            postResult === 'win' ? "bg-emerald-500 text-white shadow-sm" : "text-zinc-400"
-                          }`}
+                          className={`flex-1 py-1 text-[10px] font-bold rounded-lg transition-all ${postResult === 'win' ? "bg-emerald-500 text-white shadow-sm" : "text-zinc-400"
+                            }`}
                         >
                           勝
                         </button>
                         <button
                           type="button"
                           onClick={() => setPostResult('loss')}
-                          className={`flex-1 py-1 text-[10px] font-bold rounded-lg transition-all ${
-                            postResult === 'loss' ? "bg-rose-500 text-white shadow-sm" : "text-zinc-400"
-                          }`}
+                          className={`flex-1 py-1 text-[10px] font-bold rounded-lg transition-all ${postResult === 'loss' ? "bg-rose-500 text-white shadow-sm" : "text-zinc-400"
+                            }`}
                         >
                           負
                         </button>
                         <button
                           type="button"
                           onClick={() => setPostResult('be')}
-                          className={`flex-1 py-1 text-[10px] font-bold rounded-lg transition-all ${
-                            postResult === 'be' ? "bg-zinc-500 text-white shadow-sm" : "text-zinc-400"
-                          }`}
+                          className={`flex-1 py-1 text-[10px] font-bold rounded-lg transition-all ${postResult === 'be' ? "bg-zinc-500 text-white shadow-sm" : "text-zinc-400"
+                            }`}
                         >
                           分
                         </button>
@@ -3449,18 +3444,16 @@ export default function App() {
                             <button
                               type="button"
                               onClick={() => item.setter(true)}
-                              className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${
-                                item.value === true ? "bg-white text-blue-600 shadow-sm" : "text-zinc-500"
-                              }`}
+                              className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${item.value === true ? "bg-white text-blue-600 shadow-sm" : "text-zinc-500"
+                                }`}
                             >
                               YES
                             </button>
                             <button
                               type="button"
                               onClick={() => item.setter(false)}
-                              className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${
-                                item.value === false ? "bg-white text-rose-600 shadow-sm" : "text-zinc-500"
-                              }`}
+                              className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${item.value === false ? "bg-white text-rose-600 shadow-sm" : "text-zinc-500"
+                                }`}
                             >
                               NO
                             </button>

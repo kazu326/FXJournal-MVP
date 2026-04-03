@@ -34,6 +34,9 @@ export interface TradeLogLite {
     post_good_participation?: boolean | null;
     post_reference_point?: string | null;
     post_note?: string | null;
+    post_gate_kept?: boolean | null;
+    post_within_hypothesis?: boolean | null;
+    unexpected_reason?: string | null;
 
     voided_at?: string | null;
     completed_at?: string | null;
