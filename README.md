@@ -48,6 +48,10 @@ FXJournal-MVP は、FXトレード初心者〜中級者が「早期退場しな�
 | アイコン | Lucide React |
 | 通知 | react-hot-toast |
 
+### Live Demo
+
+- Production: https://fx-journal-mvp.vercel.app/
+
 ### 主な機能
 
 - 取引前の「4つのGate」判定（取引回数・RR・リスク・ルール）
