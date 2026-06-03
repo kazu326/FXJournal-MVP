@@ -2,6 +2,8 @@
 
 Thank you for your interest in contributing to FXJournal-MVP!
 
+FXJournal-MVP is an open-source trading journal and learning app for retail FX traders, focused on preventing early account blow-ups rather than maximizing short-term wins.
+
 This project aims to provide an open-source, behavior-focused trading journal that helps retail traders avoid destructive trading patterns. Contributions that improve usability, clarity, and extensibility are especially welcome.
 
 ## How to get started
