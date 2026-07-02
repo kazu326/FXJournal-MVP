@@ -1550,28 +1550,18 @@ export type Database = {
       }
       v_compliance_report_with_interventions: {
         Row: {
-          avg_subscription_months: number | null
           behavior_change_percent: number | null
-          canceled_at: string | null
-          churn_reason: string | null
           course_title: string | null
-          current_subscription_end: string | null
-          current_subscription_start: string | null
           email: string | null
           first_learning_date: string | null
-          first_subscription_date: string | null
           improvement_percent: number | null
           intervention_count: number | null
           last_intervention_date: string | null
           last_intervention_type: string | null
           last_overtrading_date: string | null
           learning_completion_rate: number | null
-          lifetime_value: number | null
           metrics_improved: string | null
-          monthly_revenue: number | null
-          plan_type: string | null
           risk_detected: boolean | null
-          subscription_status: string | null
           trades_after_learning: number | null
           trades_before_learning: number | null
           user_id: string | null
