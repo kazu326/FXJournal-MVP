@@ -15,13 +15,14 @@ import { Button } from "../../components/ui/button";
 
 interface ComplianceUserData {
     user_id: string;
-    email: string;
+    email: string | null;
     username: string | null;
     avatar_url: string | null;
-    subscription_status: string;
-    last_learning_date: string | null;
-    learning_completion_rate: number;
-    intervention_count: number;
+    first_learning_date: string | null;
+    last_overtrading_date: string | null;
+    risk_detected: boolean | null;
+    learning_completion_rate: number | null;
+    intervention_count: number | null;
     last_intervention_date: string | null;
     last_intervention_type: string | null;
     improvement_percent: number | null;
@@ -73,9 +74,9 @@ export const InterventionManagementPage = () => {
     };
 
     const getRiskLevel = (user: ComplianceUserData): "high" | "medium" | "low" => {
-        if (user.subscription_status !== 'active') return 'high';
-        if (!user.last_learning_date) return 'high';
-        if (user.learning_completion_rate < 50) return 'medium';
+        if (user.risk_detected || user.last_overtrading_date) return 'high';
+        if (!user.first_learning_date) return 'high';
+        if ((user.learning_completion_rate ?? 0) < 50) return 'medium';
         return 'low';
     };
 
@@ -277,12 +278,12 @@ export const InterventionManagementPage = () => {
                                             {user.avatar_url ? (
                                                 <img
                                                     src={user.avatar_url}
-                                                    alt={user.username || user.email}
+                                                    alt={user.username || user.email || 'User'}
                                                     className="w-8 h-8 rounded-full bg-slate-700"
                                                 />
                                             ) : (
                                                 <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-medium text-slate-300">
-                                                    {(user.username || user.email).slice(0, 2).toUpperCase()}
+                                                    {(user.username || user.email || 'NA').slice(0, 2).toUpperCase()}
                                                 </div>
                                             )}
                                             <div>
@@ -298,11 +299,11 @@ export const InterventionManagementPage = () => {
                                             <div className="w-24 h-2 bg-slate-700 rounded-full overflow-hidden">
                                                 <div
                                                     className="h-full bg-blue-500"
-                                                    style={{ width: `${user.learning_completion_rate}%` }}
+                                                    style={{ width: `${user.learning_completion_rate ?? 0}%` }}
                                                 />
                                             </div>
                                             <span className="text-xs text-slate-400">
-                                                {user.learning_completion_rate}%
+                                                {user.learning_completion_rate ?? 0}%
                                             </span>
                                         </div>
                                     </td>
