@@ -2,6 +2,7 @@ import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { LayoutDashboard, Activity, ArrowLeft, BarChart3, Mail, Users, Menu, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { supabase } from "../lib/supabase";
 
 const navItems = [
   {
@@ -37,6 +38,8 @@ export default function AdminLayout() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [adminCheckStatus, setAdminCheckStatus] = useState<"checking" | "authorized" | "unauthorized">("checking");
+  const [adminCheckError, setAdminCheckError] = useState<string | null>(null);
 
   // 認証チェック完了後に未ログインならトップへ（loading 中はリダイレクトしない）
   useEffect(() => {
@@ -46,8 +49,63 @@ export default function AdminLayout() {
     }
   }, [user, loading, navigate]);
 
+  useEffect(() => {
+    if (loading) return;
+    if (!user?.id) {
+      setAdminCheckStatus("checking");
+      setAdminCheckError(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    const verifyAdminAccess = async () => {
+      setAdminCheckStatus("checking");
+      setAdminCheckError(null);
+
+      const isPlatformAdmin = await supabase
+        .from("platform_admins")
+        .select("user_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (isPlatformAdmin.data?.user_id) {
+        setAdminCheckStatus("authorized");
+        return;
+      }
+
+      if (isPlatformAdmin.error && isPlatformAdmin.error.code !== "PGRST116") {
+        console.warn("[admin-guard] platform_admins lookup failed", isPlatformAdmin.error);
+      }
+
+      const profileRole = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (profileRole.error && profileRole.error.code !== "PGRST116") {
+        console.warn("[admin-guard] profiles.role lookup failed", profileRole.error);
+        setAdminCheckError("管理者権限を確認できませんでした。");
+      }
+
+      const role = profileRole.data?.role;
+      setAdminCheckStatus(role === "admin" || role === "platform_admin" ? "authorized" : "unauthorized");
+    };
+
+    void verifyAdminAccess();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, loading]);
+
   // 認証確認中はスピナー表示
-  if (loading) {
+  if (loading || (user && adminCheckStatus === "checking")) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="animate-spin rounded-full h-10 w-10 border-2 border-slate-600 border-t-emerald-400" />
@@ -58,6 +116,31 @@ export default function AdminLayout() {
   // 未ログインなら何も描画せず（useEffect でリダイレクトする）
   if (!user) {
     return null;
+  }
+
+  if (adminCheckStatus === "unauthorized") {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center px-4">
+        <div className="max-w-md w-full border border-slate-800 bg-slate-900 p-6 rounded-lg space-y-4">
+          <div>
+            <h1 className="text-xl font-semibold text-slate-50">管理画面へのアクセス権限がありません</h1>
+            <p className="text-sm text-slate-400 mt-2">
+              このページは platform admin または admin ロールのユーザーのみ利用できます。
+            </p>
+            {adminCheckError && (
+              <p className="text-sm text-amber-300 mt-2">{adminCheckError}</p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate("/", { replace: true })}
+            className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
+          >
+            ユーザー画面へ戻る
+          </button>
+        </div>
+      </div>
+    );
   }
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
