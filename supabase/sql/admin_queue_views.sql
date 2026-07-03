@@ -8,7 +8,8 @@ alter table public.trade_logs
   add column if not exists teacher_reviewed_at timestamptz;
 
 -- 1) Review queue view
-create or replace view public.v_review_queue as
+create or replace view public.v_review_queue
+with (security_invoker = true) as
 select
   tl.id as log_id,
   tl.occurred_at,
@@ -37,7 +38,8 @@ where tl.log_type = 'valid'
   and coalesce(trim(tl.teacher_review), '') = '';
 
 -- 2) Risk queue view (last 7 days)
-create or replace view public.v_risk_queue as
+create or replace view public.v_risk_queue
+with (security_invoker = true) as
 with recent as (
   select *
   from public.trade_logs

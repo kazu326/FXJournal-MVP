@@ -3,7 +3,8 @@
 alter table public.trade_logs
   add column if not exists followup_sent_at timestamptz;
 
-create or replace view public.v_unfinished_queue as
+create or replace view public.v_unfinished_queue
+with (security_invoker = true) as
 select
   tl.id as log_id,
   tl.occurred_at,

@@ -1,7 +1,8 @@
 -- v_risk_queue v2 (JST week-aligned)
 -- invalid_7 / skip_7 / valid_7 are now "this-week" values (JST Mon 00:00)
 
-create or replace view public.v_risk_queue as
+create or replace view public.v_risk_queue
+with (security_invoker = true) as
 with week_bounds as (
   select
     timezone('Asia/Tokyo', now()) as now_jst,

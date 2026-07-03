@@ -79,7 +79,8 @@ CREATE INDEX idx_measurement_schedule_measure_at ON measurement_schedule(measure
 CREATE INDEX idx_measurement_schedule_status ON measurement_schedule(status);
 
 -- v_intervention_effectiveness ビュー
-CREATE OR REPLACE VIEW v_intervention_effectiveness AS
+CREATE OR REPLACE VIEW v_intervention_effectiveness
+WITH (security_invoker = true) AS
 SELECT 
   i.intervention_type,
   i.trigger_type,
@@ -97,7 +98,8 @@ GROUP BY i.intervention_type, i.trigger_type
 ORDER BY avg_improvement DESC;
 
 -- v_compliance_report_with_interventions ビュー
-CREATE OR REPLACE VIEW v_compliance_report_with_interventions AS
+CREATE OR REPLACE VIEW v_compliance_report_with_interventions
+WITH (security_invoker = true) AS
 SELECT 
   bcr.user_id,
   bcr.email,

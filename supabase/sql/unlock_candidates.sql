@@ -1,7 +1,8 @@
 -- Unlock candidates view (rolling 14 days)
 -- Thresholds: valid_count_14 >= 4, invalid_count_14 = 0, risk_ok_rate_14 >= 0.9, rule_ok_rate_14 >= 0.9
 
-create or replace view public.v_unlock_candidates as
+create or replace view public.v_unlock_candidates
+with (security_invoker = true) as
 with window_logs as (
   select tl.*
   from public.trade_logs tl
