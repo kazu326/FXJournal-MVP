@@ -6,9 +6,15 @@ import { Textarea } from '../ui/textarea';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { supabase } from '../../lib/supabase';
 
+type InterventionTriggerType =
+    | 'overtrading'
+    | 'rule_violation'
+    | 'no_skip_discipline'
+    | 'learning_stall'
+    | 'record_inactivity';
+
 interface InterventionModalProps {
     users: { id: string; email: string | null; }[];
-    triggerReason: string;
     open: boolean;
     onClose: () => void;
 }
@@ -54,7 +60,8 @@ export const InterventionModal = ({ users, triggerReason, open, onClose }: Inter
             const payload = users.map(targetUser => ({
                 user_id: targetUser.id,
                 intervention_type: selectedAction,
-                trigger_reason: triggerReason,
+                trigger_type: selectedTriggerType,
+                trigger_reason: explanation,
                 action_taken: actionTaken,
                 expected_outcome: selectedTemplate.expectedOutcome,
                 status: 'completed',

@@ -34,16 +34,9 @@ export const InterventionManagementPage = () => {
     const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [activeFilter, setActiveFilter] = useState<"all" | "high" | "medium" | "low" | "intervention_needed">("all");
-
-    // Modal state
     const [modalOpen, setModalOpen] = useState(false);
-    const [modalTriggerReason, setModalTriggerReason] = useState("");
 
-    useEffect(() => {
-        fetchUsers();
-    }, []);
-
-    const fetchUsers = async () => {
+    const fetchUsers = useCallback(async () => {
         try {
             setLoading(true);
             const { data, error } = await supabase
@@ -57,7 +50,11 @@ export const InterventionManagementPage = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        fetchUsers();
+    }, [fetchUsers]);
 
     const toggleUserSelection = useCallback((userId: string) => {
         setSelectedUsers(prev =>
@@ -69,7 +66,6 @@ export const InterventionManagementPage = () => {
 
     const handleBulkIntervention = () => {
         if (selectedUsers.length === 0) return;
-        setModalTriggerReason("管理者による手動選択");
         setModalOpen(true);
     };
 
@@ -80,7 +76,6 @@ export const InterventionManagementPage = () => {
         return 'low';
     };
 
-    // [Optimize] Memoized filtered users
     const filteredUsers = useMemo(() => {
         return users.filter(user => {
             const matchesSearch =
@@ -110,14 +105,11 @@ export const InterventionManagementPage = () => {
         });
     }, [users, searchTerm, activeFilter]);
 
-    // [Optimize] Memoized counts
     const highRiskCount = useMemo(() => users.filter(u => getRiskLevel(u) === 'high').length, [users]);
     const interventionNeededCount = useMemo(() => users.filter(u => !u.last_intervention_date && getRiskLevel(u) !== 'low').length, [users]);
     const completedInterventionsCount = useMemo(() => users.reduce((sum, u) => sum + (u.intervention_count || 0), 0), [users]);
-
-    // [Optimize] Memoized modal users
-    const modalUsers = useMemo(() =>
-        users.filter(u => selectedUsers.includes(u.user_id)).map(u => ({ id: u.user_id, email: u.email })),
+    const modalUsers = useMemo(
+        () => users.filter(u => selectedUsers.includes(u.user_id)).map(u => ({ id: u.user_id, email: u.email })),
         [users, selectedUsers]
     );
 
@@ -132,18 +124,15 @@ export const InterventionManagementPage = () => {
                         ユーザーの行動変容を促すための施策を実行・管理します
                     </p>
                 </div>
-                <div className="flex gap-4">
-                    <Button
-                        onClick={handleBulkIntervention}
-                        disabled={selectedUsers.length === 0}
-                        className="bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                        選択したユーザーに施策を実施 ({selectedUsers.length})
-                    </Button>
-                </div>
+                <Button
+                    onClick={handleBulkIntervention}
+                    disabled={selectedUsers.length === 0}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                    選択したユーザーに施策を実施 ({selectedUsers.length})
+                </Button>
             </div>
 
-            {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <DashboardSummaryCard
                     title="要対応ユーザー"
@@ -185,7 +174,6 @@ export const InterventionManagementPage = () => {
                 />
             </div>
 
-            {/* Filters */}
             <div className="flex gap-4 items-center bg-slate-900/50 p-4 rounded-xl border border-slate-800">
                 <div className="relative flex-1 max-w-sm">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
@@ -207,7 +195,7 @@ export const InterventionManagementPage = () => {
                                 : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
                                 }`}
                         >
-                            {filter === 'all' ? '全て' : filter.toUpperCase()}
+                            {filter === 'all' ? 'すべて' : filter.toUpperCase()}
                         </button>
                     ))}
                     <button
@@ -222,7 +210,6 @@ export const InterventionManagementPage = () => {
                 </div>
             </div>
 
-            {/* User List */}
             <div className="bg-slate-900/50 rounded-xl border border-slate-800 overflow-hidden">
                 <table className="w-full text-left border-collapse">
                     <thead>
@@ -232,11 +219,7 @@ export const InterventionManagementPage = () => {
                                     type="checkbox"
                                     className="rounded border-slate-600 bg-slate-700"
                                     onChange={(e) => {
-                                        if (e.target.checked) {
-                                            setSelectedUsers(filteredUsers.map(u => u.user_id));
-                                        } else {
-                                            setSelectedUsers([]);
-                                        }
+                                        setSelectedUsers(e.target.checked ? filteredUsers.map(u => u.user_id) : []);
                                     }}
                                     checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
                                 />
@@ -262,8 +245,7 @@ export const InterventionManagementPage = () => {
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
                                     exit={{ opacity: 0 }}
-                                    className={`hover:bg-slate-800/30 transition-colors ${selectedUsers.includes(user.user_id) ? 'bg-blue-900/10' : ''
-                                        }`}
+                                    className={`hover:bg-slate-800/30 transition-colors ${selectedUsers.includes(user.user_id) ? 'bg-blue-900/10' : ''}`}
                                 >
                                     <td className="p-4 text-center">
                                         <input
@@ -328,7 +310,8 @@ export const InterventionManagementPage = () => {
                                             : getRiskLevel(user) === 'medium'
                                                 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                                                 : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                            }`}>
+                                            }`}
+                                        >
                                             {getRiskLevel(user).toUpperCase()}
                                         </span>
                                     </td>
@@ -337,7 +320,6 @@ export const InterventionManagementPage = () => {
                                             className="h-8 px-3 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300"
                                             onClick={() => {
                                                 setSelectedUsers([user.user_id]);
-                                                setModalTriggerReason("個別対応");
                                                 setModalOpen(true);
                                             }}
                                         >
@@ -356,10 +338,9 @@ export const InterventionManagementPage = () => {
                 onClose={() => {
                     setModalOpen(false);
                     setSelectedUsers([]);
-                    fetchUsers(); // Refresh data after intervention
+                    fetchUsers();
                 }}
                 users={modalUsers}
-                triggerReason={modalTriggerReason}
             />
         </div>
     );

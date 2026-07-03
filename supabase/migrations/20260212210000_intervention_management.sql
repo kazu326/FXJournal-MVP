@@ -1,4 +1,12 @@
 -- interventions テーブル
+CREATE TYPE intervention_trigger_type AS ENUM (
+  'overtrading',
+  'rule_violation',
+  'no_skip_discipline',
+  'learning_stall',
+  'record_inactivity'
+);
+
 CREATE TABLE interventions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -10,7 +18,8 @@ CREATE TABLE interventions (
       'manual_support'
     )
   ),
-  trigger_reason TEXT NOT NULL,
+  trigger_type intervention_trigger_type NOT NULL,
+  trigger_reason TEXT,
   trigger_metric JSONB,
   action_taken TEXT NOT NULL,
   expected_outcome TEXT,
@@ -24,6 +33,7 @@ CREATE TABLE interventions (
 
 CREATE INDEX idx_interventions_user_id ON interventions(user_id);
 CREATE INDEX idx_interventions_type ON interventions(intervention_type);
+CREATE INDEX idx_interventions_trigger_type ON interventions(trigger_type);
 CREATE INDEX idx_interventions_status ON interventions(status);
 
 COMMENT ON TABLE interventions IS 'ユーザーに対して実施した施策の記録';
@@ -72,7 +82,7 @@ CREATE INDEX idx_measurement_schedule_status ON measurement_schedule(status);
 CREATE OR REPLACE VIEW v_intervention_effectiveness AS
 SELECT 
   i.intervention_type,
-  i.trigger_reason,
+  i.trigger_type,
   COUNT(*) AS total_interventions,
   COUNT(CASE WHEN i.status = 'completed' THEN 1 END) AS completed,
   AVG(io.improvement_percent) AS avg_improvement,
@@ -83,7 +93,7 @@ SELECT
   ) AS success_rate
 FROM interventions i
 LEFT JOIN intervention_outcomes io ON i.id = io.intervention_id
-GROUP BY i.intervention_type, i.trigger_reason
+GROUP BY i.intervention_type, i.trigger_type
 ORDER BY avg_improvement DESC;
 
 -- v_compliance_report_with_interventions ビュー
