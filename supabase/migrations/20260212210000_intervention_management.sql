@@ -12,11 +12,9 @@ CREATE TABLE interventions (
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   intervention_type TEXT NOT NULL CHECK (
     intervention_type IN (
-      'retention_email',
       'onboarding_call',
       'custom_message',
       'course_recommendation',
-      'discount_offer',
       'manual_support'
     )
   ),
@@ -44,7 +42,16 @@ COMMENT ON TABLE interventions IS 'ユーザーに対して実施した施策の
 CREATE TABLE intervention_outcomes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   intervention_id UUID NOT NULL REFERENCES interventions(id) ON DELETE CASCADE,
-  metric_name TEXT NOT NULL,
+  metric_name TEXT NOT NULL CHECK (
+    metric_name IN (
+      'rule_ok_rate',
+      'skip_rate',
+      'learning_completion_rate',
+      'record_streak_days',
+      'gate_pass_rate',
+      'survival_days'
+    )
+  ),
   before_value NUMERIC,
   after_value NUMERIC,
   improvement_percent NUMERIC,
@@ -92,7 +99,17 @@ ORDER BY avg_improvement DESC;
 -- v_compliance_report_with_interventions ビュー
 CREATE OR REPLACE VIEW v_compliance_report_with_interventions AS
 SELECT 
-  bcr.*,
+  bcr.user_id,
+  bcr.email,
+  bcr.user_registration_date,
+  bcr.first_learning_date,
+  bcr.trades_before_learning,
+  bcr.trades_after_learning,
+  bcr.behavior_change_percent,
+  bcr.last_overtrading_date,
+  bcr.risk_detected,
+  bcr.course_title,
+  bcr.learning_completion_rate,
   i.intervention_count,
   i.last_intervention_date,
   i.last_intervention_type,

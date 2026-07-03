@@ -48,6 +48,31 @@ FXJournal-MVP は、FXトレード初心者〜中級者が「早期退場しな�
 | アイコン | Lucide React |
 | 通知 | react-hot-toast |
 
+## ガバナンス / Governance
+
+FXJournal-MVP は、**「勝つため」ではなく「退場しないため」**のトレード支援ツールです。  
+そのため本プロジェクトでは、機能追加・指標設計・介入設計のすべてにおいて、次の原則を最上位に置きます。
+
+> **教育が核の時のみ、4者全員の利益が整合する**  
+> （ユーザー、FX業者、サロン運営者、アプリ導入クライアント）
+
+本リポジトリは、取引回数の増加、業者収益の最大化、解約防止を目的とした個別介入を最適化対象にしません。  
+ユーザーへの介入は、過剰取引、ルール違反の連発、見送り規律の欠如、記録途絶などの**退場兆候**に限定されるべきものとして設計されます。
+
+FXJournal-MVP is a trade support tool built **not to help users “win,” but to help them avoid blowing up and remain in the market safely**.  
+Accordingly, all feature additions, metric design, and intervention logic in this project are governed by the following principle:
+
+> **Only when education is the core do the interests of all four parties remain aligned**  
+> (user, broker, salon operator, and app-adopting client).
+
+This repository must not optimize for trade frequency, broker revenue, or retention-driven intervention against individual users.  
+User-facing interventions should be limited to **behavioral risk signals** such as overtrading, repeated rule violations, lack of skip discipline, and record inactivity.
+
+詳細な設計原則・制約・監査要件は [docs/GOVERNANCE.md](docs/GOVERNANCE.md) を参照してください。  
+For the full design principles, constraints, and audit requirements, see [docs/GOVERNANCE.md](docs/GOVERNANCE.md).
+
+---
+
 ### 主な機能
 
 - 取引前の「4つのGate」判定（取引回数・RR・リスク・ルール）
