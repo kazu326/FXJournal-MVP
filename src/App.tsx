@@ -633,7 +633,7 @@ export default function App() {
   const [showRiskQueue, setShowRiskQueue] = useState(false);
   const [showUnlockQueue, setShowUnlockQueue] = useState(false);
 
-  const gateAllOk = useMemo(
+  const tradeEntryGatesOk = useMemo(
     () => {
       // tradeMetrics が存在すればpipsベースで判定
       if (tradeMetrics) {
@@ -651,6 +651,7 @@ export default function App() {
     },
     [tradeMetrics, accountBalance, stopLossAmount, takeProfitAmount]
   );
+  const gateAllOk = tradeEntryGatesOk && gateHelp.rule;
   const dailyLimit = memberSettings?.weekly_limit ?? 2;
   const dailyLocked = !memberSettings?.unlocked && dailyAttempts >= dailyLimit && !isTestMode;
 
@@ -1449,9 +1450,14 @@ export default function App() {
     }
 
     // Gateが全部Noじゃないか等の判定はUIで見せる
-    // ルール確認は割愛（自動OK扱い）
+    // Gate 4（Rule OK）は明示入力を保存値に反映する
+    const ruleOk = gateHelp.rule;
+
     if (!rrOk || !riskOk) {
       return setStatus(copy.gate.verdictBlocked);
+    }
+    if (!ruleOk) {
+      return setStatus("ルール確認を完了してください。");
     }
     if (!successProb || !expectedValue) {
       return setStatus("仮説（成功確率・期待値）を選んでください。");
@@ -1469,7 +1475,7 @@ export default function App() {
       gate_trade_count_ok: true,
       gate_rr_ok: rrOk,
       gate_risk_ok: riskOk,
-      gate_rule_ok: true, // ルールカード削除により自動OK
+      gate_rule_ok: ruleOk,
       success_prob: successProb,
       expected_value: expectedValue,
       note: note.trim(), // メモ保存
@@ -3201,7 +3207,7 @@ export default function App() {
 
 
           <div className="pt-2">
-            {gateAllOk ? (
+            {tradeEntryGatesOk ? (
               <div className="space-y-6">
                 {/* 📝 環境認識タグ（10個） */}
                 <div className="space-y-3">
@@ -3254,22 +3260,20 @@ export default function App() {
                   />
                 </div>
 
-                {/* 既存のチェックリスト（隠しまたは削除可だが、gateHelpの整合性のため一度残すかロジックのみ利用） */}
-                <div className="hidden">
+                {/* Gate 4: Rule OK */}
+                <div>
                   <PreTradeChecklist
                     items={[
-                      { id: "rr" as any, label: "RR 1:3+", checked: gateHelp.rr },
-                      { id: "risk" as any, label: "Risk 2%-", checked: gateHelp.risk },
-                      { id: "rule" as any, label: "Rule OK", checked: gateHelp.rule }
+                      { id: "gate_rule_ok", label: "Rule OK", checked: gateHelp.rule }
                     ]}
-                    onToggle={(id, checked) => setGateHelp((prev: any) => ({ ...prev, [id]: checked }))}
+                    onToggle={(_, checked) => setGateHelp((prev) => ({ ...prev, rule: checked }))}
                   />
                 </div>
 
                 <button
                   onClick={() => void savePre()}
-                  disabled={(dailyLocked && !isTestMode) || !note.trim()}
-                  className={`btn-cta w-full h-14 rounded-xl font-bold transition-all duration-700 ${!note.trim() || (dailyLocked && !isTestMode)
+                  disabled={(dailyLocked && !isTestMode) || !note.trim() || !gateHelp.rule}
+                  className={`btn-cta w-full h-14 rounded-xl font-bold transition-all duration-700 ${!note.trim() || !gateHelp.rule || (dailyLocked && !isTestMode)
                     ? "opacity-50 pointer-events-none grayscale"
                     : "animate-pulse shadow-[0_0_20px_rgba(37,99,235,0.6)]"
                     }`}

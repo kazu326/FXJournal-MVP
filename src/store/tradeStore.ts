@@ -153,7 +153,7 @@ const initialGate: GateState = {
     gate_trade_count_ok: true,
     gate_rr_ok: true,
     gate_risk_ok: true,
-    gate_rule_ok: true,
+    gate_rule_ok: false,
 };
 
 const initialPreTrade = {
