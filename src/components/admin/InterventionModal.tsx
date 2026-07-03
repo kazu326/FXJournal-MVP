@@ -13,6 +13,14 @@ type InterventionTriggerType =
     | 'learning_stall'
     | 'record_inactivity';
 
+const triggerOptions: { value: InterventionTriggerType; label: string; description: string }[] = [
+    { value: 'overtrading', label: 'Overtrading', description: 'Excessive trading activity detected.' },
+    { value: 'rule_violation', label: 'Rule violation', description: 'Repeated rule violations detected.' },
+    { value: 'no_skip_discipline', label: 'No-skip discipline', description: 'Trading without skip discipline detected.' },
+    { value: 'learning_stall', label: 'Learning stall', description: 'Learning progress has stalled.' },
+    { value: 'record_inactivity', label: 'Record inactivity', description: 'Trading or learning records have become inactive.' }
+];
+
 interface InterventionModalProps {
     users: { id: string; email: string | null; }[];
     open: boolean;
@@ -42,12 +50,15 @@ const actionTemplates: Record<string, { label: string; template: string; expecte
     }
 };
 
-export const InterventionModal = ({ users, triggerReason, open, onClose }: InterventionModalProps) => {
+export const InterventionModal = ({ users, open, onClose }: InterventionModalProps) => {
     const [selectedAction, setSelectedAction] = useState('');
+    const [selectedTriggerType, setSelectedTriggerType] = useState<InterventionTriggerType>('overtrading');
+    const [explanation, setExplanation] = useState('');
     const [customMessage, setCustomMessage] = useState('');
     const [loading, setLoading] = useState(false);
 
     const selectedTemplate = selectedAction ? actionTemplates[selectedAction] : null;
+    const selectedTrigger = triggerOptions.find(option => option.value === selectedTriggerType);
 
     const handleSubmit = async () => {
         if (!selectedTemplate) return;
@@ -61,7 +72,7 @@ export const InterventionModal = ({ users, triggerReason, open, onClose }: Inter
                 user_id: targetUser.id,
                 intervention_type: selectedAction,
                 trigger_type: selectedTriggerType,
-                trigger_reason: explanation,
+                trigger_reason: explanation.trim() || null,
                 action_taken: actionTaken,
                 expected_outcome: selectedTemplate.expectedOutcome,
                 status: 'completed',
@@ -93,7 +104,7 @@ export const InterventionModal = ({ users, triggerReason, open, onClose }: Inter
                 <div className="space-y-4">
                     <Alert variant="warning" className="bg-amber-500/10 border-amber-500/20 text-amber-500">
                         <AlertTitle>検出された教育的リスク</AlertTitle>
-                        <AlertDescription>{triggerReason}</AlertDescription>
+                        <AlertDescription>{selectedTrigger?.description}</AlertDescription>
                     </Alert>
 
                     <div>
@@ -108,7 +119,34 @@ export const InterventionModal = ({ users, triggerReason, open, onClose }: Inter
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-semibold">介入タイプ</label>
+                        <label className="text-sm font-semibold">Governed trigger</label>
+                        <Select value={selectedTriggerType} onValueChange={(value) => setSelectedTriggerType(value as InterventionTriggerType)}>
+                            <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-100">
+                                <SelectValue placeholder="Select trigger" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-slate-800 border-slate-700 text-slate-100">
+                                {triggerOptions.map(option => (
+                                    <SelectItem key={option.value} value={option.value} className="focus:bg-slate-700 focus:text-slate-100">
+                                        {option.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-semibold">Trigger explanation</label>
+                        <Textarea
+                            value={explanation}
+                            onChange={(e) => setExplanation(e.target.value)}
+                            rows={3}
+                            placeholder="Optional explanatory note"
+                            className="w-full bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500 focus-visible:ring-slate-600"
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-semibold">Action type</label>
                         <Select value={selectedAction} onValueChange={setSelectedAction}>
                             <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-100">
                                 <SelectValue placeholder="教育的介入を選択" />
