@@ -312,7 +312,8 @@ export type Database = {
           intervention_type: string
           status: string | null
           trigger_metric: Json | null
-          trigger_reason: string
+          trigger_reason: string | null
+          trigger_type: Database["public"]["Enums"]["intervention_trigger_type"]
           user_id: string
         }
         Insert: {
@@ -325,7 +326,8 @@ export type Database = {
           intervention_type: string
           status?: string | null
           trigger_metric?: Json | null
-          trigger_reason: string
+          trigger_reason?: string | null
+          trigger_type: Database["public"]["Enums"]["intervention_trigger_type"]
           user_id: string
         }
         Update: {
@@ -338,7 +340,8 @@ export type Database = {
           intervention_type?: string
           status?: string | null
           trigger_metric?: Json | null
-          trigger_reason?: string
+          trigger_reason?: string | null
+          trigger_type?: Database["public"]["Enums"]["intervention_trigger_type"]
           user_id?: string
         }
         Relationships: [
@@ -1587,7 +1590,7 @@ export type Database = {
           success_rate: number | null
           successful_cases: number | null
           total_interventions: number | null
-          trigger_reason: string | null
+          trigger_type: Database["public"]["Enums"]["intervention_trigger_type"] | null
         }
         Relationships: []
       }
@@ -1757,6 +1760,12 @@ export type Database = {
       }
     }
     Enums: {
+      intervention_trigger_type:
+      | "overtrading"
+      | "rule_violation"
+      | "no_skip_discipline"
+      | "learning_stall"
+      | "record_inactivity"
       xp_action_type:
       | "LOGIN"
       | "DAILY_LESSON_SKIP"
