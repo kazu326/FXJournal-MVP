@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "governance:check": "node scripts/governance-checks.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "jest"
