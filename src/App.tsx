@@ -1801,7 +1801,7 @@ export default function App() {
         </div>
 
         {status && (
-          <div style={{ margin: "12px 0", padding: 10, border: "1px solid #333" }}>{status}</div>
+          <div data-testid="status-message" style={{ margin: "12px 0", padding: 10, border: "1px solid #333" }}>{status}</div>
         )}
 
         {!isAdminLogsRoute && (
@@ -2078,6 +2078,7 @@ export default function App() {
                     <div style={{ fontSize: 13, fontWeight: 700 }}>{labels.adminTodoReview}</div>
                   </button>
                   <button
+                    data-testid="risk-queue-toggle"
                     onClick={() => {
                       setShowRiskQueue((v) => !v);
                       setShowFollowupQueue(false);
@@ -2224,7 +2225,7 @@ export default function App() {
               )}
 
               {showRiskQueue && (
-                <div style={{ marginTop: 12 }}>
+                <div data-testid="risk-queue" style={{ marginTop: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
                     <h3 style={{ margin: 0, fontSize: 16 }}>{labels.adminQueueRisk}</h3>
                     <button onClick={() => void loadRiskQueue()}>更新</button>
@@ -2241,6 +2242,7 @@ export default function App() {
                         ].filter(Boolean);
                         return (
                           <div
+                            data-testid="risk-queue-row"
                             key={`${r.user_id ?? "unknown"}-${r.member_id ?? "m"}`}
                             style={{
                               padding: "12px 16px",
@@ -2716,7 +2718,7 @@ export default function App() {
       </header>
 
       {status && (
-        <div className="alert-danger" style={{ marginBottom: "var(--space-lg)" }}>{status}</div>
+        <div data-testid="status-message" className="alert-danger" style={{ marginBottom: "var(--space-lg)" }}>{status}</div>
       )}
       {showNameModal && (
         <div
@@ -2926,6 +2928,7 @@ export default function App() {
               チャンスがなかった、またはルールを満たさなかった場合は「見送り」を記録してください。
             </div>
             <button
+              data-testid="skip-save"
               onClick={() => {
                 void saveSkipQuick();
                 navigate("/");
@@ -3271,6 +3274,7 @@ export default function App() {
                 </div>
 
                 <button
+                  data-testid="pre-trade-save"
                   onClick={() => void savePre()}
                   disabled={(dailyLocked && !isTestMode) || !note.trim() || !gateHelp.rule}
                   className={`btn-cta w-full h-14 rounded-xl font-bold transition-all duration-700 ${!note.trim() || !gateHelp.rule || (dailyLocked && !isTestMode)

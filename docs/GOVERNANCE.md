@@ -277,7 +277,7 @@ LEFT JOIN payments p ON s.id = p.subscription_id AND p.status = 'completed'
 | 5 | ビューに `security_invoker` なし・REVOKE なし | リポジトリ横断 grep 0 件 | T-3 | 是正済み（v1.0.1 / PR #11） |
 | 6 | AdminLayout にロールガードなし | `AdminLayout.tsx`（ログイン確認のみ） | T-4 | 是正済み（v1.0.1 / PR #10） |
 | 7 | Gate 4 の自動 OK 化 | `App.tsx`（`// ルールカード削除により自動OK`） | T-6 | 対応中（PR #18） |
-| 8 | 保護機構の e2e 不在 | `e2e/temp_test.spec.ts`（スモーク 2 件のみ） | T-7 | 未対応 |
+| 8 | 保護機構の e2e 不在 | `e2e/temp_test.spec.ts`（スモーク 2 件のみ） | T-7 | 対応中（PR #19） |
 | 9 | OSS ライセンス未選定 | LICENSE ファイルなし | 6.2 | 未対応 |
 
 この表は是正のたびに更新し、状態は「未対応 → 対応中（PR #）→ 是正済み（バージョン）」で管理する。
