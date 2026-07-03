@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "governance:check": "node scripts/governance-checks.mjs",
+    "e2e": "playwright test",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "jest"

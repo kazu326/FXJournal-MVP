@@ -1,0 +1,36 @@
+name: E2E protection checks
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  protection-e2e:
+    name: Playwright protection e2e
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run protection e2e tests
+        run: npm run e2e
+        env:
+          VITE_E2E_MOCK: "1"
+          VITE_SUPABASE_URL: "http://127.0.0.1:54321"
+          VITE_SUPABASE_ANON_KEY: "e2e-anon-key"
