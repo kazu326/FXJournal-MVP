@@ -2,7 +2,7 @@
 
 | 項目 | 内容 |
 |---|---|
-| バージョン | 1.0.0 |
+| バージョン | 1.0.1 |
 | 制定日 | 2026-07-03 |
 | 根拠 | 2026-07-03 実施のコードベース監査（ローカル全ファイル読み込み） |
 | 管理者 | プロジェクトオーナー（かず） |
@@ -272,10 +272,10 @@ LEFT JOIN payments p ON s.id = p.subscription_id AND p.status = 'completed'
 |---|---|---|---|---|
 | 1 | 施策管理の対象選定が subscription_status 第一 | `InterventionManagementPage.tsx` `getRiskLevel` | D-4, T-2 | 対応中（PR #8） |
 | 2 | `intervention_type` に売上防衛施策が混入 | `20260212210000_intervention_management.sql` | T-2 | 対応中（PR #8） |
-| 3 | `trigger_reason` が自由テキスト | 同上 | T-1 | 未対応 |
+| 3 | `trigger_reason` が自由テキスト | 同上 | T-1 | 是正済み（v1.0.1 / PR #9） |
 | 4 | 行動変容と MRR が同一ビューに融合 | `v_behavior_compliance_report`（「当局提出用」コメント付き） | D-4 | 対応中（PR #8） |
-| 5 | ビューに `security_invoker` なし・REVOKE なし | リポジトリ横断 grep 0 件 | T-3 | 未対応 |
-| 6 | AdminLayout にロールガードなし | `AdminLayout.tsx`（ログイン確認のみ） | T-4 | 未対応 |
+| 5 | ビューに `security_invoker` なし・REVOKE なし | リポジトリ横断 grep 0 件 | T-3 | 是正済み（v1.0.1 / PR #11） |
+| 6 | AdminLayout にロールガードなし | `AdminLayout.tsx`（ログイン確認のみ） | T-4 | 是正済み（v1.0.1 / PR #10） |
 | 7 | Gate 4 の自動 OK 化 | `App.tsx`（`// ルールカード削除により自動OK`） | T-6 | 未対応 |
 | 8 | 保護機構の e2e 不在 | `e2e/temp_test.spec.ts`（スモーク 2 件のみ） | T-7 | 未対応 |
 | 9 | OSS ライセンス未選定 | LICENSE ファイルなし | 6.2 | 未対応 |
@@ -411,4 +411,5 @@ rg -n "platform_admin|is_admin|role" src/layouts/AdminLayout.tsx
 
 | バージョン | 日付 | 変更内容 |
 |---|---|---|
+| 1.0.1 | 2026-07-03 | 7.3 現状表を更新。T-1、T-3、T-4 の merged governance fixes（PR #9、#11、#10）を是正済みとして記録 |
 | 1.0.0 | 2026-07-03 | 初版制定（2026-07-03 コードベース監査に基づく） |
