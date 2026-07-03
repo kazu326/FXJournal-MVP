@@ -47,7 +47,8 @@ before update on public.member_settings
 for each row execute procedure public.touch_member_settings_updated_at();
 
 -- 3) weekly counts view (JST week start Monday 00:00)
-create or replace view public.v_weekly_counts as
+create or replace view public.v_weekly_counts
+with (security_invoker = true) as
 with base as (
   select
     user_id,

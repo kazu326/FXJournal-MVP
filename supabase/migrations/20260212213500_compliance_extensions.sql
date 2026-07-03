@@ -100,7 +100,8 @@ COMMENT ON COLUMN users.subscription_status IS '現在のサブスクリプシ�
 COMMENT ON COLUMN users.lifetime_value IS 'ユーザーの生涯顧客価値（LTV）キャッシュ';
 
 -- View作成: v_user_ltv
-CREATE OR REPLACE VIEW v_user_ltv AS
+CREATE OR REPLACE VIEW v_user_ltv
+WITH (security_invoker = true) AS
 SELECT 
   u.id AS user_id,
   pr.email, -- Fixed: Get email from profiles
@@ -129,7 +130,8 @@ GROUP BY u.id, pr.email;
 COMMENT ON VIEW v_user_ltv IS 'ユーザーごとの生涯顧客価値（LTV）と契約期間算出';
 
 -- View作成: v_churn_analysis
-CREATE OR REPLACE VIEW v_churn_analysis AS
+CREATE OR REPLACE VIEW v_churn_analysis
+WITH (security_invoker = true) AS
 SELECT 
   DATE_TRUNC('month', canceled_at) AS churn_month,
   COUNT(*) AS churned_users,
@@ -150,7 +152,8 @@ ORDER BY churn_month DESC;
 COMMENT ON VIEW v_churn_analysis IS '月次解約率と主な解約理由の分析';
 
 -- View作成: v_mrr_arr_summary
-CREATE OR REPLACE VIEW v_mrr_arr_summary AS
+CREATE OR REPLACE VIEW v_mrr_arr_summary
+WITH (security_invoker = true) AS
 SELECT 
   COUNT(DISTINCT user_id) AS active_subscribers,
   SUM(CASE WHEN plan_type = 'monthly' THEN mrr_amount ELSE 0 END) AS monthly_mrr,
@@ -165,7 +168,8 @@ WHERE status = 'active';
 COMMENT ON VIEW v_mrr_arr_summary IS 'MRR（月次経常収益）とARR（年次経常収益）の集計';
 
 -- View作成: v_behavior_compliance_report
-CREATE OR REPLACE VIEW v_behavior_compliance_report AS
+CREATE OR REPLACE VIEW v_behavior_compliance_report
+WITH (security_invoker = true) AS
 SELECT 
   u.id AS user_id,
   pr.email, -- Fixed: Get email from profiles
