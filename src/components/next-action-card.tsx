@@ -1,7 +1,9 @@
 "use client";
 
-import { Card, CardContent } from "./ui/card";
+import { motion, useReducedMotion } from "framer-motion";
 import { AlertCircle, ArrowRight, Shield } from "lucide-react";
+import { haptics } from "../lib/haptics";
+import { Card, CardContent } from "./ui/card";
 
 interface NextActionCardProps {
   pendingCount?: number;
@@ -22,53 +24,70 @@ export function NextActionCard({
   disabled = false,
   secondaryAction,
 }: NextActionCardProps) {
+  const shouldReduceMotion = useReducedMotion();
+
+  const handlePrimaryAction = () => {
+    if (disabled) return;
+    haptics.light();
+    onAction?.();
+  };
+
   return (
-    <Card
-      className="relative overflow-hidden flex hero-card w-full rounded-2xl glass-panel backdrop-blur-xl"
-    >
-      {/* 光る柱（左アクセントバー） */}
+    <Card className="hero-card relative flex w-full overflow-hidden rounded-2xl glass-panel backdrop-blur-xl">
       <div
-        className={`flex-shrink-0 w-2 self-stretch min-h-[120px] rounded-full ${
+        aria-hidden
+        className={`w-1.5 shrink-0 self-stretch rounded-full ${
           disabled
             ? "bg-zinc-300"
-            : "bg-gradient-to-b from-blue-400 via-blue-500 to-indigo-600 shadow-[0_0_20px_rgba(59,130,246,0.5)]"
+            : "bg-gradient-to-b from-blue-400 via-blue-500 to-indigo-600 shadow-[0_0_16px_rgba(59,130,246,0.4)]"
         }`}
       />
-      <CardContent className="pt-6 pb-6 flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-4">
-          <AlertCircle className={`size-5 ${disabled ? "text-zinc-400" : "text-primary"}`} />
-          <h2 className="text-lg font-bold text-slate-700">次にやること</h2>
+      <CardContent className="min-w-0 flex-1 !px-4 !py-4">
+        <div className="mb-2 flex items-center gap-2">
+          <AlertCircle
+            className={`size-4 ${disabled ? "text-zinc-400" : "text-primary"}`}
+          />
+          <h2 className="m-0 text-base font-bold text-slate-700">
+            次にやること
+          </h2>
         </div>
-        <p className="text-sm text-slate-500 leading-relaxed mb-6">
-          {description}
-        </p>
 
-        <div className="flex flex-col gap-4">
-          {/* メインCTA: 鮮やかグラデーション・拡大アニメ・強化影 */}
-          <button
+        {description ? (
+          <p className="mb-3 text-sm leading-snug text-slate-500">
+            {description}
+          </p>
+        ) : null}
+
+        <div className="flex flex-col gap-2">
+          <motion.button
             type="button"
-            onClick={onAction}
+            data-testid="next-action-primary"
+            onClick={handlePrimaryAction}
             disabled={disabled}
-            className={`w-full h-14 rounded-xl font-semibold text-base inline-flex items-center justify-center gap-2 transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none disabled:transform-none !border-0 outline-none ring-0 ${
+            whileTap={
+              disabled || shouldReduceMotion ? undefined : { scale: 0.985 }
+            }
+            className={`inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl !border-0 text-sm font-semibold outline-none ring-0 transition-[filter,box-shadow,background-color] focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:transform-none disabled:opacity-50 motion-reduce:active:scale-100 motion-reduce:transition-none ${
               disabled
-                ? "bg-zinc-200 text-zinc-600 border border-zinc-300"
-                : "bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 shadow-xl shadow-blue-500/40 !text-white"
+                ? "!bg-zinc-200 !text-zinc-600"
+                : "!bg-gradient-to-r !from-blue-600 !via-blue-500 !to-indigo-600 !text-white shadow-lg shadow-blue-500/30 hover:brightness-105"
             }`}
           >
             {actionLabel}
-            {!disabled && <ArrowRight className="size-5" />}
-          </button>
+            {!disabled ? <ArrowRight className="size-4" /> : null}
+          </motion.button>
 
-          {secondaryAction && (
+          {secondaryAction ? (
             <button
               type="button"
+              data-testid="next-action-secondary"
               onClick={secondaryAction.onAction}
-              className="w-full rounded-xl border border-green-200/80 bg-green-50/50 backdrop-blur-sm px-4 py-3.5 text-sm font-semibold !text-slate-800 shadow-sm hover:bg-green-50/70 hover:shadow active:scale-[0.98] transition-all inline-flex items-center justify-center gap-2"
+              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-green-200/80 bg-green-50/50 px-4 py-2.5 text-sm font-semibold !text-slate-800 shadow-sm transition-[background-color,box-shadow] hover:bg-green-50/80 hover:shadow focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
             >
               <Shield className="h-4 w-4" />
               {secondaryAction.label}
             </button>
-          )}
+          ) : null}
         </div>
       </CardContent>
     </Card>

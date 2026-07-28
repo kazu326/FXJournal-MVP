@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "../lib/supabase";
-import { ArrowLeft, BookOpen, PlayCircle } from "lucide-react";
+import { BookOpen, PlayCircle } from "lucide-react";
 import { LectureSequenceItem } from "../components/LectureSequenceItem";
 import { ContinueLectureCard } from "../components/ContinueLectureCard";
 import { LectureDetailModal } from "../components/LectureDetailModal";
@@ -29,7 +29,7 @@ function isLectureUnlocked(lecture: Lecture, lectures: Lecture[]): boolean {
   return prevNote?.completed_at != null || (prevNote?.watch_progress ?? 0) >= 70;
 }
 
-export default function LectureNotesPage({ session, onBack, onLectureComplete }: LectureNotesPageProps) {
+export default function LectureNotesPage({ session, onLectureComplete }: LectureNotesPageProps) {
   const user = session?.user;
   const [courses, setCourses] = useState<Course[]>([]);
   const [lectures, setLectures] = useState<Lecture[]>([]);
@@ -260,46 +260,73 @@ export default function LectureNotesPage({ session, onBack, onLectureComplete }:
 
   if (loading) {
     return (
-      <div className="min-h-dvh flex items-center justify-center bg-zinc-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+      <div className="flex min-h-[60vh] items-center justify-center px-4 pb-24">
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex flex-col items-center gap-3 text-sm font-semibold text-slate-600"
+        >
+          <div
+            aria-hidden
+            className="size-10 animate-spin rounded-full border-4 border-blue-100 border-t-blue-600 motion-reduce:animate-none"
+          />
+          <span>講義を読み込んでいます</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-dvh pb-12">
-      <div className="max-w-4xl mx-auto p-4 space-y-6">
-        <div>
-          <button
-            type="button"
-            onClick={onBack}
-            className="text-sm font-semibold text-zinc-600 flex items-center gap-1 hover:text-zinc-800 transition-colors mb-3"
-          >
-            <ArrowLeft className="h-4 w-4" /> 戻る
-          </button>
-        </div>
-
-        <div className="rounded-xl glass-panel p-6">
-          <h1 className="text-2xl font-bold text-zinc-900 mb-2 flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-zinc-500 shrink-0" aria-hidden />
-            あなたの学習ロードマップ
+    <main
+      data-testid="lecture-page"
+      className="bg-[#F7F8FA]"
+    >
+      <div className="mx-auto max-w-4xl space-y-4 px-4 pt-5 sm:space-y-6 sm:pt-6">
+        <section className="rounded-2xl border border-blue-100/80 bg-white/90 p-4 shadow-[0_12px_32px_-22px_rgba(37,99,235,0.65)] sm:p-6">
+          <h1 className="m-0 flex items-center gap-2 text-xl font-bold leading-tight text-slate-900 sm:text-2xl">
+            <BookOpen className="size-6 shrink-0 text-blue-600" aria-hidden />
+            学習ロードマップ
           </h1>
-          <div className="text-sm text-zinc-600 mb-3">
-            トータル進捗: {totalProgress.completed}/{totalProgress.total}完了
-          </div>
-          <div className="w-full bg-zinc-200 rounded-full h-3">
-            <div
-              className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-500"
-              style={{
-                width:
-                  totalProgress.total > 0 ? `${(totalProgress.completed / totalProgress.total) * 100}%` : "0%",
-              }}
-            />
-          </div>
-        </div>
+          <p className="mb-0 mt-2 text-sm leading-relaxed text-slate-600">
+            判断の土台を、自分のペースでひとつずつ身につけましょう。
+          </p>
+
+          {totalProgress.total > 0 ? (
+            <div className="mt-4">
+              <div className="mb-2 flex items-center justify-between text-sm">
+                <span className="font-semibold text-slate-600">トータル進捗</span>
+                <span className="font-bold text-blue-600">
+                  {totalProgress.completed}/{totalProgress.total}完了
+                </span>
+              </div>
+              <div
+                role="progressbar"
+                aria-label="講義のトータル進捗"
+                aria-valuemin={0}
+                aria-valuemax={totalProgress.total}
+                aria-valuenow={totalProgress.completed}
+                className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200"
+              >
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-blue-500 to-violet-500 transition-[width] duration-500 motion-reduce:transition-none"
+                  style={{
+                    width: `${(totalProgress.completed / totalProgress.total) * 100}%`,
+                  }}
+                />
+              </div>
+            </div>
+          ) : (
+            <p
+              data-testid="lecture-empty-summary"
+              className="mb-0 mt-3 rounded-xl bg-blue-50 px-3 py-2 text-xs font-semibold leading-relaxed text-blue-700"
+            >
+              講義が公開されると、進捗がここに表示されます。
+            </p>
+          )}
+        </section>
 
         {(inProgressLecture ?? nextLecture) && (
-          <div className="rounded-xl glass-panel p-4 sm:p-6 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 overflow-hidden">
+          <section className="overflow-hidden rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50 to-purple-50 p-4 shadow-sm sm:p-6">
             <h2 className="text-base sm:text-lg font-bold text-zinc-900 mb-3 flex items-center gap-2">
               <PlayCircle className="w-5 h-5 text-zinc-500 shrink-0" aria-hidden />
               続きから再生
@@ -309,7 +336,7 @@ export default function LectureNotesPage({ session, onBack, onLectureComplete }:
               onClick={() => setSelectedLectureId((inProgressLecture ?? nextLecture)!.id)}
               onExternalOpen={handleExternalOpen}
             />
-          </div>
+          </section>
         )}
 
         {completionError && (
@@ -328,7 +355,10 @@ export default function LectureNotesPage({ session, onBack, onLectureComplete }:
           const progress = getCourseProgress(course.id);
 
           return (
-            <div key={course.id} className="rounded-xl glass-panel p-6">
+            <section
+              key={course.id}
+              className="rounded-2xl border border-slate-100 bg-white/90 p-4 shadow-sm sm:p-6"
+            >
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <BookOpen className="w-6 h-6 text-zinc-500 shrink-0" aria-hidden />
@@ -352,9 +382,16 @@ export default function LectureNotesPage({ session, onBack, onLectureComplete }:
                 </div>
               </div>
 
-              <div className="w-full bg-zinc-200 rounded-full h-2 mb-4">
+              <div
+                role="progressbar"
+                aria-label={`${course.title}の進捗`}
+                aria-valuemin={0}
+                aria-valuemax={progress.total}
+                aria-valuenow={progress.completed}
+                className="mb-4 h-2 w-full overflow-hidden rounded-full bg-zinc-200"
+              >
                 <div
-                  className="bg-blue-500 h-2 rounded-full transition-all duration-500"
+                  className="h-full rounded-full bg-blue-500 transition-[width] duration-500 motion-reduce:transition-none"
                   style={{ width: `${progress.percentage}%` }}
                 />
               </div>
@@ -398,20 +435,40 @@ export default function LectureNotesPage({ session, onBack, onLectureComplete }:
                   );
                 })}
               </div>
-            </div>
+            </section>
           );
         })}
 
         {courses.length === 0 && (
-          <div className="text-center py-12 text-zinc-500 rounded-xl glass-panel p-6">
-            コースがまだ登録されていません。DBに courses テーブルとデータを適用してください。
-          </div>
+          <section
+            data-testid="lecture-empty-state"
+            aria-labelledby="lecture-empty-title"
+            className="rounded-2xl border border-slate-100 bg-white/90 px-6 py-10 text-center shadow-[0_14px_32px_-24px_rgba(15,23,42,0.45)]"
+          >
+            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+              <BookOpen className="size-6" aria-hidden />
+            </div>
+            <h2
+              id="lecture-empty-title"
+              className="mb-0 mt-4 text-lg font-bold text-slate-800"
+            >
+              講義を準備中です
+            </h2>
+            <p className="mx-auto mb-0 mt-2 max-w-sm text-sm leading-relaxed text-slate-600">
+              新しい講義が公開されると、ここから順番に学べます。
+            </p>
+          </section>
         )}
 
         {courses.length > 0 && lectures.length === 0 && (
-          <div className="text-center py-12 text-zinc-500 rounded-xl glass-panel p-6">
-            講座がまだ登録されていません。
-          </div>
+          <section className="rounded-2xl border border-slate-100 bg-white/90 px-6 py-10 text-center shadow-sm">
+            <h2 className="m-0 text-lg font-bold text-slate-800">
+              このコースの講義を準備中です
+            </h2>
+            <p className="mb-0 mt-2 text-sm text-slate-600">
+              公開まで少しお待ちください。
+            </p>
+          </section>
         )}
       </div>
 
@@ -425,6 +482,6 @@ export default function LectureNotesPage({ session, onBack, onLectureComplete }:
           onProgressUpdate={handleProgressUpdate}
         />
       )}
-    </div>
+    </main>
   );
 }

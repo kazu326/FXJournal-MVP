@@ -7,10 +7,9 @@ import { StreakHeader } from "./components/streak-header";
 import { useTradeStore, type TradeLogLite, type SuccessProb, type ExpectedValue } from "./store/tradeStore";
 import { fetchCurrencyPairs, sortPairsForJP, type CurrencyPair } from "./services/currencyPairService";
 import { calculateTradeMetrics } from "./utils/lotCalculator";
-import { TodayTasksCard, type Task } from "./components/today-tasks-card";
-import { WeeklyProgressCard } from "./components/weekly-progress-card";
 import { TeacherDMCard } from "./components/teacher-dm-card";
 import { NextActionCard } from "./components/next-action-card";
+import { HomeNavigator, type HomeNavigatorMode } from "./components/home-navigator";
 import { Card as UiCard, CardContent as UiCardContent } from "./components/ui/card";
 import { AdminHeader } from "./components/admin-header";
 import { InstallPrompt } from "./components/install-prompt";
@@ -33,6 +32,7 @@ import { getEntryPricePlaceholder, getStopLossPricePlaceholder } from "./utils/m
 import { PreTradeChecklist } from "./components/PreTradeChecklist";
 import MascotOverlay from "./components/Mascot/MascotOverlay";
 import { useMascotStore } from "./store/mascotStore";
+import { haptics } from "./lib/haptics";
 import MyPage from "./pages/MyPage";
 import LearningContentsPage from "./pages/LearningContentsPage";
 import SlideViewerPage from "./pages/SlideViewerPage";
@@ -347,7 +347,6 @@ export default function App() {
   // mode はURLパスで管理（Zustandの mode/setMode は不要）
   const navigate = useNavigate();
   const location = useLocation();
-  const isLectureNotesRoute = location.pathname === "/lecture-notes";
   // activeTab は URL パスから自動判定
   const activeTab: TabKey = (() => {
     if (location.pathname.startsWith("/history")) return "history";
@@ -661,12 +660,6 @@ export default function App() {
     [historyLogs]
   );
 
-  // 今日の取引（valid）があるか
-  const hasValidToday = useMemo(
-    () => todayLogs.some((l) => l.log_type === "valid"),
-    [todayLogs]
-  );
-
   // 今日の取引が完了しているか（completed_at がある）
   const hasCompletedTradeToday = useMemo(
     () => todayLogs.some((l) => l.log_type === "valid" && l.completed_at != null),
@@ -802,6 +795,7 @@ export default function App() {
     void loadMemberSettings();
     void loadAnnouncements();
     void loadMemberDm();
+    void loadHistory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.id]);
 
@@ -1106,6 +1100,7 @@ export default function App() {
     if (error) return setStatus(`保存失敗: ${error.message}`);
     setStatus("✅ 見送りとして記録しました。");
     showMascot("sessionEnd");
+    haptics.success();
 
     // XP更新
     void (async () => {
@@ -1543,6 +1538,7 @@ export default function App() {
     setPending(newLog);
     setStatus("✅ 記録しました。取引後のチェックを入れてください。");
     showMascot("tradeSaved");
+    haptics.success();
 
     // XP更新
     void (async () => {
@@ -1601,6 +1597,7 @@ export default function App() {
 
     setStatus("✅ 事後チェックを記録しました（感想は不要。事実だけ積み上がりました）。");
     showMascot("sessionEnd");
+    haptics.success();
     resetPost();
     setPending(null);
     setActiveLog(null);
@@ -1734,21 +1731,6 @@ export default function App() {
     );
   }
 
-
-  if (isLectureNotesRoute) {
-    return (
-      <LectureNotesPage
-        session={session}
-        onBack={() => {
-          navigate("/");
-        }}
-        onLectureComplete={(res: unknown) => {
-          applyXpResult(res as XpResult | null);
-          showMascot("lessonComplete");
-        }}
-      />
-    );
-  }
 
   if (location.pathname.startsWith("/messages/")) {
     return (
@@ -2480,28 +2462,6 @@ export default function App() {
     return true;
   });
 
-  // 今日のタスク
-  const todayTasks: Task[] = [
-    {
-      id: "pre",
-      label: labels.tradePre,
-      completed: hasValidToday,
-      disabled: dailyLocked,
-    },
-    {
-      id: "post",
-      label: labels.tradePost,
-      completed: hasCompletedTradeToday,
-      disabled: dailyLocked || !pending,
-    },
-    {
-      id: "skip",
-      label: labels.skip,
-      completed: hasSkipToday,
-      disabled: false,
-    },
-  ];
-
   const latestMessage = [...visibleMessages].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   )[0];
@@ -2556,6 +2516,14 @@ export default function App() {
       },
     };
   })();
+
+  const homeNavigatorMode: HomeNavigatorMode = dailyLocked
+    ? "locked"
+    : pending
+      ? "pending"
+      : hasSkipToday || hasCompletedTradeToday
+        ? "completed"
+        : "normal";
 
   return (
     <div
@@ -2753,10 +2721,10 @@ export default function App() {
 
       {activeTab === "home" && location.pathname === "/" && (
         <section>
-          <main className="min-h-dvh px-4 py-6">
-            <div className="space-y-6 text-left">
-              <header className="mb-6">
-                <p className="text-sm text-slate-500 mb-4">トレード記録 & 振り返り</p>
+          <main className="py-3">
+            <div className="mx-auto max-w-md space-y-3 text-left">
+              <header className="space-y-2">
+                <p className="m-0 text-sm text-slate-500">トレード記録 & 振り返り</p>
                 <StreakHeader
                   streakDays={loginStreak}
                   level={level}
@@ -2779,8 +2747,11 @@ export default function App() {
                 disabled={nextAction.disabled}
                 secondaryAction={nextAction.secondaryAction}
               />
-              <TodayTasksCard tasks={todayTasks} />
-              <WeeklyProgressCard usedTrades={dailyAttempts} maxTrades={dailyLimit} />
+              <HomeNavigator
+                key={homeNavigatorMode}
+                mode={homeNavigatorMode}
+                onOpenLearning={() => navigate("/learning-contents")}
+              />
             </div>
           </main>
         </section>
@@ -2859,16 +2830,14 @@ export default function App() {
       )}
 
       {activeTab === "lecture" && (
-        <div className="pb-20">
-          <LectureNotesPage
-            session={session}
-            onBack={() => navigate("/")}
-            onLectureComplete={(res: unknown) => {
-              applyXpResult(res as XpResult | null);
-              showMascot("lessonComplete");
-            }}
-          />
-        </div>
+        <LectureNotesPage
+          session={session}
+          onBack={() => navigate("/")}
+          onLectureComplete={(res: unknown) => {
+            applyXpResult(res as XpResult | null);
+            showMascot("lessonComplete");
+          }}
+        />
       )}
 
       {session && !isAdminRoute && showInstallPrompt && (
@@ -3500,6 +3469,7 @@ export default function App() {
                 <div className="flex flex-col gap-3">
                   <button
                     type="button"
+                    data-testid="post-trade-save"
                     onClick={() => void savePost()}
                     className="btn-cta w-full rounded-xl px-4 py-3 font-semibold"
                   >
