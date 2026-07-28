@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "../lib/supabase";
-import { BookOpen, PlayCircle } from "lucide-react";
+import { BookOpen, CheckCircle2, PlayCircle } from "lucide-react";
 import { LectureSequenceItem } from "../components/LectureSequenceItem";
 import { ContinueLectureCard } from "../components/ContinueLectureCard";
 import { LectureDetailModal } from "../components/LectureDetailModal";
@@ -112,6 +112,7 @@ export default function LectureNotesPage({ session, onLectureComplete }: Lecture
 
   const inProgressLecture = getInProgressLecture();
   const nextLecture = getNextLecture();
+  const focusLecture = inProgressLecture ?? nextLecture;
   const selectedLecture = selectedLectureId ? sortedLectures.find((l) => l.id === selectedLectureId) ?? null : null;
 
   const markAsAccessed = useCallback(
@@ -279,24 +280,45 @@ export default function LectureNotesPage({ session, onLectureComplete }: Lecture
   return (
     <main
       data-testid="lecture-page"
-      className="bg-[#F7F8FA]"
+      className="bg-[#F7F8FA] pb-28"
     >
       <div className="mx-auto max-w-4xl space-y-4 px-4 pt-5 sm:space-y-6 sm:pt-6">
-        <section className="rounded-2xl border border-blue-100/80 bg-white/90 p-4 shadow-[0_12px_32px_-22px_rgba(37,99,235,0.65)] sm:p-6">
-          <h1 className="m-0 flex items-center gap-2 text-xl font-bold leading-tight text-slate-900 sm:text-2xl">
-            <BookOpen className="size-6 shrink-0 text-blue-600" aria-hidden />
-            学習ロードマップ
-          </h1>
-          <p className="mb-0 mt-2 text-sm leading-relaxed text-slate-600">
-            判断の土台を、自分のペースでひとつずつ身につけましょう。
-          </p>
+        <section
+          data-testid="lecture-summary"
+          aria-labelledby="lecture-page-title"
+          className="relative overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-white via-blue-50/80 to-violet-50 p-5 shadow-[0_14px_34px_-24px_rgba(37,99,235,0.65)] sm:p-6"
+        >
+          <div
+            aria-hidden
+            className="absolute -right-10 -top-12 size-32 rounded-full bg-blue-200/30 blur-2xl"
+          />
+          <div className="relative flex items-start gap-3">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-white text-blue-600 shadow-sm">
+              <BookOpen className="size-5" aria-hidden />
+            </span>
+            <div className="min-w-0">
+              <p className="m-0 text-[11px] font-bold uppercase tracking-[0.14em] text-blue-600">
+                Learning
+              </p>
+              <h1
+                id="lecture-page-title"
+                className="mb-0 mt-1 text-xl font-black leading-tight text-slate-900 sm:text-2xl"
+              >
+                学習ロードマップ
+              </h1>
+              <p className="mb-0 mt-2 text-sm leading-relaxed text-slate-600">
+                判断の土台を、自分のペースでひとつずつ身につけましょう。
+              </p>
+            </div>
+          </div>
 
           {totalProgress.total > 0 ? (
-            <div className="mt-4">
-              <div className="mb-2 flex items-center justify-between text-sm">
-                <span className="font-semibold text-slate-600">トータル進捗</span>
-                <span className="font-bold text-blue-600">
-                  {totalProgress.completed}/{totalProgress.total}完了
+            <div className="relative mt-4 rounded-xl border border-white/80 bg-white/75 px-3.5 py-3">
+              <div className="mb-2 flex items-center justify-between gap-3 text-xs">
+                <span className="font-semibold text-slate-600">全体の進み具合</span>
+                <span className="flex items-center gap-1 font-bold text-blue-700">
+                  <CheckCircle2 className="size-3.5" aria-hidden />
+                  {totalProgress.completed} / {totalProgress.total} 完了
                 </span>
               </div>
               <div
@@ -305,7 +327,7 @@ export default function LectureNotesPage({ session, onLectureComplete }: Lecture
                 aria-valuemin={0}
                 aria-valuemax={totalProgress.total}
                 aria-valuenow={totalProgress.completed}
-                className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200"
+                className="h-2 w-full overflow-hidden rounded-full bg-slate-200"
               >
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-blue-500 to-violet-500 transition-[width] duration-500 motion-reduce:transition-none"
@@ -318,22 +340,41 @@ export default function LectureNotesPage({ session, onLectureComplete }: Lecture
           ) : (
             <p
               data-testid="lecture-empty-summary"
-              className="mb-0 mt-3 rounded-xl bg-blue-50 px-3 py-2 text-xs font-semibold leading-relaxed text-blue-700"
+              className="relative mb-0 mt-4 rounded-xl border border-white/80 bg-white/75 px-3.5 py-2.5 text-xs font-semibold leading-relaxed text-blue-700"
             >
               講義が公開されると、進捗がここに表示されます。
             </p>
           )}
         </section>
 
-        {(inProgressLecture ?? nextLecture) && (
-          <section className="overflow-hidden rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50 to-purple-50 p-4 shadow-sm sm:p-6">
-            <h2 className="text-base sm:text-lg font-bold text-zinc-900 mb-3 flex items-center gap-2">
-              <PlayCircle className="w-5 h-5 text-zinc-500 shrink-0" aria-hidden />
-              続きから再生
-            </h2>
+        {focusLecture && (
+          <section
+            data-testid="lecture-next"
+            aria-labelledby="lecture-next-title"
+            className="rounded-2xl border border-blue-100 bg-white/90 p-4 shadow-sm sm:p-5"
+          >
+            <div className="mb-3 flex items-start gap-2.5">
+              <PlayCircle
+                className="mt-0.5 size-5 shrink-0 text-blue-600"
+                aria-hidden
+              />
+              <div>
+                <h2
+                  id="lecture-next-title"
+                  className="m-0 text-base font-bold text-slate-900 sm:text-lg"
+                >
+                  {inProgressLecture ? "続きから学ぶ" : "次に学ぶ講義"}
+                </h2>
+                <p className="mb-0 mt-1 text-xs leading-relaxed text-slate-500">
+                  {inProgressLecture
+                    ? "前回の続きから、自分のペースで再開できます。"
+                    : "最初の講義から、ひとつずつ進めましょう。"}
+                </p>
+              </div>
+            </div>
             <ContinueLectureCard
-              lecture={inProgressLecture ?? nextLecture!}
-              onClick={() => setSelectedLectureId((inProgressLecture ?? nextLecture)!.id)}
+              lecture={focusLecture}
+              onClick={() => setSelectedLectureId(focusLecture.id)}
               onExternalOpen={handleExternalOpen}
             />
           </section>
@@ -357,29 +398,36 @@ export default function LectureNotesPage({ session, onLectureComplete }: Lecture
           return (
             <section
               key={course.id}
+              data-testid="lecture-course"
               className="rounded-2xl border border-slate-100 bg-white/90 p-4 shadow-sm sm:p-6"
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <BookOpen className="w-6 h-6 text-zinc-500 shrink-0" aria-hidden />
-                  <div>
-                    <h2 className="text-xl font-bold text-zinc-900 flex items-center gap-2 flex-wrap">
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+                    <BookOpen className="size-5" aria-hidden />
+                  </span>
+                  <div className="min-w-0">
+                    <h2 className="m-0 flex flex-wrap items-center gap-2 text-base font-bold text-slate-900 sm:text-lg">
                       {course.title}
                       {course.is_required && (
-                        <span className="text-sm bg-red-100 text-red-600 px-2 py-1 rounded">必須</span>
+                        <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-600">
+                          必須
+                        </span>
                       )}
                       {!course.is_required && (
-                        <span className="text-sm bg-blue-100 text-blue-600 px-2 py-1 rounded">推奨</span>
+                        <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-600">
+                          推奨
+                        </span>
                       )}
                     </h2>
-                    <p className="text-sm text-zinc-600 mt-0.5">{course.description}</p>
+                    <p className="mb-0 mt-1 text-xs leading-relaxed text-slate-500">
+                      {course.description}
+                    </p>
                   </div>
                 </div>
-                <div className="text-right shrink-0">
-                  <div className="text-sm font-bold text-blue-600">
-                    {progress.completed}/{progress.total}完了
-                  </div>
-                </div>
+                <span className="shrink-0 rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-bold text-blue-700">
+                  {progress.completed}/{progress.total} 完了
+                </span>
               </div>
 
               <div
@@ -388,7 +436,7 @@ export default function LectureNotesPage({ session, onLectureComplete }: Lecture
                 aria-valuemin={0}
                 aria-valuemax={progress.total}
                 aria-valuenow={progress.completed}
-                className="mb-4 h-2 w-full overflow-hidden rounded-full bg-zinc-200"
+                className="mb-4 h-1.5 w-full overflow-hidden rounded-full bg-slate-200"
               >
                 <div
                   className="h-full rounded-full bg-blue-500 transition-[width] duration-500 motion-reduce:transition-none"
@@ -396,7 +444,7 @@ export default function LectureNotesPage({ session, onLectureComplete }: Lecture
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {courseLectures.map((lecture) => {
                   const status = getLectureStatus(lecture);
                   const isLocked = !isLectureUnlocked(lecture, lectures);
@@ -443,7 +491,7 @@ export default function LectureNotesPage({ session, onLectureComplete }: Lecture
           <section
             data-testid="lecture-empty-state"
             aria-labelledby="lecture-empty-title"
-            className="rounded-2xl border border-slate-100 bg-white/90 px-6 py-10 text-center shadow-[0_14px_32px_-24px_rgba(15,23,42,0.45)]"
+            className="rounded-2xl border border-slate-100 bg-white/90 px-6 py-9 text-center shadow-[0_14px_32px_-24px_rgba(15,23,42,0.45)]"
           >
             <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-blue-50 text-blue-600">
               <BookOpen className="size-6" aria-hidden />

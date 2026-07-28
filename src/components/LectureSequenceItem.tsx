@@ -1,4 +1,12 @@
-import { Lock, CheckCircle, Play, Circle } from "lucide-react";
+import {
+  ArrowUpRight,
+  CheckCircle2,
+  ChevronRight,
+  Circle,
+  Lock,
+  Play,
+} from "lucide-react";
+import { haptics } from "../lib/haptics";
 import type { Lecture, LectureStatus } from "../types/database.types";
 
 export interface LectureSequenceItemProps {
@@ -7,7 +15,11 @@ export interface LectureSequenceItemProps {
   status: LectureStatus;
   isLocked: boolean;
   onClick: () => void;
-  onExternalOpen?: (url: string, lectureId: string, lectureTitle: string) => void;
+  onExternalOpen?: (
+    url: string,
+    lectureId: string,
+    lectureTitle: string,
+  ) => void;
   onMarkComplete?: (lectureId: string) => void;
   onLockedClick?: (lecture: Lecture) => void;
 }
@@ -20,9 +32,33 @@ function getTypeLabel(contentType: Lecture["content_type"]): string {
       return "PDF";
     case "article":
       return "記事";
-    default:
-      return "";
   }
+}
+
+function getStatusLabel(
+  status: LectureStatus,
+  isLocked: boolean,
+  progress: number,
+): string {
+  if (isLocked) return "ロック中";
+  if (status === "completed") return "完了";
+  if (status === "in_progress") return `学習中 ${progress}%`;
+  return "未開始";
+}
+
+function StatusIcon({
+  status,
+  isLocked,
+}: {
+  status: LectureStatus;
+  isLocked: boolean;
+}) {
+  if (isLocked) return <Lock className="size-4" aria-hidden />;
+  if (status === "completed") {
+    return <CheckCircle2 className="size-5" aria-hidden />;
+  }
+  if (status === "in_progress") return <Play className="size-4" aria-hidden />;
+  return <Circle className="size-4" aria-hidden />;
 }
 
 export function LectureSequenceItem({
@@ -35,13 +71,18 @@ export function LectureSequenceItem({
   onMarkComplete,
   onLockedClick,
 }: LectureSequenceItemProps) {
-  const note = lecture.lecture_notes ?? null;
-  const progress = note?.watch_progress ?? 0;
+  const progress = lecture.lecture_notes?.watch_progress ?? 0;
   const isVideo = lecture.content_type === "video";
-  const isExternal = lecture.content_type === "pdf" || lecture.content_type === "article";
+  const isExternal =
+    lecture.content_type === "pdf" || lecture.content_type === "article";
   const showMarkComplete = isExternal && status !== "completed" && !isLocked;
+  const statusLabel = getStatusLabel(status, isLocked, progress);
+  const titleLabel =
+    sequenceNumber === 0 ? "序章" : `第${sequenceNumber}回`;
 
   const handleClick = () => {
+    haptics.light();
+
     if (isLocked) {
       onLockedClick?.(lecture);
       return;
@@ -50,123 +91,112 @@ export function LectureSequenceItem({
       onClick();
       return;
     }
-    const url = lecture.content_type === "pdf" ? lecture.slide_url : lecture.external_url;
+
+    const url =
+      lecture.content_type === "pdf"
+        ? lecture.slide_url
+        : lecture.external_url;
     if (url && onExternalOpen) {
       onExternalOpen(url, lecture.id, lecture.title);
     }
   };
 
-  const handleMarkComplete = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleMarkComplete = () => {
+    haptics.light();
     onMarkComplete?.(lecture.id);
   };
 
-  const getStatusBadge = () => {
-    if (status === "completed") {
-      return (
-        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium shrink-0">
-          ✓ 完了
-        </span>
-      );
-    }
-    if (status === "in_progress" && isExternal) {
-      return (
-        <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full font-medium shrink-0">
-          📖 確認中
-        </span>
-      );
-    }
-    if (status === "in_progress" && isVideo) {
-      return (
-        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium shrink-0">
-          ▶ 視聴中 {progress}%
-        </span>
-      );
-    }
-    return null;
-  };
-
-  const renderIcon = () => {
-    if (isLocked) return <Lock className="w-5 h-5 text-zinc-400" />;
-    if (status === "completed") return <CheckCircle className="w-5 h-5 text-zinc-500" />;
-    if (status === "in_progress") return <Play className="w-5 h-5 text-zinc-600" />;
-    return <Circle className="w-5 h-5 text-zinc-300" />;
-  };
-
-  const titleLabel = sequenceNumber === 0 ? "序章" : `第${sequenceNumber}回`;
-
-  const handleRowClick = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest("button")) return;
-    handleClick();
-  };
+  const itemTone = isLocked
+    ? "border-slate-200 bg-slate-50 text-slate-500"
+    : status === "completed"
+      ? "border-emerald-100 bg-emerald-50/50 text-emerald-700"
+      : status === "in_progress"
+        ? "border-blue-200 bg-blue-50/70 text-blue-700"
+        : "border-slate-200 bg-white text-slate-500";
 
   return (
-    <div
-      role="button"
-      tabIndex={isLocked ? -1 : 0}
-      className={`
-        p-4 rounded-lg border-2 transition-all
-        ${isLocked
-          ? "bg-zinc-50 border-zinc-200 cursor-pointer opacity-90 hover:bg-zinc-100"
-          : "bg-white border-zinc-200 hover:border-blue-300 hover:shadow cursor-pointer"
-        }
-      `}
-      onClick={handleRowClick}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          handleClick();
-        }
-      }}
+    <article
+      data-testid="lecture-item"
+      data-status={isLocked ? "locked" : status}
+      className={`overflow-hidden rounded-xl border ${itemTone}`}
     >
-      <div className="flex items-center gap-3">
-        <div className="shrink-0">
-          {renderIcon()}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="font-bold text-zinc-900 flex items-center gap-2 flex-wrap">
-            <span className="min-w-0 truncate">
-              {titleLabel}：{lecture.title}
+      <button
+        type="button"
+        onClick={handleClick}
+        aria-label={`${titleLabel} ${lecture.title}、${statusLabel}`}
+        className="group flex w-full items-center gap-3 !border-0 !bg-transparent px-3.5 py-3 text-left !text-inherit outline-none transition-colors hover:bg-white/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 motion-reduce:transition-none"
+      >
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
+          <StatusIcon status={status} isLocked={isLocked} />
+        </span>
+
+        <span className="min-w-0 flex-1">
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">
+              {titleLabel}
             </span>
-            {getStatusBadge()}
-          </div>
-          <div className="text-sm text-zinc-500 flex items-center gap-3 mt-1">
-            <span>{getTypeLabel(lecture.content_type ?? "video")}</span>
-            <span>⏱ {lecture.duration_minutes ?? "—"}分</span>
-            {isVideo && progress > 0 && progress < 100 && (
-              <span className="text-blue-600 font-medium">進捗: {progress}%</span>
-            )}
-          </div>
-        </div>
-      </div>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                isLocked
+                  ? "bg-slate-200 text-slate-600"
+                  : status === "completed"
+                    ? "bg-emerald-100 text-emerald-700"
+                    : status === "in_progress"
+                      ? "bg-blue-100 text-blue-700"
+                      : "bg-slate-100 text-slate-600"
+              }`}
+            >
+              {statusLabel}
+            </span>
+          </span>
+          <span className="mt-1 block truncate text-sm font-bold text-slate-800">
+            {lecture.title}
+          </span>
+          <span className="mt-1 block text-[11px] text-slate-500">
+            {getTypeLabel(lecture.content_type)} ・ 約
+            {lecture.duration_minutes ?? "—"}分
+          </span>
+        </span>
 
-      {isLocked && (
-        <div className="mt-2 text-xs text-zinc-500 flex items-center gap-1">
-          <Lock className="w-3 h-3 shrink-0" />
-          前の講座を完了するとアンロックされます
-        </div>
-      )}
-
-      {showMarkComplete && (
-        <button
-          type="button"
-          onClick={handleMarkComplete}
-          className="mt-3 w-full py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all font-medium flex items-center justify-center gap-2 cursor-pointer"
-        >
-          <CheckCircle className="w-4 h-4" />
-          完了にする
-        </button>
-      )}
-
-      {isVideo && progress > 0 && progress < 100 && (
-        <div className="w-full bg-zinc-200 rounded-full h-2 mt-3">
-          <div
-            className="bg-blue-500 h-2 rounded-full transition-all"
-            style={{ width: `${progress}%` }}
+        {isExternal && !isLocked ? (
+          <ArrowUpRight className="size-4 shrink-0" aria-hidden />
+        ) : (
+          <ChevronRight
+            className="size-4 shrink-0 transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
+            aria-hidden
           />
+        )}
+      </button>
+
+      {isLocked ? (
+        <p className="m-0 border-t border-slate-200 px-3.5 py-2 text-[11px] leading-relaxed text-slate-500">
+          ひとつ前の講義を完了すると開きます
+        </p>
+      ) : null}
+
+      {showMarkComplete ? (
+        <div className="border-t border-current/10 px-3.5 py-2.5">
+          <button
+            type="button"
+            onClick={handleMarkComplete}
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg !border !border-emerald-200 !bg-emerald-50 px-3 py-2 text-xs font-bold !text-emerald-700 outline-none transition-colors hover:!bg-emerald-100 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1 motion-reduce:transition-none"
+          >
+            <CheckCircle2 className="size-4" aria-hidden />
+            確認後に完了へ
+          </button>
         </div>
-      )}
-    </div>
+      ) : null}
+
+      {isVideo && progress > 0 && progress < 100 ? (
+        <div className="px-3.5 pb-3">
+          <div className="h-1.5 overflow-hidden rounded-full bg-blue-100">
+            <div
+              className="h-full rounded-full bg-blue-500 transition-[width] duration-500 motion-reduce:transition-none"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+      ) : null}
+    </article>
   );
 }
