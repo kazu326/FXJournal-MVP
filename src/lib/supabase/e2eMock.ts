@@ -1,7 +1,7 @@
 type QueryResult = {
   data?: unknown;
   count?: number | null;
-  error?: null;
+  error?: { message: string } | null;
 };
 
 const testUser = {
@@ -43,6 +43,7 @@ class MockQuery {
   private wantCount = false;
   private maybeSingleResult = false;
   private singleResult = false;
+  private unfinishedTradeLookup = false;
   private readonly table: string;
 
   constructor(table: string) {
@@ -77,7 +78,15 @@ class MockQuery {
   neq() { return this; }
   gte() { return this; }
   is() { return this; }
-  or() { return this; }
+  or(filters?: string) {
+    if (
+      this.table === "trade_logs" &&
+      filters?.includes("post_gate_kept.is.null")
+    ) {
+      this.unfinishedTradeLookup = true;
+    }
+    return this;
+  }
   order() { return this; }
   limit() { return this; }
   in() { return this; }
@@ -97,7 +106,13 @@ class MockQuery {
   }
 
   private resolve(): QueryResult {
+    const scenario = getScenario();
+
     if (this.operation === "insert") {
+      if (scenario === "insert-error") {
+        return { data: null, error: { message: "E2E insert failure" } };
+      }
+
       ensureState().inserts.push({ table: this.table, rows: this.rows });
       const firstRow = (this.rows[0] ?? {}) as Record<string, unknown>;
       const data = {
@@ -115,16 +130,14 @@ class MockQuery {
       return { data: this.singleResult ? this.rows[0] : this.rows, error: null };
     }
 
-    const scenario = getScenario();
-
     if (this.table === "profiles") {
       const profile = {
         user_id: testUser.id,
         role: "admin",
         display_name: "E2E Admin",
-        level: 1,
-        current_xp: 0,
-        login_streak: 0,
+        level: scenario === "progress" ? 3 : 1,
+        current_xp: scenario === "progress" ? 42 : 0,
+        login_streak: scenario === "progress" ? 7 : 0,
         onboarding_completed: true,
       };
       return { data: this.singleResult || this.maybeSingleResult ? profile : [profile], error: null };
@@ -149,6 +162,39 @@ class MockQuery {
     if (this.table === "trade_logs") {
       if (this.wantCount) {
         return { count: scenario === "daily-limit" ? 2 : 0, data: null, error: null };
+      }
+      if (scenario === "pending-trade") {
+        return {
+          data: [{
+            id: "pending-e2e-log",
+            occurred_at: today(),
+            log_type: "valid",
+            gate_all_ok: true,
+            success_prob: "mid",
+            expected_value: "plus",
+            completed_at: null,
+            voided_at: null,
+          }],
+          error: null,
+        };
+      }
+      if (scenario === "completed-trade") {
+        if (this.unfinishedTradeLookup) {
+          return { data: [], error: null };
+        }
+        return {
+          data: [{
+            id: "completed-e2e-log",
+            occurred_at: today(),
+            log_type: "valid",
+            gate_all_ok: true,
+            success_prob: "mid",
+            expected_value: "plus",
+            completed_at: today(),
+            voided_at: null,
+          }],
+          error: null,
+        };
       }
       return { data: [], error: null };
     }

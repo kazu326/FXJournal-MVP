@@ -3,13 +3,13 @@ let userHasInteracted = false;
 if (typeof window !== 'undefined') {
     const handleInteraction = () => {
         userHasInteracted = true;
-        window.removeEventListener('click', handleInteraction);
-        window.removeEventListener('touchstart', handleInteraction);
-        window.removeEventListener('keydown', handleInteraction);
+        window.removeEventListener('click', handleInteraction, true);
+        window.removeEventListener('touchstart', handleInteraction, true);
+        window.removeEventListener('keydown', handleInteraction, true);
     };
-    window.addEventListener('click', handleInteraction, { once: true });
-    window.addEventListener('touchstart', handleInteraction, { once: true });
-    window.addEventListener('keydown', handleInteraction, { once: true });
+    window.addEventListener('click', handleInteraction, { once: true, capture: true });
+    window.addEventListener('touchstart', handleInteraction, { once: true, capture: true });
+    window.addEventListener('keydown', handleInteraction, { once: true, capture: true });
 }
 
 export const haptics = {
