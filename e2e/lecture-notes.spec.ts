@@ -39,3 +39,33 @@ test("lecture page keeps the shared navigation and a learner-friendly empty stat
   await page.getByRole("button", { name: "ホーム" }).click();
   await expect(page).toHaveURL("/");
 });
+
+test("lecture page prioritizes the next lesson and keeps course states clear", async ({
+  page,
+}) => {
+  await page.goto("/lecture-notes?e2e-scenario=lecture-progress");
+
+  await expect(page.getByTestId("lecture-summary")).toContainText("1 / 4 完了");
+  await expect(page.getByTestId("lecture-next")).toContainText("続きから学ぶ");
+  await expect(page.getByTestId("continue-lecture-card")).toContainText(
+    "損失を限定する考え方",
+  );
+
+  const items = page.getByTestId("lecture-item");
+  await expect(items).toHaveCount(4);
+  await expect(page.locator('[data-status="completed"]')).toHaveCount(1);
+  await expect(page.locator('[data-status="in_progress"]')).toHaveCount(1);
+  await expect(page.locator('[data-status="locked"]')).toHaveCount(2);
+
+  const layout = await page.evaluate(() => ({
+    viewportWidth: window.innerWidth,
+    documentWidth: document.documentElement.scrollWidth,
+    navigatorVisible: Boolean(
+      document.querySelector("div.fixed.bottom-0")?.getBoundingClientRect()
+        .height,
+    ),
+  }));
+
+  expect(layout.documentWidth).toBe(layout.viewportWidth);
+  expect(layout.navigatorVisible).toBe(true);
+});

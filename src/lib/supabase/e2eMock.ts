@@ -21,6 +21,10 @@ const today = () => new Date().toISOString();
 
 const getScenario = () => {
   if (typeof window === "undefined") return "default";
+  const urlScenario = new URLSearchParams(window.location.search).get(
+    "e2e-scenario",
+  );
+  if (urlScenario) return urlScenario;
   return window.localStorage.getItem("fxj_e2e_scenario") ?? "default";
 };
 
@@ -157,6 +161,103 @@ class MockQuery {
         note: null,
       };
       return { data: this.singleResult || this.maybeSingleResult ? settings : [settings], error: null };
+    }
+
+    if (scenario === "lecture-progress" && this.table === "courses") {
+      return {
+        data: [{
+          id: "course-foundations",
+          title: "判断の土台",
+          description: "取引前に確認したい基本を、順番に身につけます。",
+          sequence_number: 1,
+          is_required: true,
+          icon: "book",
+          created_at: "2026-01-01T00:00:00.000Z",
+        }],
+        error: null,
+      };
+    }
+
+    if (scenario === "lecture-progress" && this.table === "lectures") {
+      return {
+        data: [
+          {
+            id: "lecture-1",
+            course_id: "course-foundations",
+            sequence_number: 1,
+            title: "トレード前に確認すること",
+            content_type: "video",
+            video_url: "https://example.com/lecture-1",
+            youtube_video_id: null,
+            slide_url: null,
+            external_url: null,
+            duration_minutes: 6,
+            is_required: true,
+          },
+          {
+            id: "lecture-2",
+            course_id: "course-foundations",
+            sequence_number: 2,
+            title: "損失を限定する考え方",
+            content_type: "video",
+            video_url: "https://example.com/lecture-2",
+            youtube_video_id: null,
+            slide_url: null,
+            external_url: null,
+            duration_minutes: 8,
+            is_required: true,
+          },
+          {
+            id: "lecture-3",
+            course_id: "course-foundations",
+            sequence_number: 3,
+            title: "見送りを判断する基準",
+            content_type: "pdf",
+            video_url: null,
+            youtube_video_id: null,
+            slide_url: "https://example.com/lecture-3.pdf",
+            external_url: null,
+            duration_minutes: 5,
+            is_required: true,
+          },
+          {
+            id: "lecture-4",
+            course_id: "course-foundations",
+            sequence_number: 4,
+            title: "記録から判断を振り返る",
+            content_type: "article",
+            video_url: null,
+            youtube_video_id: null,
+            slide_url: null,
+            external_url: "https://example.com/lecture-4",
+            duration_minutes: 7,
+            is_required: true,
+          },
+        ],
+        error: null,
+      };
+    }
+
+    if (scenario === "lecture-progress" && this.table === "lecture_notes") {
+      return {
+        data: [
+          {
+            id: "lecture-note-1",
+            lecture_id: "lecture-1",
+            user_id: testUser.id,
+            watch_progress: 100,
+            completed_at: "2026-01-02T00:00:00.000Z",
+          },
+          {
+            id: "lecture-note-2",
+            lecture_id: "lecture-2",
+            user_id: testUser.id,
+            watch_progress: 45,
+            completed_at: null,
+          },
+        ],
+        error: null,
+      };
     }
 
     if (this.table === "trade_logs") {
