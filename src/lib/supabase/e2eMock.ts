@@ -601,8 +601,14 @@ class MockQuery {
 
 export const e2eSupabase = {
   auth: {
-    getSession: async () => ({ data: { session: testSession }, error: null }),
-    getUser: async () => ({ data: { user: testUser }, error: null }),
+    getSession: async () => ({
+      data: { session: getScenario() === "logged-out" ? null : testSession },
+      error: null,
+    }),
+    getUser: async () => ({
+      data: { user: getScenario() === "logged-out" ? null : testUser },
+      error: null,
+    }),
     onAuthStateChange: () => ({
       data: {
         subscription: {

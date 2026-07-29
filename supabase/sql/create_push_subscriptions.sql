@@ -14,22 +14,17 @@ create table if not exists public.push_subscriptions (
 alter table public.push_subscriptions enable row level security;
 
 -- Policies
-create policy "Users can insert their own subscriptions"
-  on public.push_subscriptions for insert
-  with check (auth.uid() = user_id);
+revoke all on table public.push_subscriptions from public, anon;
+grant select, insert, update, delete
+  on table public.push_subscriptions
+  to authenticated;
 
-create policy "Users can select their own subscriptions"
-  on public.push_subscriptions for select
-  using (auth.uid() = user_id);
-
-create policy "Users can delete their own subscriptions"
-  on public.push_subscriptions for delete
-  using (auth.uid() = user_id);
-
-create policy "Users can update their own subscriptions"
-  on public.push_subscriptions for update
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+create policy "Users can manage their own subscriptions"
+  on public.push_subscriptions
+  for all
+  to authenticated
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
 
 -- Add index
 create index if not exists push_subscriptions_user_id_idx on public.push_subscriptions (user_id);
