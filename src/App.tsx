@@ -7,10 +7,8 @@ import { StreakHeader } from "./components/streak-header";
 import { useTradeStore, type TradeLogLite, type SuccessProb, type ExpectedValue } from "./store/tradeStore";
 import { fetchCurrencyPairs, sortPairsForJP, type CurrencyPair } from "./services/currencyPairService";
 import { calculateTradeMetrics } from "./utils/lotCalculator";
-import { TeacherDMCard } from "./components/teacher-dm-card";
 import { NextActionCard } from "./components/next-action-card";
 import { HomeNavigator, type HomeNavigatorMode } from "./components/home-navigator";
-import { Card as UiCard, CardContent as UiCardContent } from "./components/ui/card";
 import { AdminHeader } from "./components/admin-header";
 import { InstallPrompt } from "./components/install-prompt";
 import { updateXpAndStreak } from "./lib/xp";
@@ -38,6 +36,7 @@ import LearningContentsPage from "./pages/LearningContentsPage";
 import SlideViewerPage from "./pages/SlideViewerPage";
 import VideoListPage from "./pages/VideoListPage";
 import ImportPage from "./pages/ImportPage";
+import MessagesPage from "./pages/MessagesPage";
 
 // Mode型はtradeStoreで管理（ここでの宣言は不要）
 
@@ -193,13 +192,6 @@ type HistoryLog = {
   completed_at: string | null;
 };
 
-type Announcement = {
-  id: string;
-  title: string;
-  body: string;
-  created_at: string;
-};
-
 type ReviewQueueRow = {
   log_id: string;
   occurred_at: string;
@@ -288,21 +280,6 @@ type AdminLogRow = {
   email: string | null;
 };
 
-type DmThread = {
-  id: string;
-  member_user_id: string;
-  teacher_user_id: string;
-  created_at: string;
-};
-
-type DmMessage = {
-  id: string;
-  thread_id: string;
-  sender_user_id: string | null;
-  body: string;
-  created_at: string;
-};
-
 type MemberSettings = {
   member_user_id: string;
   weekly_limit: number;
@@ -333,11 +310,6 @@ function isToday(d: string | number | Date) {
   const dt = new Date(d);
   const now = new Date();
   return dt.toDateString() === now.toDateString();
-}
-
-function extractCompleteLogId(body: string) {
-  const match = body.match(/\/complete\/([a-zA-Z0-9-]+)/);
-  return match ? match[1] : null;
 }
 
 export default function App() {
@@ -547,11 +519,6 @@ export default function App() {
   const [memberSettings, setMemberSettings] = useState<MemberSettings | null>(null);
   const [historyLogs, setHistoryLogs] = useState<HistoryLog[]>([]);
 
-  // announcements + DM (member)
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [memberThreads, setMemberThreads] = useState<DmThread[]>([]);
-  const [memberMessages, setMemberMessages] = useState<DmMessage[]>([]);
-  const [memberDmInput, setMemberDmInput] = useState("");
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingLoading, setOnboardingLoading] = useState(false);
@@ -719,34 +686,6 @@ export default function App() {
   useEffect(() => {
     if (!session) return;
     void loadPending();
-
-    // リアルタイム購読
-    const channel = supabase
-      .channel("realtime-updates")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "announcements" },
-        (payload) => {
-          console.log("Realtime: announcement changed", payload.eventType);
-          void loadAnnouncements();
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "dm_messages" },
-        (payload) => {
-          const newRecord = payload.new as { id?: string } | null;
-          console.log("Realtime: dm_message changed", payload.eventType, newRecord?.id);
-          void loadMemberDm();
-        }
-      )
-      .subscribe((status) => {
-        console.log("Realtime: subscription status", status);
-      });
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.id]);
 
@@ -793,8 +732,6 @@ export default function App() {
     void loadMyRole();
     void loadDailyCount();
     void loadMemberSettings();
-    void loadAnnouncements();
-    void loadMemberDm();
     void loadHistory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.id]);
@@ -878,10 +815,6 @@ export default function App() {
     setDailyAttempts(0);
     setHistoryLogs([]);
     setRole("member");
-    setAnnouncements([]);
-    setMemberThreads([]);
-    setMemberMessages([]);
-    setMemberDmInput("");
     setMemberSettings(null);
     setReviewQueue([]);
     setUnfinishedQueue([]);
@@ -1046,40 +979,6 @@ export default function App() {
     return fromProfile ?? fallbackName ?? memberId ?? email ?? "—";
   };
 
-  const loadAnnouncements = async () => {
-    const { data, error } = await supabase
-      .from("announcements")
-      .select("id, title, body, created_at")
-      .order("created_at", { ascending: false })
-      .limit(5);
-
-    if (!error) setAnnouncements((data ?? []) as Announcement[]);
-  };
-
-  const loadMemberDm = async () => {
-    if (!session?.user?.id) return;
-
-    // スレッドに依存せず、自分宛(recipient=me or null)または自分発(sender=me)のメッセージを取得
-    const { data: messages, error } = await supabase
-      .from("dm_messages")
-      .select("id, thread_id, sender_user_id, recipient_user_id, body, created_at")
-      .or(`recipient_user_id.eq.${session.user.id},sender_user_id.eq.${session.user.id},recipient_user_id.is.null`)
-      .order("created_at", { ascending: false })
-      .limit(50);
-
-    if (error) return;
-    setMemberMessages((messages ?? []) as DmMessage[]);
-
-    // 返信先特定のためにスレッド情報も取得しておく（既存ロジック維持）
-    const { data: threads } = await supabase
-      .from("dm_threads")
-      .select("id, member_user_id, teacher_user_id, created_at")
-      .eq("member_user_id", session.user.id)
-      .order("created_at", { ascending: false });
-
-    if (threads) setMemberThreads((threads ?? []) as DmThread[]);
-  };
-
   // resetPre, resetPost は Zustand ストアから取得済み
 
   const saveSkipQuick = async () => {
@@ -1125,29 +1024,6 @@ export default function App() {
 
     if (error) return reportError("履歴取得失敗", error);
     setHistoryLogs((data ?? []) as HistoryLog[]);
-  };
-
-  const sendMemberMessage = async (message?: string) => {
-    setStatus("");
-    if (!session?.user?.id) return setStatus("未ログインです。");
-    const body = (message ?? memberDmInput).trim();
-    if (!body) return;
-    if (memberThreads.length === 0) {
-      return setStatus("先生からのDMが届いたら返信できます。");
-    }
-    const threadId = memberThreads[0].id;
-    const teacherId = memberThreads[0].teacher_user_id;
-    const { error } = await supabase.from("dm_messages").insert([
-      {
-        thread_id: threadId,
-        sender_user_id: session.user.id,
-        recipient_user_id: teacherId, // 教師宛
-        body
-      },
-    ]);
-    if (error) return setStatus(`DM送信失敗: ${error.message}`);
-    setMemberDmInput("");
-    await loadMemberDm();
   };
 
   const loadReviewQueue = async () => {
@@ -2450,22 +2326,6 @@ export default function App() {
     );
   }
 
-  const completedLogIds = new Set(
-    historyLogs.filter((l) => l.completed_at).map((l) => l.id)
-  );
-  const visibleMessages = memberMessages.filter((m) => {
-    const logId = extractCompleteLogId(m.body);
-    if (logId) return !completedLogIds.has(logId);
-    const isFollowup =
-      m.body.includes("取引後のチェック") && m.body.includes("想定内/外");
-    if (isFollowup && !pending) return false;
-    return true;
-  });
-
-  const latestMessage = [...visibleMessages].sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  )[0];
-
   if (session && !isAdminRoute && onboardingLoading) {
     return (
       <div className="min-h-dvh flex flex-col items-center justify-center gap-3 bg-zinc-50">
@@ -2757,72 +2617,8 @@ export default function App() {
         </section>
       )}
 
-      {activeTab === "messages" && (
-        <main className="min-h-dvh px-4 py-6">
-          <div className="max-w-md mx-auto space-y-6 pb-20">
-            <h2 className="text-xl font-bold text-zinc-900 px-1 flex items-center gap-2">
-              <span>💬</span> メッセージ
-            </h2>
-            <TeacherDMCard
-              timestamp={latestMessage ? new Date(latestMessage.created_at).toLocaleString() : "—"}
-              message={latestMessage?.body ?? "まだメッセージがありません。"}
-              onSendReply={(message) => void sendMemberMessage(message)}
-              onClick={() => {
-                if (latestMessage) navigate(`/messages/dm/${latestMessage.id}`);
-              }}
-            />
-            {/* DM History List */}
-            {memberMessages.length > 0 && (
-              <UiCard className="w-full rounded-2xl glass-panel backdrop-blur-xl">
-                <UiCardContent className="pt-6">
-                  <div className="flex items-center gap-2 mb-3">
-                    <h2 className="text-lg font-semibold text-foreground">メッセージ履歴</h2>
-                  </div>
-                  <div className="space-y-3">
-                    {memberMessages.slice(0, 5).map((m) => (
-                      <div
-                        key={m.id}
-                        onClick={() => navigate(`/messages/dm/${m.id}`)}
-                        className="rounded-md border border-border bg-card p-3 shadow-sm bg-white/50 cursor-pointer hover:bg-white/80 transition-colors"
-                      >
-                        <div className="text-xs text-muted-foreground">
-                          {new Date(m.created_at).toLocaleString()}
-                        </div>
-                        <div className="text-sm text-foreground mt-1 line-clamp-2">{m.body}</div>
-                      </div>
-                    ))}
-                  </div>
-                </UiCardContent>
-              </UiCard>
-            )}
-            <UiCard className="w-full rounded-2xl glass-panel backdrop-blur-xl">
-              <UiCardContent className="pt-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <h2 className="text-lg font-semibold text-foreground">お知らせ</h2>
-                </div>
-                {announcements.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">まだありません。</p>
-                ) : (
-                  <div className="space-y-3">
-                    {announcements.slice(0, 3).map((a) => (
-                      <div
-                        key={a.id}
-                        onClick={() => navigate(`/messages/announcements/${a.id}`)}
-                        className="rounded-md border border-border bg-card p-3 shadow-sm bg-white/50 cursor-pointer hover:bg-white/80 transition-colors"
-                      >
-                        <div className="text-xs text-muted-foreground">
-                          {new Date(a.created_at).toLocaleString()}
-                        </div>
-                        <div className="font-semibold text-foreground mt-1">{a.title}</div>
-                        <div className="text-sm text-muted-foreground mt-1">{a.body}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </UiCardContent>
-            </UiCard>
-          </div>
-        </main>
+      {activeTab === "messages" && session && (
+        <MessagesPage userId={session.user.id} />
       )}
 
       {activeTab === "history" && (
