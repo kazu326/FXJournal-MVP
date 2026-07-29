@@ -40,7 +40,13 @@ ALTER TABLE interventions
 CREATE INDEX IF NOT EXISTS idx_interventions_trigger_type
   ON interventions(trigger_type);
 
-CREATE OR REPLACE VIEW v_intervention_effectiveness AS
+-- The governed selector replaces the legacy trigger_reason output column.
+-- PostgreSQL cannot rename a view column through CREATE OR REPLACE VIEW, so
+-- recreate this aggregate view explicitly.
+DROP VIEW IF EXISTS public.v_intervention_effectiveness;
+
+CREATE VIEW public.v_intervention_effectiveness
+WITH (security_invoker = true) AS
 SELECT
   i.intervention_type,
   i.trigger_type,
@@ -52,7 +58,10 @@ SELECT
     SUM(CASE WHEN io.improvement_percent > 0 THEN 1 ELSE 0 END) * 100.0 / COUNT(*),
     2
   ) AS success_rate
-FROM interventions i
-LEFT JOIN intervention_outcomes io ON i.id = io.intervention_id
+FROM public.interventions i
+LEFT JOIN public.intervention_outcomes io ON i.id = io.intervention_id
 GROUP BY i.intervention_type, i.trigger_type
 ORDER BY avg_improvement DESC;
+
+REVOKE ALL ON TABLE public.v_intervention_effectiveness FROM PUBLIC, anon;
+GRANT SELECT ON TABLE public.v_intervention_effectiveness TO authenticated;

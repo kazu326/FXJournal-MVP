@@ -772,14 +772,21 @@ export default function App() {
 
     const { error } = await supabase.auth.signInWithOtp({
       email: e,
-      options: { emailRedirectTo: window.location.origin },
+      options: {
+        emailRedirectTo: window.location.origin,
+        // New MVP members join through Discord until custom SMTP is enabled.
+        // Keep email OTP available for the existing email-linked accounts only.
+        shouldCreateUser: false,
+      },
     });
 
     if (error) {
       if (error.status === 429 || error.message.includes("rate limit")) {
-        setStatus("送信制限を超えました。少し時間を置いてから再試行してください（通常1時間3通まで）。");
+        setStatus("メール送信が混み合っています。時間を置くか、Discordログインをご利用ください。");
+      } else if (error.message.toLowerCase().includes("signups not allowed")) {
+        setStatus("このメールは未登録です。新規利用はDiscordからログインしてください。");
       } else {
-        setStatus(`送信失敗: ${error.message}`);
+        setStatus("メールログインに失敗しました。Discordログインをお試しください。");
       }
     } else {
       setStatus("マジックリンクを送信しました。メールのリンクを踏んでください。");
@@ -1566,8 +1573,11 @@ export default function App() {
               </div>
             </div>
 
-            {/* メールアドレスログイン */}
+            {/* 登録済みメールアドレスでのログイン */}
             <div className="space-y-3">
+              <p className="text-xs text-zinc-500">
+                登録済みメールをお持ちの方のみ。新規利用はDiscordからログインしてください。
+              </p>
               <input
                 type="email"
                 value={email}
