@@ -56,6 +56,181 @@ export type Database = {
         }
         Relationships: []
       }
+      checkin_answers: {
+        Row: {
+          answer_value: number | null
+          assignment_id: string
+          created_at: string
+          id: string
+          is_not_applicable: boolean
+          question_id: string
+        }
+        Insert: {
+          answer_value?: number | null
+          assignment_id: string
+          created_at?: string
+          id?: string
+          is_not_applicable?: boolean
+          question_id: string
+        }
+        Update: {
+          answer_value?: number | null
+          assignment_id?: string
+          created_at?: string
+          id?: string
+          is_not_applicable?: boolean
+          question_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkin_answers_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "checkin_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkin_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "checkin_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checkin_assignments: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          definition_id: string
+          due_at: string
+          id: string
+          organization_id: string | null
+          period_end: string
+          period_start: string
+          status: Database["public"]["Enums"]["checkin_assignment_status"]
+          support_requested: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          definition_id: string
+          due_at: string
+          id?: string
+          organization_id?: string | null
+          period_end: string
+          period_start: string
+          status?: Database["public"]["Enums"]["checkin_assignment_status"]
+          support_requested?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          definition_id?: string
+          due_at?: string
+          id?: string
+          organization_id?: string | null
+          period_end?: string
+          period_start?: string
+          status?: Database["public"]["Enums"]["checkin_assignment_status"]
+          support_requested?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkin_assignments_definition_id_fkey"
+            columns: ["definition_id"]
+            isOneToOne: false
+            referencedRelation: "checkin_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checkin_definitions: {
+        Row: {
+          cadence: string
+          created_at: string
+          description: string
+          id: string
+          is_active: boolean
+          key: string
+          title: string
+          version: number
+        }
+        Insert: {
+          cadence?: string
+          created_at?: string
+          description: string
+          id?: string
+          is_active?: boolean
+          key: string
+          title: string
+          version: number
+        }
+        Update: {
+          cadence?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean
+          key?: string
+          title?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      checkin_questions: {
+        Row: {
+          allow_not_applicable: boolean
+          created_at: string
+          definition_id: string
+          high_label: string
+          id: string
+          is_required: boolean
+          low_label: string
+          position: number
+          prompt: string
+          question_key: string
+        }
+        Insert: {
+          allow_not_applicable?: boolean
+          created_at?: string
+          definition_id: string
+          high_label: string
+          id?: string
+          is_required?: boolean
+          low_label: string
+          position: number
+          prompt: string
+          question_key: string
+        }
+        Update: {
+          allow_not_applicable?: boolean
+          created_at?: string
+          definition_id?: string
+          high_label?: string
+          id?: string
+          is_required?: boolean
+          low_label?: string
+          position?: number
+          prompt?: string
+          question_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkin_questions_definition_id_fkey"
+            columns: ["definition_id"]
+            isOneToOne: false
+            referencedRelation: "checkin_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_events: {
         Row: {
           actor_user_id: string
@@ -256,6 +431,110 @@ export type Database = {
           teacher_user_id?: string
         }
         Relationships: []
+      }
+      evidence_cards: {
+        Row: {
+          approved: boolean
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          evidence_key: string
+          evidence_kind: string
+          id: string
+          limitation_note: string
+          scope_note: string
+          source_name: string
+          source_url: string
+          source_year: number | null
+          summary: string
+          title: string
+          version: number
+        }
+        Insert: {
+          approved?: boolean
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          evidence_key: string
+          evidence_kind: string
+          id?: string
+          limitation_note: string
+          scope_note: string
+          source_name: string
+          source_url: string
+          source_year?: number | null
+          summary: string
+          title: string
+          version: number
+        }
+        Update: {
+          approved?: boolean
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          evidence_key?: string
+          evidence_kind?: string
+          id?: string
+          limitation_note?: string
+          scope_note?: string
+          source_name?: string
+          source_url?: string
+          source_year?: number | null
+          summary?: string
+          title?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      feedback_templates: {
+        Row: {
+          auto_publish: boolean
+          created_at: string
+          evidence_card_id: string | null
+          id: string
+          interpretation: string
+          is_active: boolean
+          next_action: string
+          signal: Database["public"]["Enums"]["feedback_signal"]
+          template_key: string
+          title: string
+          version: number
+        }
+        Insert: {
+          auto_publish?: boolean
+          created_at?: string
+          evidence_card_id?: string | null
+          id?: string
+          interpretation: string
+          is_active?: boolean
+          next_action: string
+          signal: Database["public"]["Enums"]["feedback_signal"]
+          template_key: string
+          title: string
+          version: number
+        }
+        Update: {
+          auto_publish?: boolean
+          created_at?: string
+          evidence_card_id?: string | null
+          id?: string
+          interpretation?: string
+          is_active?: boolean
+          next_action?: string
+          signal?: Database["public"]["Enums"]["feedback_signal"]
+          template_key?: string
+          title?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_templates_evidence_card_id_fkey"
+            columns: ["evidence_card_id"]
+            isOneToOne: false
+            referencedRelation: "evidence_cards"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       intervention_outcomes: {
         Row: {
@@ -619,6 +898,91 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      monthly_feedback: {
+        Row: {
+          assignment_id: string
+          created_at: string
+          evidence_card_id: string | null
+          id: string
+          interpretation: string
+          metrics_snapshot: Json
+          next_action: string
+          organization_id: string | null
+          period_start: string
+          published_at: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          signal: Database["public"]["Enums"]["feedback_signal"]
+          status: Database["public"]["Enums"]["feedback_status"]
+          summary: string
+          template_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assignment_id: string
+          created_at?: string
+          evidence_card_id?: string | null
+          id?: string
+          interpretation: string
+          metrics_snapshot?: Json
+          next_action: string
+          organization_id?: string | null
+          period_start: string
+          published_at?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          signal: Database["public"]["Enums"]["feedback_signal"]
+          status?: Database["public"]["Enums"]["feedback_status"]
+          summary: string
+          template_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assignment_id?: string
+          created_at?: string
+          evidence_card_id?: string | null
+          id?: string
+          interpretation?: string
+          metrics_snapshot?: Json
+          next_action?: string
+          organization_id?: string | null
+          period_start?: string
+          published_at?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          signal?: Database["public"]["Enums"]["feedback_signal"]
+          status?: Database["public"]["Enums"]["feedback_status"]
+          summary?: string
+          template_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_feedback_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: true
+            referencedRelation: "checkin_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monthly_feedback_evidence_card_id_fkey"
+            columns: ["evidence_card_id"]
+            isOneToOne: false
+            referencedRelation: "evidence_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monthly_feedback_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "feedback_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       org_staff: {
         Row: {
@@ -1038,6 +1402,83 @@ export type Database = {
         }
         Relationships: []
       }
+      support_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          sender_kind: Database["public"]["Enums"]["support_sender_kind"]
+          sender_user_id: string | null
+          thread_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          sender_kind: Database["public"]["Enums"]["support_sender_kind"]
+          sender_user_id?: string | null
+          thread_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          sender_kind?: Database["public"]["Enums"]["support_sender_kind"]
+          sender_user_id?: string | null
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "support_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_threads: {
+        Row: {
+          assigned_staff_user_id: string | null
+          category: Database["public"]["Enums"]["support_category"]
+          created_at: string
+          id: string
+          last_message_at: string
+          member_user_id: string
+          organization_id: string | null
+          resolved_at: string | null
+          status: Database["public"]["Enums"]["support_thread_status"]
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_staff_user_id?: string | null
+          category: Database["public"]["Enums"]["support_category"]
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          member_user_id: string
+          organization_id?: string | null
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["support_thread_status"]
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_staff_user_id?: string | null
+          category?: Database["public"]["Enums"]["support_category"]
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          member_user_id?: string
+          organization_id?: string | null
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["support_thread_status"]
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           canceled_at: string | null
@@ -1354,6 +1795,17 @@ export type Database = {
       }
     }
     Views: {
+      v_monthly_checkin_org_summary: {
+        Row: {
+          assigned_count: number | null
+          average_answer: number | null
+          followup_count: number | null
+          organization_id: string | null
+          period_start: string | null
+          response_count: number | null
+        }
+        Relationships: []
+      }
       admin_behavior_change: {
         Row: {
           avg_trades_per_day_after: number | null
@@ -1737,9 +2189,48 @@ export type Database = {
       }
     }
     Functions: {
+      ensure_current_month_checkin: {
+        Args: never
+        Returns: Database["public"]["Tables"]["checkin_assignments"]["Row"]
+      }
       is_admin: { Args: never; Returns: boolean }
       is_platform_admin: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
+      open_support_thread: {
+        Args: {
+          p_body: string
+          p_category: Database["public"]["Enums"]["support_category"]
+          p_subject: string
+        }
+        Returns: Database["public"]["Tables"]["support_threads"]["Row"]
+      }
+      post_support_message: {
+        Args: { p_body: string; p_thread_id: string }
+        Returns: Database["public"]["Tables"]["support_messages"]["Row"]
+      }
+      publish_monthly_feedback: {
+        Args: { p_feedback_id: string }
+        Returns: Database["public"]["Tables"]["monthly_feedback"]["Row"]
+      }
+      set_support_thread_status: {
+        Args: {
+          p_status: Database["public"]["Enums"]["support_thread_status"]
+          p_thread_id: string
+        }
+        Returns: Database["public"]["Tables"]["support_threads"]["Row"]
+      }
+      submit_monthly_checkin: {
+        Args: {
+          p_answers: Json
+          p_assignment_id: string
+          p_support_requested?: boolean
+        }
+        Returns: {
+          feedback_id: string
+          feedback_signal: Database["public"]["Enums"]["feedback_signal"]
+          feedback_status: Database["public"]["Enums"]["feedback_status"]
+        }[]
+      }
       update_xp_and_streak: {
         Args: { p_action: Database["public"]["Enums"]["xp_action_type"] }
         Returns: {
@@ -1750,12 +2241,34 @@ export type Database = {
       }
     }
     Enums: {
+      checkin_assignment_status: "due" | "completed" | "expired"
+      feedback_signal:
+      | "on_track"
+      | "monitoring"
+      | "followup"
+      | "support_requested"
+      | "insufficient_data"
+      feedback_status: "draft" | "published" | "suppressed"
       intervention_trigger_type:
       | "overtrading"
       | "rule_violation"
       | "no_skip_discipline"
       | "learning_stall"
       | "record_inactivity"
+      support_category:
+      | "record_habit"
+      | "rule_adherence"
+      | "emotion_management"
+      | "skip_decision"
+      | "learning"
+      | "app_usage"
+      support_sender_kind: "member" | "staff" | "system"
+      support_thread_status:
+      | "open"
+      | "waiting_staff"
+      | "waiting_member"
+      | "resolved"
+      | "closed"
       xp_action_type:
       | "LOGIN"
       | "DAILY_LESSON_SKIP"
@@ -1890,6 +2403,31 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      checkin_assignment_status: ["due", "completed", "expired"],
+      feedback_signal: [
+        "on_track",
+        "monitoring",
+        "followup",
+        "support_requested",
+        "insufficient_data",
+      ],
+      feedback_status: ["draft", "published", "suppressed"],
+      support_category: [
+        "record_habit",
+        "rule_adherence",
+        "emotion_management",
+        "skip_decision",
+        "learning",
+        "app_usage",
+      ],
+      support_sender_kind: ["member", "staff", "system"],
+      support_thread_status: [
+        "open",
+        "waiting_staff",
+        "waiting_member",
+        "resolved",
+        "closed",
+      ],
       xp_action_type: [
         "LOGIN",
         "DAILY_LESSON_SKIP",

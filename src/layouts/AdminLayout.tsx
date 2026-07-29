@@ -1,4 +1,10 @@
-import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import {
+  Link,
+  NavLink,
+  Outlet,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import { LayoutDashboard, Activity, ArrowLeft, BarChart3, Mail, Users, Menu, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
@@ -37,9 +43,13 @@ const navItems = [
 export default function AdminLayout() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [adminCheckStatus, setAdminCheckStatus] = useState<"checking" | "authorized" | "unauthorized">("checking");
   const [adminCheckError, setAdminCheckError] = useState<string | null>(null);
+  const [adminAccessScope, setAdminAccessScope] = useState<
+    "full" | "messages-only" | null
+  >(null);
 
   // 認証チェック完了後に未ログインならトップへ（loading 中はリダイレクトしない）
   useEffect(() => {
@@ -52,8 +62,6 @@ export default function AdminLayout() {
   useEffect(() => {
     if (loading) return;
     if (!user?.id) {
-      setAdminCheckStatus("checking");
-      setAdminCheckError(null);
       return;
     }
 
@@ -62,6 +70,7 @@ export default function AdminLayout() {
     const verifyAdminAccess = async () => {
       setAdminCheckStatus("checking");
       setAdminCheckError(null);
+      setAdminAccessScope(null);
 
       const isPlatformAdmin = await supabase
         .from("platform_admins")
@@ -72,6 +81,7 @@ export default function AdminLayout() {
       if (cancelled) return;
 
       if (isPlatformAdmin.data?.user_id) {
+        setAdminAccessScope("full");
         setAdminCheckStatus("authorized");
         return;
       }
@@ -90,11 +100,46 @@ export default function AdminLayout() {
 
       if (profileRole.error && profileRole.error.code !== "PGRST116") {
         console.warn("[admin-guard] profiles.role lookup failed", profileRole.error);
-        setAdminCheckError("管理者権限を確認できませんでした。");
       }
 
       const role = profileRole.data?.role;
-      setAdminCheckStatus(role === "admin" || role === "platform_admin" ? "authorized" : "unauthorized");
+      if (role === "admin" || role === "platform_admin" || role === "teacher") {
+        setAdminAccessScope("full");
+        setAdminCheckStatus("authorized");
+        return;
+      }
+
+      const organizationStaff = await supabase
+        .from("org_staff")
+        .select("staff_user_id, role")
+        .eq("staff_user_id", user.id)
+        .limit(1)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (organizationStaff.data?.staff_user_id) {
+        setAdminAccessScope("messages-only");
+        setAdminCheckStatus(
+          location.pathname.startsWith("/admin/messages")
+            ? "authorized"
+            : "unauthorized",
+        );
+        return;
+      }
+
+      if (
+        organizationStaff.error &&
+        organizationStaff.error.code !== "PGRST116"
+      ) {
+        console.warn(
+          "[admin-guard] org_staff lookup failed",
+          organizationStaff.error,
+        );
+        setAdminCheckError("管理画面のアクセス権限を確認できませんでした。");
+      }
+
+      setAdminCheckStatus("unauthorized");
     };
 
     void verifyAdminAccess();
@@ -102,7 +147,7 @@ export default function AdminLayout() {
     return () => {
       cancelled = true;
     };
-  }, [user?.id, loading]);
+  }, [user?.id, loading, location.pathname]);
 
   // 認証確認中はスピナー表示
   if (loading || (user && adminCheckStatus === "checking")) {
@@ -125,19 +170,32 @@ export default function AdminLayout() {
           <div>
             <h1 className="text-xl font-semibold text-slate-50">管理画面へのアクセス権限がありません</h1>
             <p className="text-sm text-slate-400 mt-2">
-              このページは platform admin または admin ロールのユーザーのみ利用できます。
+              {adminAccessScope === "messages-only"
+                ? "所属組織のスタッフは、相談対応と月次レビューのみ利用できます。"
+                : "このページは platform admin、管理者、教師のみ利用できます。"}
             </p>
             {adminCheckError && (
               <p className="text-sm text-amber-300 mt-2">{adminCheckError}</p>
             )}
           </div>
-          <button
-            type="button"
-            onClick={() => navigate("/", { replace: true })}
-            className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
-          >
-            ユーザー画面へ戻る
-          </button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            {adminAccessScope === "messages-only" && (
+              <button
+                type="button"
+                onClick={() => navigate("/admin/messages", { replace: true })}
+                className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
+              >
+                メッセージ管理へ
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => navigate("/", { replace: true })}
+              className="inline-flex items-center justify-center rounded-md border border-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+            >
+              ユーザー画面へ戻る
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -176,7 +234,12 @@ export default function AdminLayout() {
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1">
-          {navItems.map((item) => {
+          {navItems
+            .filter(
+              (item) =>
+                adminAccessScope === "full" || item.to === "/admin/messages",
+            )
+            .map((item) => {
             const Icon = item.icon;
             return (
               <NavLink
@@ -197,7 +260,7 @@ export default function AdminLayout() {
                 <span>{item.label}</span>
               </NavLink>
             );
-          })}
+            })}
         </nav>
 
         <div className="px-4 py-4 border-t border-slate-800">

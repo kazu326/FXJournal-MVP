@@ -1,116 +1,135 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "../lib/supabase";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
+import { supabase } from "../lib/supabase";
 
-type MessageDetail = {
-    id: string;
-    title?: string; // announcements only
-    body: string;
-    created_at: string;
+type MessageDetailRow = {
+  id: string;
+  title?: string;
+  body: string;
+  created_at: string;
 };
 
 export default function MessageDetail() {
-    const { type, id } = useParams<{ type: string; id: string }>();
-    const navigate = useNavigate();
-    const [message, setMessage] = useState<MessageDetail | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+  const { type, id } = useParams<{ type: string; id: string }>();
+  const navigate = useNavigate();
+  const [message, setMessage] = useState<MessageDetailRow | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (!type || !id) return;
-        fetchMessage();
-    }, [type, id]);
+  useEffect(() => {
+    if (!type || !id) return;
+    let cancelled = false;
 
-    const fetchMessage = async () => {
-        setLoading(true);
-        let table = "";
-        if (type === "announcements") table = "announcements";
-        else if (type === "dm") table = "dm_messages";
-        else {
-            setError("無効なメッセージ種別です");
-            setLoading(false);
-            return;
-        }
+    void (async () => {
+      setLoading(true);
+      setError(null);
 
-        const { data, error } = await supabase
-            .from(table)
-            .select(type === "announcements" ? "id, title, body, created_at" : "id, body, created_at")
-            .eq("id", id)
-            .single();
+      const table =
+        type === "announcements"
+          ? "announcements"
+          : type === "dm"
+            ? "dm_messages"
+            : null;
 
-        if (error) {
-            console.error("Fetch error:", error);
-            setError("メッセージが見つかりませんでした");
-        } else {
-            setMessage(data as unknown as MessageDetail);
-        }
+      if (!table) {
+        setError("無効なメッセージ種別です。");
         setLoading(false);
+        return;
+      }
+
+      const { data, error: fetchError } = await supabase
+        .from(table)
+        .select(
+          type === "announcements"
+            ? "id, title, body, created_at"
+            : "id, body, created_at",
+        )
+        .eq("id", id)
+        .single();
+
+      if (cancelled) return;
+      if (fetchError) {
+        setError("メッセージが見つかりませんでした。");
+      } else {
+        setMessage(data as unknown as MessageDetailRow);
+      }
+      setLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
     };
+  }, [id, type]);
 
-    const handleBack = () => {
-        // 履歴があれば戻る、なければホーム(メッセージタブ)へ
-        if (window.history.length > 2) {
-            navigate(-1);
-        } else {
-            window.location.href = "/";
-        }
-    };
+  const goBack = () => {
+    if (window.history.length > 2) {
+      navigate(-1);
+    } else {
+      navigate("/messages", { replace: true });
+    }
+  };
 
-    return (
-        <div className="min-h-dvh bg-zinc-50 px-4 py-6">
-            <div className="max-w-md mx-auto relative bg-white rounded-2xl shadow-sm min-h-[50vh] overflow-hidden">
-                {/* Header */}
-                <div className="flex items-center gap-3 p-4 border-b border-zinc-100 sticky top-0 bg-white/90 backdrop-blur-sm z-10">
-                    <button
-                        onClick={handleBack}
-                        className="p-2 -ml-2 rounded-full hover:bg-zinc-100 transition-colors text-zinc-600"
-                    >
-                        <ArrowLeft className="w-5 h-5" />
-                    </button>
-                    <h1 className="font-bold text-lg text-zinc-800 truncate">
-                        {type === "announcements" ? "お知らせ" : "メッセージ"}
-                    </h1>
-                </div>
+  return (
+    <main className="min-h-dvh bg-zinc-50 px-4 py-5">
+      <div className="mx-auto min-h-[50vh] max-w-md overflow-hidden rounded-2xl border border-zinc-100 bg-white shadow-sm">
+        <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-zinc-100 bg-white/95 p-4 backdrop-blur">
+          <button
+            type="button"
+            onClick={goBack}
+            aria-label="メッセージ一覧に戻る"
+            className="-ml-2 flex size-10 items-center justify-center rounded-full text-zinc-600 hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          >
+            <ArrowLeft className="size-5" />
+          </button>
+          <h1 className="truncate text-lg font-bold text-zinc-800">
+            {type === "announcements"
+              ? "お知らせ"
+              : "過去の個別メッセージ"}
+          </h1>
+        </header>
 
-                {/* Content */}
-                <div className="p-6">
-                    {loading ? (
-                        <div className="flex flex-col items-center justify-center py-12 gap-3 text-zinc-400">
-                            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-                            <p className="text-sm">読み込み中...</p>
-                        </div>
-                    ) : error ? (
-                        <div className="py-12 text-center">
-                            <div className="text-4xl mb-4">😢</div>
-                            <p className="text-zinc-500 font-medium">{error}</p>
-                            <button
-                                onClick={handleBack}
-                                className="mt-6 px-6 py-2 bg-zinc-100 text-zinc-600 rounded-full font-bold text-sm hover:bg-zinc-200 transition-colors"
-                            >
-                                戻る
-                            </button>
-                        </div>
-                    ) : message ? (
-                        <div className="space-y-6 animate-fade-in">
-                            <div className="space-y-2">
-                                <div className="text-xs text-zinc-400 font-medium">
-                                    {new Date(message.created_at).toLocaleString()}
-                                </div>
-                                {message.title && (
-                                    <h2 className="text-xl font-bold text-zinc-900 leading-snug">
-                                        {message.title}
-                                    </h2>
-                                )}
-                            </div>
-
-                            <div className="prose prose-zinc prose-sm max-w-none text-zinc-700 leading-relaxed whitespace-pre-wrap">
-                                {message.body}
-                            </div>
-                        </div>
-                    ) : null}
-                </div>
+        <div className="p-5">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-12 text-zinc-400">
+              <Loader2 className="size-7 animate-spin text-blue-500 motion-reduce:animate-none" />
+              <p className="text-sm">読み込み中...</p>
             </div>
+          ) : error ? (
+            <div className="py-12 text-center">
+              <p className="text-sm font-medium text-zinc-500">{error}</p>
+              <button
+                type="button"
+                onClick={goBack}
+                className="mt-5 min-h-10 rounded-full bg-zinc-100 px-5 text-sm font-bold text-zinc-600 hover:bg-zinc-200"
+              >
+                メッセージ一覧へ戻る
+              </button>
+            </div>
+          ) : message ? (
+            <article className="space-y-5">
+              <div>
+                <p className="text-xs font-medium text-zinc-400">
+                  {new Date(message.created_at).toLocaleString("ja-JP")}
+                </p>
+                {message.title && (
+                  <h2 className="mt-2 text-xl font-bold leading-snug text-zinc-900">
+                    {message.title}
+                  </h2>
+                )}
+              </div>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-700">
+                {message.body}
+              </p>
+              <div className="rounded-xl bg-zinc-50 p-3 text-xs leading-relaxed text-zinc-500">
+                {type === "announcements"
+                  ? "このお知らせは一方向の通知です。記録や学習について相談したい場合は、メッセージページの「習慣サポート」を利用してください。"
+                  : "これは過去の個別メッセージです。現在は読み取り専用です。"}
+              </div>
+            </article>
+          ) : null}
         </div>
-    );
+      </div>
+    </main>
+  );
 }
