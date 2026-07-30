@@ -37,6 +37,7 @@ import SlideViewerPage from "./pages/SlideViewerPage";
 import VideoListPage from "./pages/VideoListPage";
 import ImportPage from "./pages/ImportPage";
 import MessagesPage from "./pages/MessagesPage";
+import AnalysisPage from "./pages/AnalysisPage";
 
 // Mode型はtradeStoreで管理（ここでの宣言は不要）
 
@@ -330,6 +331,7 @@ export default function App() {
   const [showAdminMenu, setShowAdminMenu] = useState(false);
   const isAdminRoute =
     location.pathname.startsWith("/admin") || location.pathname.startsWith("/staff");
+  const isAnalysisRoute = location.pathname === "/analysis";
   const isAdminLogsRoute =
     location.pathname.startsWith("/admin/logs") ||
     location.pathname.startsWith("/staff/logs");
@@ -2509,6 +2511,12 @@ export default function App() {
                   <IconHistory /> 履歴
                 </button>
                 <button
+                  onClick={() => { navigate("/analysis"); setShowMenu(false); }}
+                  style={{ width: "100%", border: "none", borderRadius: 0, display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-start", padding: "16px 20px" }}
+                >
+                  <span aria-hidden style={{ fontSize: 18 }}>📊</span> 分析（PC）
+                </button>
+                <button
                   onClick={() => {
                     setShowMenu(false);
                     navigate("/lecture-notes");
@@ -2646,7 +2654,7 @@ export default function App() {
         />
       )}
 
-      {session && !isAdminRoute && showInstallPrompt && (
+      {session && !isAdminRoute && !isAnalysisRoute && showInstallPrompt && (
         <InstallPrompt onClose={() => setShowInstallPrompt(false)} />
       )}
 
@@ -3308,6 +3316,15 @@ export default function App() {
       }
 
       {
+        isAnalysisRoute && session && (
+          <AnalysisPage
+            userId={session.user.id}
+            onBack={() => navigate("/")}
+          />
+        )
+      }
+
+      {
         location.pathname === "/learning-contents" && (
           <LearningContentsPage />
         )
@@ -3332,13 +3349,13 @@ export default function App() {
       }
 
       {
-        session && !isAdminRoute && showInstallPrompt && (
+        session && !isAdminRoute && !isAnalysisRoute && showInstallPrompt && (
           <InstallPrompt onClose={() => setShowInstallPrompt(false)} />
         )
       }
 
       {
-        session && !isAdminRoute && (
+        session && !isAdminRoute && !isAnalysisRoute && (
           <>
             <NotificationPrompt />
             <BottomTabBar />
