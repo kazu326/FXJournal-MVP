@@ -79,6 +79,7 @@ class MockQuery {
   private maybeSingleResult = false;
   private singleResult = false;
   private unfinishedTradeLookup = false;
+  private hasRange = false;
   private readonly table: string;
   private filters: Record<string, unknown> = {};
 
@@ -128,6 +129,10 @@ class MockQuery {
   }
   order() { return this; }
   limit() { return this; }
+  range() {
+    this.hasRange = true;
+    return this;
+  }
   in() { return this; }
 
   maybeSingle() {
@@ -537,6 +542,63 @@ class MockQuery {
     if (this.table === "trade_logs") {
       if (this.wantCount) {
         return { count: scenario === "daily-limit" ? 2 : 0, data: null, error: null };
+      }
+      if (scenario === "analysis-data" && this.hasRange) {
+        return {
+          data: [
+            {
+              id: "analysis-trade-1",
+              occurred_at: "2026-07-01T01:00:00.000Z",
+              trade_datetime: "2026-07-01T01:00:00.000Z",
+              log_type: "valid",
+              mode: "live",
+              completed_at: "2026-07-01T02:00:00.000Z",
+              ruleset_version: "v1",
+              currency_pair_symbol: "USDJPY",
+              gate_trade_count_ok: true,
+              gate_rr_ok: true,
+              gate_risk_ok: true,
+              gate_rule_ok: true,
+              success_prob: "mid",
+              expected_value: "plus",
+              post_rule_respected: true,
+              post_in_expected_range: true,
+              pre_note: "押し目を待った",
+              post_note: "計画通り",
+              voided_at: null,
+            },
+            {
+              id: "analysis-skip-1",
+              occurred_at: "2026-07-02T01:00:00.000Z",
+              trade_datetime: "2026-07-02T01:00:00.000Z",
+              log_type: "skip",
+              mode: "practice",
+              completed_at: null,
+              ruleset_version: "v1",
+              currency_pair_symbol: null,
+              pre_note: "=HYPERLINK(\"https://example.com\")",
+              voided_at: null,
+            },
+            {
+              id: "analysis-trade-2",
+              occurred_at: "2026-07-03T01:00:00.000Z",
+              trade_datetime: "2026-07-03T01:00:00.000Z",
+              log_type: "valid",
+              mode: "live",
+              completed_at: "2026-07-03T02:00:00.000Z",
+              ruleset_version: "v1",
+              currency_pair_symbol: "EURUSD",
+              gate_trade_count_ok: true,
+              gate_rr_ok: true,
+              gate_risk_ok: true,
+              gate_rule_ok: true,
+              post_rule_respected: false,
+              post_in_expected_range: false,
+              voided_at: null,
+            },
+          ],
+          error: null,
+        };
       }
       if (scenario === "pending-trade") {
         return {
