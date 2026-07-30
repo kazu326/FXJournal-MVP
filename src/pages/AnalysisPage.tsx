@@ -12,6 +12,8 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { downloadAnalysisCsv } from "../features/analysis/csv";
+import AnalysisInsights from "../features/analysis/components/AnalysisInsights";
+import { buildAnalysisBehaviorDetails } from "../features/analysis/insights";
 import { summarizeAnalysisRecords } from "../features/analysis/metrics";
 import { buildAnalysisPrompt } from "../features/analysis/prompt";
 import { fetchAnalysisRecords } from "../features/analysis/query";
@@ -112,6 +114,10 @@ export default function AnalysisPage({
     () => summarizeAnalysisRecords(records),
     [records],
   );
+  const behaviorDetails = useMemo(
+    () => buildAnalysisBehaviorDetails(records),
+    [records],
+  );
   const preview = useMemo(() => records.slice(-5).reverse(), [records]);
   const loading = isDesktop && loadedPeriod !== period && !error;
 
@@ -136,8 +142,8 @@ export default function AnalysisPage({
         data-testid="analysis-mobile-notice"
         className="mx-auto max-w-md px-1 py-8"
       >
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-          <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+        <section className="rounded-xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+          <div className="mx-auto flex size-14 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
             <Monitor className="size-7" aria-hidden />
           </div>
           <h1 className="mb-0 mt-4 text-xl font-black text-slate-900">
@@ -149,7 +155,7 @@ export default function AnalysisPage({
           <button
             type="button"
             onClick={onBack}
-            className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
           >
             <ArrowLeft className="size-4" aria-hidden />
             ホームへ戻る
@@ -166,16 +172,8 @@ export default function AnalysisPage({
     >
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <button
-            type="button"
-            onClick={onBack}
-            className="mb-3 inline-flex items-center gap-1.5 rounded-lg px-1 py-1 text-sm font-bold text-slate-500 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-          >
-            <ArrowLeft className="size-4" aria-hidden />
-            ホーム
-          </button>
           <div className="flex items-center gap-3">
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-600/20">
+            <div className="flex size-12 items-center justify-center rounded-lg bg-blue-600 text-white shadow-lg shadow-blue-600/20">
               <BarChart3 className="size-6" aria-hidden />
             </div>
             <div>
@@ -188,12 +186,12 @@ export default function AnalysisPage({
             </div>
           </div>
           <p className="mb-0 mt-3 max-w-2xl text-sm leading-relaxed text-slate-600">
-            売買の答えではなく、記録習慣と判断の根拠を振り返るための分析画面です。
+            ウェブ版アプリは、売買の答えではなく、記録習慣と判断の根拠を明確にし、迷いと分析にかける時間を減らすための画面です。
           </p>
         </div>
 
         <div
-          className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm"
+          className="inline-flex rounded-lg border border-slate-200 bg-white p-1 shadow-sm"
           aria-label="分析期間"
         >
           {periodOptions.map((option) => (
@@ -202,7 +200,7 @@ export default function AnalysisPage({
               type="button"
               aria-pressed={period === option.value}
               onClick={() => handlePeriodChange(option.value)}
-              className={`min-h-10 rounded-lg px-4 text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+              className={`min-h-10 rounded-md px-4 text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                 period === option.value
                   ? "bg-slate-900 text-white"
                   : "bg-transparent text-slate-600 hover:bg-slate-50"
@@ -217,7 +215,7 @@ export default function AnalysisPage({
       {error ? (
         <div
           role="alert"
-          className="mb-5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700"
+          className="mb-5 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700"
         >
           {error}
         </div>
@@ -229,16 +227,19 @@ export default function AnalysisPage({
       >
         {[
           {
+            id: "records",
             label: "記録",
             value: summary.totalRecords,
             detail: `取引 ${summary.tradeRecords}・見送り ${summary.skipRecords}`,
           },
           {
+            id: "completion",
             label: "取引後記録",
             value: formatPercent(summary.completionRate),
             detail: `${summary.completedRecords}件完了`,
           },
           {
+            id: "rules",
             label: "ルール遵守",
             value: formatPercent(summary.ruleAdherenceRate),
             detail:
@@ -247,6 +248,7 @@ export default function AnalysisPage({
                 : "回答データなし",
           },
           {
+            id: "schema",
             label: "CSV仕様",
             value: "v1",
             detail: `${ANALYSIS_COLUMNS.length}列・型付き`,
@@ -254,7 +256,8 @@ export default function AnalysisPage({
         ].map((item) => (
           <article
             key={item.label}
-            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+            data-testid={`analysis-summary-${item.id}`}
+            className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
           >
             <p className="m-0 text-xs font-bold text-slate-500">{item.label}</p>
             <p className="m-0 mt-2 text-2xl font-black text-slate-950">
@@ -265,10 +268,26 @@ export default function AnalysisPage({
         ))}
       </section>
 
+      {loading ? (
+        <section
+          data-testid="analysis-insights-loading"
+          aria-live="polite"
+          className="mt-5 flex min-h-48 items-center justify-center rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-500 shadow-sm"
+        >
+          行動インサイトを集計しています…
+        </section>
+      ) : (
+        <AnalysisInsights
+          details={behaviorDetails}
+          totalRecords={summary.totalRecords}
+        />
+      )}
+
       <div className="mt-5 grid items-start gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(340px,0.75fr)]">
         <section
+          data-testid="analysis-records-panel"
           aria-labelledby="analysis-records-title"
-          className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
+          className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
         >
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
             <div>
@@ -340,7 +359,12 @@ export default function AnalysisPage({
                             : "要確認"}
                       </td>
                       <td className="px-4 py-3.5">
-                        {record.completedAt ? "完了" : "未完了"}
+                        {record.recordType === "valid" ||
+                        record.recordType === "invalid"
+                          ? record.completedAt
+                            ? "完了"
+                            : "未完了"
+                          : "対象外"}
                       </td>
                     </tr>
                   ))}
@@ -352,11 +376,12 @@ export default function AnalysisPage({
 
         <div className="space-y-5">
           <section
+            data-testid="analysis-download-panel"
             aria-labelledby="analysis-download-title"
-            className="rounded-3xl border border-blue-200 bg-gradient-to-br from-blue-600 to-indigo-700 p-5 text-white shadow-lg shadow-blue-600/15"
+            className="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-600 to-indigo-700 p-5 text-white shadow-lg shadow-blue-600/15"
           >
             <div className="flex items-start gap-3">
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/15">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-white/15">
                 <FileSpreadsheet className="size-5" aria-hidden />
               </div>
               <div>
@@ -372,7 +397,7 @@ export default function AnalysisPage({
               </div>
             </div>
 
-            <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-2xl border border-white/15 bg-white/10 p-3">
+            <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-lg border border-white/15 bg-white/10 p-3">
               <input
                 type="checkbox"
                 checked={includeNotes}
@@ -396,7 +421,7 @@ export default function AnalysisPage({
               onClick={() =>
                 downloadAnalysisCsv(records, period, includeNotes)
               }
-              className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-white px-4 text-sm font-black text-blue-700 shadow-sm transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 motion-reduce:transition-none"
+              className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-white px-4 text-sm font-black text-blue-700 shadow-sm transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 motion-reduce:transition-none"
             >
               <Download className="size-4" aria-hidden />
               CSVをダウンロード
@@ -405,10 +430,10 @@ export default function AnalysisPage({
 
           <section
             aria-labelledby="analysis-ai-title"
-            className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
+            className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
           >
             <div className="flex items-start gap-3">
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-violet-600">
                 <ShieldCheck className="size-5" aria-hidden />
               </div>
               <div>
@@ -434,7 +459,7 @@ export default function AnalysisPage({
               type="button"
               data-testid="analysis-copy-prompt"
               onClick={() => void handleCopyPrompt()}
-              className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-700 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-700 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
             >
               {copied ? (
                 <Check className="size-4 text-emerald-600" aria-hidden />
