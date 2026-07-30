@@ -20,10 +20,41 @@ test("desktop analysis summarizes records and downloads the privacy-safe schema"
   await page.goto("/analysis");
 
   await expect(page.getByTestId("analysis-page")).toBeVisible();
+  await expect(page.getByRole("button", { name: "ホーム" })).toHaveCount(0);
   await expect(page.getByText("記録を分析する")).toBeVisible();
+  await expect(
+    page.getByText(
+      "ウェブ版アプリは、売買の答えではなく、記録習慣と判断の根拠を明確にし、迷いと分析にかける時間を減らすための画面です。",
+    ),
+  ).toBeVisible();
   await expect(page.getByText("取引 2・見送り 1")).toBeVisible();
-  await expect(page.getByText("67%")).toBeVisible();
-  await expect(page.getByText("50%")).toBeVisible();
+  await expect(
+    page.getByTestId("analysis-summary-completion").getByText("100%"),
+  ).toBeVisible();
+  await expect(
+    page.getByTestId("analysis-summary-rules").getByText("50%"),
+  ).toBeVisible();
+
+  const insights = page.getByTestId("analysis-insights");
+  await expect(insights).toBeVisible();
+  await expect(insights.getByText("記録から見える行動")).toBeVisible();
+  await expect(insights.getByText("見送りの判断も記録されています")).toBeVisible();
+  await expect(
+    insights.getByRole("progressbar", { name: "取引後記録 100%" }),
+  ).toBeVisible();
+
+  await expect(page.getByTestId("analysis-records-panel")).toHaveClass(
+    /rounded-xl/,
+  );
+  await expect(page.getByTestId("analysis-download-panel")).toHaveClass(
+    /rounded-xl/,
+  );
+  await expect(page.getByTestId("analysis-records-panel")).not.toHaveClass(
+    /rounded-3xl/,
+  );
+  await expect(
+    page.getByRole("row", { name: "2026/07/02 見送り — — 対象外" }),
+  ).toBeVisible();
 
   const downloadPromise = page.waitForEvent("download");
   await page.getByTestId("analysis-download").click();

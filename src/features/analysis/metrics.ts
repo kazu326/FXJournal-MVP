@@ -20,12 +20,11 @@ export function summarizeAnalysisRecords(
       record.recordType === "invalid"
     ) {
       tradeRecords += 1;
-    }
-
-    if (record.completedAt) completedRecords += 1;
-    if (record.postRuleRespected !== null) {
-      ruleEvidenceCount += 1;
-      if (record.postRuleRespected) ruleAdherenceCount += 1;
+      if (record.completedAt) completedRecords += 1;
+      if (record.postRuleRespected !== null) {
+        ruleEvidenceCount += 1;
+        if (record.postRuleRespected) ruleAdherenceCount += 1;
+      }
     }
   }
 
@@ -34,7 +33,7 @@ export function summarizeAnalysisRecords(
     tradeRecords,
     skipRecords,
     completedRecords,
-    completionRate: percentage(completedRecords, records.length),
+    completionRate: percentage(completedRecords, tradeRecords),
     ruleEvidenceCount,
     ruleAdherenceRate: percentage(ruleAdherenceCount, ruleEvidenceCount),
   };

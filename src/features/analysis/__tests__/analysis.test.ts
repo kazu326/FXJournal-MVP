@@ -2,6 +2,7 @@ import {
   buildAnalysisFilename,
   serializeAnalysisCsv,
 } from "../csv";
+import { buildAnalysisBehaviorDetails } from "../insights";
 import { summarizeAnalysisRecords } from "../metrics";
 import {
   collectAllPages,
@@ -49,10 +50,75 @@ describe("analysis CSV MVP", () => {
       tradeRecords: 1,
       skipRecords: 1,
       completedRecords: 1,
-      completionRate: 50,
+      completionRate: 100,
       ruleEvidenceCount: 1,
       ruleAdherenceRate: 100,
     });
+  });
+
+  test("builds behavior insights from record coverage without treating skips as missing post records", () => {
+    const records = [
+      normalizeAnalysisRecord(source),
+      normalizeAnalysisRecord({
+        id: "record-2",
+        occurred_at: "2026-07-16T01:02:03.000Z",
+        log_type: "invalid",
+        mode: "practice",
+      }),
+      normalizeAnalysisRecord({
+        id: "record-3",
+        occurred_at: "2026-07-17T01:02:03.000Z",
+        log_type: "skip",
+      }),
+    ];
+
+    const details = buildAnalysisBehaviorDetails(records);
+
+    expect(details.mix).toEqual({
+      valid: 1,
+      invalid: 1,
+      skip: 1,
+      unknown: 0,
+      live: 1,
+      practice: 1,
+    });
+    expect(details.activeDays).toBe(3);
+    expect(details.coverage).toEqual([
+      {
+        key: "preCheck",
+        label: "事前チェック",
+        count: 1,
+        total: 2,
+        rate: 50,
+      },
+      {
+        key: "postRecord",
+        label: "取引後記録",
+        count: 1,
+        total: 2,
+        rate: 50,
+      },
+      {
+        key: "ruleReview",
+        label: "ルール振り返り",
+        count: 1,
+        total: 2,
+        rate: 50,
+      },
+      {
+        key: "hypothesisReview",
+        label: "想定内の確認",
+        count: 1,
+        total: 2,
+        rate: 50,
+      },
+    ]);
+    expect(details.insights.map((insight) => insight.id)).toEqual([
+      "skip-recorded",
+      "post-record-missing",
+      "rule-review-missing",
+      "invalid-recorded",
+    ]);
   });
 
   test("keeps a fixed schema, excludes notes by default, and blocks spreadsheet formulas", () => {
