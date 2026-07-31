@@ -68,6 +68,15 @@ const forceClickDisabledButton = async (page: Page, testId: string) => {
   });
 };
 
+const reachFinalPreTradeStep = async (page: Page) => {
+  await page.getByLabel("通貨ペア").selectOption("USD/JPY");
+  await page.getByLabel("口座残高").fill("100000");
+  await page.getByTestId("pre-trade-next").click();
+  await page.getByTestId("pre-trade-entry-rate").fill("150");
+  await page.getByTestId("pre-trade-stop-loss-rate").fill("149.8");
+  await page.getByTestId("pre-trade-next").click();
+};
+
 test("Gate block prevents trade save when Rule OK is not confirmed", async ({ page }) => {
   await loadScenario(page, "/pre-trade", {
     tradeState: persistedTradeState({
@@ -75,6 +84,7 @@ test("Gate block prevents trade save when Rule OK is not confirmed", async ({ pa
     }),
   });
 
+  await reachFinalPreTradeStep(page);
   const saveButton = page.getByTestId("pre-trade-save");
   await expect(saveButton).toBeVisible();
   await expect(saveButton).toBeDisabled();
@@ -92,6 +102,7 @@ test("daily loss limit lock prevents trade save when the daily limit is reached"
     }),
   });
 
+  await reachFinalPreTradeStep(page);
   const saveButton = page.getByTestId("pre-trade-save");
   await expect(saveButton).toBeVisible();
   await expect(saveButton).toBeDisabled();

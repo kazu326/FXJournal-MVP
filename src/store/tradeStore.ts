@@ -9,6 +9,12 @@ export type TradeMode = 'live' | 'practice';
 export type PostResult = 'win' | 'loss' | 'be';
 export type PostSide = 'long' | 'short';
 
+export type RememberedPreTradeInputs = {
+    accountBalance: string;
+    selectedPairSymbol: string;
+    accountBalanceUpdatedAt: string | null;
+};
+
 export interface GateState {
     gate_trade_count_ok: boolean;
     gate_rr_ok: boolean;
@@ -23,6 +29,14 @@ export interface TradeLogLite {
     gate_all_ok: boolean;
     success_prob: SuccessProb | null;
     expected_value: ExpectedValue | null;
+    currency_pair_symbol?: string | null;
+    account_balance?: number | null;
+    stop_loss_pips?: number | null;
+    take_profit_pips?: number | null;
+    calculated_lot?: number | null;
+    risk_percent?: number | null;
+    risk_reward_ratio?: number | null;
+    note?: string | null;
 
     // 新仕様：取引後（post）
     post_side?: PostSide | null;
@@ -50,17 +64,20 @@ interface TradeState {
     mode: TradeMode;
     gate: GateState;
     note: string;
-    successProb: SuccessProb;
+    successProb: SuccessProb | null;
     expectedValue: ExpectedValue;
     accountBalance: string;
     stopLossAmount: string;
     takeProfitAmount: string;
     // Phase 3: 通貨ペア・ピップス入力
     selectedPairSymbol: string;   // 選択された通貨ペアのsymbol（例: 'USD/JPY'）
+    entryRate: string;            // 今回のエントリー予定レート（下書き）
+    stopLossPrice: string;        // 今回の損切り価格（下書き）
     stopLossPips: string;         // SL幅（pips）
     takeProfitPips: string;       // TP幅（pips）
     riskPercent: string;          // リスク割合（%）デフォルト2%
     gateHelp: { rr: boolean; risk: boolean; rule: boolean };
+    rememberedPreTradeInputs: Record<TradeMode, RememberedPreTradeInputs>;
 
     // 環境認識タグ（10個）
     preEnvSign: boolean;
@@ -98,13 +115,15 @@ interface TradeState {
     setGate: (value: Partial<GateState> | ((prev: GateState) => Partial<GateState>)) => void;
     // 仮説メモ更新
     setNote: (note: string) => void;
-    setSuccessProb: (v: SuccessProb) => void;
+    setSuccessProb: (v: SuccessProb | null) => void;
     setExpectedValue: (v: ExpectedValue) => void;
     setAccountBalance: (v: string) => void;
     setStopLossAmount: (v: string) => void;
     setTakeProfitAmount: (v: string) => void;
     // Phase 3: 通貨ペア・ピップス入力アクション
     setSelectedPairSymbol: (v: string) => void;
+    setEntryRate: (v: string) => void;
+    setStopLossPrice: (v: string) => void;
     setStopLossPips: (v: string) => void;
     setTakeProfitPips: (v: string) => void;
     setRiskPercent: (v: string) => void;
@@ -160,17 +179,31 @@ const initialPreTrade = {
     mode: 'live' as TradeMode,
     gate: initialGate,
     note: "",
-    successProb: 'mid' as SuccessProb,
+    successProb: null as SuccessProb | null,
     expectedValue: 'unknown' as ExpectedValue,
     accountBalance: '',
     stopLossAmount: '',
     takeProfitAmount: '',
     // Phase 3: 通貨ペア・ピップス入力
     selectedPairSymbol: '',
+    entryRate: '',
+    stopLossPrice: '',
     stopLossPips: '',
     takeProfitPips: '',
     riskPercent: '2',              // デフォルト2%
     gateHelp: { rr: false, risk: false, rule: false },
+    rememberedPreTradeInputs: {
+        live: {
+            accountBalance: '',
+            selectedPairSymbol: '',
+            accountBalanceUpdatedAt: null,
+        },
+        practice: {
+            accountBalance: '',
+            selectedPairSymbol: '',
+            accountBalanceUpdatedAt: null,
+        },
+    } satisfies Record<TradeMode, RememberedPreTradeInputs>,
 
     // 環境認識タグ初期値
     preEnvSign: false,
@@ -214,7 +247,15 @@ export const useTradeStore = create<TradeState>()(
             ...initialPostTrade,
 
             // === Pre-Trade アクション ===
-            setMode: (mode) => set({ mode }),
+            setMode: (mode) =>
+                set((state) => {
+                    const remembered = state.rememberedPreTradeInputs[mode];
+                    return {
+                        mode,
+                        accountBalance: remembered.accountBalance,
+                        selectedPairSymbol: remembered.selectedPairSymbol,
+                    };
+                }),
             setGate: (value) =>
                 set((state) => {
                     const newGate =
@@ -224,11 +265,36 @@ export const useTradeStore = create<TradeState>()(
             setNote: (note) => set({ note }),
             setSuccessProb: (successProb) => set({ successProb }),
             setExpectedValue: (expectedValue) => set({ expectedValue }),
-            setAccountBalance: (accountBalance) => set({ accountBalance }),
+            setAccountBalance: (accountBalance) =>
+                set((state) => ({
+                    accountBalance,
+                    rememberedPreTradeInputs: {
+                        ...state.rememberedPreTradeInputs,
+                        [state.mode]: {
+                            ...state.rememberedPreTradeInputs[state.mode],
+                            accountBalance,
+                            accountBalanceUpdatedAt: accountBalance
+                                ? new Date().toISOString()
+                                : null,
+                        },
+                    },
+                })),
             setStopLossAmount: (stopLossAmount) => set({ stopLossAmount }),
             setTakeProfitAmount: (takeProfitAmount) => set({ takeProfitAmount }),
             // Phase 3: 通貨ペア・ピップス入力アクション
-            setSelectedPairSymbol: (selectedPairSymbol) => set({ selectedPairSymbol }),
+            setSelectedPairSymbol: (selectedPairSymbol) =>
+                set((state) => ({
+                    selectedPairSymbol,
+                    rememberedPreTradeInputs: {
+                        ...state.rememberedPreTradeInputs,
+                        [state.mode]: {
+                            ...state.rememberedPreTradeInputs[state.mode],
+                            selectedPairSymbol,
+                        },
+                    },
+                })),
+            setEntryRate: (entryRate) => set({ entryRate }),
+            setStopLossPrice: (stopLossPrice) => set({ stopLossPrice }),
             setStopLossPips: (stopLossPips) => set({ stopLossPips }),
             setTakeProfitPips: (takeProfitPips) => set({ takeProfitPips }),
             setRiskPercent: (riskPercent) => set({ riskPercent }),
@@ -237,7 +303,17 @@ export const useTradeStore = create<TradeState>()(
                     gateHelp: typeof updater === 'function' ? updater(state.gateHelp) : updater,
                 })),
             setPreEnv: (update) => set((state) => ({ ...state, ...update })),
-            resetPre: () => set(initialPreTrade),
+            resetPre: () =>
+                set((state) => {
+                    const remembered = state.rememberedPreTradeInputs[state.mode];
+                    return {
+                        ...initialPreTrade,
+                        mode: state.mode,
+                        accountBalance: remembered.accountBalance,
+                        selectedPairSymbol: remembered.selectedPairSymbol,
+                        rememberedPreTradeInputs: state.rememberedPreTradeInputs,
+                    };
+                }),
 
             // === Trade-Active アクション ===
             setTradeStatus: (tradeStatus) => set({ tradeStatus }),
@@ -267,6 +343,37 @@ export const useTradeStore = create<TradeState>()(
         }),
         {
             name: 'fx-trade-storage',
+            version: 1,
+            migrate: (persistedState, version) => {
+                const state = persistedState as Partial<TradeState>;
+                if (version >= 1 && state.rememberedPreTradeInputs) {
+                    return state as TradeState;
+                }
+
+                const rememberedPreTradeInputs = {
+                    live: {
+                        accountBalance: '',
+                        selectedPairSymbol: '',
+                        accountBalanceUpdatedAt: null,
+                    },
+                    practice: {
+                        accountBalance: '',
+                        selectedPairSymbol: '',
+                        accountBalanceUpdatedAt: null,
+                    },
+                } satisfies Record<TradeMode, RememberedPreTradeInputs>;
+                const mode = state.mode ?? 'live';
+                rememberedPreTradeInputs[mode] = {
+                    accountBalance: state.accountBalance ?? '',
+                    selectedPairSymbol: state.selectedPairSymbol ?? '',
+                    accountBalanceUpdatedAt: null,
+                };
+
+                return {
+                    ...state,
+                    rememberedPreTradeInputs,
+                } as TradeState;
+            },
             // 永続化するフィールドを選択（UIヘルプトグルなどは除外）
             partialize: (state) => ({
                 // Pre-Trade の入力値を永続化
@@ -280,9 +387,12 @@ export const useTradeStore = create<TradeState>()(
                 takeProfitAmount: state.takeProfitAmount,
                 // Phase 3: 通貨ペア・ピップス入力
                 selectedPairSymbol: state.selectedPairSymbol,
+                entryRate: state.entryRate,
+                stopLossPrice: state.stopLossPrice,
                 stopLossPips: state.stopLossPips,
                 takeProfitPips: state.takeProfitPips,
                 riskPercent: state.riskPercent,
+                rememberedPreTradeInputs: state.rememberedPreTradeInputs,
 
                 // 環境認識タグ
                 preEnvSign: state.preEnvSign,

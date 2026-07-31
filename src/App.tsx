@@ -394,17 +394,20 @@ export default function App() {
   const {
     mode, setMode,
     gate,
-    successProb,
-    expectedValue,
+    successProb, setSuccessProb,
+    expectedValue, setExpectedValue,
     accountBalance, setAccountBalance,
     stopLossAmount,
     takeProfitAmount,
     // Phase 3: 通貨ペア・ピップス入力
     selectedPairSymbol, setSelectedPairSymbol,
+    entryRate: currentRate, setEntryRate: setCurrentRate,
+    stopLossPrice, setStopLossPrice,
     stopLossPips, setStopLossPips,
     takeProfitPips, setTakeProfitPips,
     riskPercent,
     gateHelp, setGateHelp,
+    rememberedPreTradeInputs,
     resetPre,
     note, setNote,
     // 環境認識タグ
@@ -438,9 +441,12 @@ export default function App() {
     [currencyPairs, selectedPairSymbol]
   );
 
-  // 参考レート（手動入力）・損切り価格表示
-  const [currentRate, setCurrentRate] = useState<string>("");
-  const [stopLossPrice, setStopLossPrice] = useState<string>("");
+  // 参考レートと損切り価格は、画面を離れても下書きを復元する
+  const [preTradeStep, setPreTradeStep] = useState<1 | 2 | 3>(1);
+  const [postTradeStep, setPostTradeStep] = useState<1 | 2>(1);
+  const [skipSaving, setSkipSaving] = useState(false);
+  const [postSaving, setPostSaving] = useState(false);
+  const [pendingSkipSaving, setPendingSkipSaving] = useState(false);
 
   useEffect(() => {
     const entry = Number(currentRate);
@@ -463,12 +469,6 @@ export default function App() {
     }
     setStopLossPips(pips.toString());
   }, [currentRate, stopLossPrice, selectedPairSymbol, setStopLossPips]);
-
-  // 通貨ペア変更時にレートをクリアする（または前回値を保持するかは要件によるが、今回はクリアが無難）
-  useEffect(() => {
-    setCurrentRate("");
-    setStopLossPrice("");
-  }, [selectedPairSymbol]);
 
   // Phase 3: 為替レート取得
   const [jpyRate, setJpyRate] = useState<number>(1);
@@ -622,6 +622,11 @@ export default function App() {
   const gateAllOk = tradeEntryGatesOk && gateHelp.rule;
   const dailyLimit = memberSettings?.weekly_limit ?? 2;
   const dailyLocked = !memberSettings?.unlocked && dailyAttempts >= dailyLimit && !isTestMode;
+  const isFocusedRecordingRoute = ["/pre-trade", "/post-trade", "/skip"].includes(location.pathname);
+  const rememberedBalanceUpdatedAt = rememberedPreTradeInputs[mode].accountBalanceUpdatedAt;
+  const rememberedBalanceAgeDays = rememberedBalanceUpdatedAt
+    ? Math.floor((Date.now() - new Date(rememberedBalanceUpdatedAt).getTime()) / 86_400_000)
+    : null;
 
   // 今日のログを導出（フックは早期リターンの前に配置）
   const todayLogs = useMemo(
@@ -714,6 +719,14 @@ export default function App() {
           gate_all_ok: data.gate_trade_count_ok && data.gate_rr_ok && data.gate_risk_ok && data.gate_rule_ok,
           success_prob: data.success_prob,
           expected_value: data.expected_value,
+          currency_pair_symbol: data.currency_pair_symbol,
+          account_balance: data.account_balance,
+          stop_loss_pips: data.stop_loss_pips,
+          take_profit_pips: data.take_profit_pips,
+          calculated_lot: data.calculated_lot,
+          risk_percent: data.risk_percent,
+          risk_reward_ratio: data.risk_reward_ratio,
+          note: data.note,
           post_gate_kept: data.post_gate_kept,
           post_within_hypothesis: data.post_within_hypothesis,
           unexpected_reason: data.unexpected_reason,
@@ -856,7 +869,7 @@ export default function App() {
     const { data, error } = await supabase
       .from("trade_logs")
       .select(
-        "id, occurred_at, log_type, gate_all_ok, success_prob, expected_value, post_gate_kept, post_within_hypothesis, unexpected_reason, voided_at, completed_at"
+        "id, occurred_at, log_type, gate_all_ok, success_prob, expected_value, currency_pair_symbol, account_balance, stop_loss_pips, take_profit_pips, calculated_lot, risk_percent, risk_reward_ratio, note, post_gate_kept, post_within_hypothesis, unexpected_reason, voided_at, completed_at"
       )
       .eq("log_type", "valid")
       // ★未完判定（簡易）
@@ -991,8 +1004,13 @@ export default function App() {
   // resetPre, resetPost は Zustand ストアから取得済み
 
   const saveSkipQuick = async () => {
+    if (skipSaving) return false;
     setStatus("");
-    if (!session?.user?.id) return setStatus("未ログインです。");
+    if (!session?.user?.id) {
+      setStatus("未ログインです。");
+      return false;
+    }
+    setSkipSaving(true);
 
     const skipGate = {
       gate_trade_count_ok: false,
@@ -1001,22 +1019,72 @@ export default function App() {
       gate_rule_ok: false,
     };
 
-    const { error } = await supabase.from("trade_logs").insert([
-      { user_id: session.user.id, log_type: "skip", ...skipGate },
-    ]);
+    try {
+      const { error } = await supabase.from("trade_logs").insert([
+        { user_id: session.user.id, log_type: "skip", ...skipGate },
+      ]);
 
-    if (error) return setStatus(`保存失敗: ${error.message}`);
-    setStatus("✅ 見送りとして記録しました。");
-    showMascot("sessionEnd");
-    haptics.success();
+      if (error) {
+        setStatus(`見送りの保存に失敗しました: ${error.message}`);
+        return false;
+      }
 
-    // XP更新
-    void (async () => {
-      const xpRes = await updateXpAndStreak("DAILY_LESSON_SKIP");
-      applyXpResult(xpRes);
-    })();
+      showMascot("sessionEnd");
+      haptics.success();
 
-    await loadDailyCount();
+      void (async () => {
+        const xpRes = await updateXpAndStreak("DAILY_LESSON_SKIP");
+        applyXpResult(xpRes);
+      })();
+
+      await Promise.all([loadDailyCount(), loadHistory()]);
+      setStatus("✅ 見送りとして記録しました。落ち着いて見送れたことも大切な記録です。");
+      navigate("/");
+      return true;
+    } finally {
+      setSkipSaving(false);
+    }
+  };
+
+  const convertPendingToSkip = async () => {
+    if (pendingSkipSaving) return false;
+    const targetId = pending?.id ?? activeLog?.id ?? currentLogId;
+    if (!session?.user?.id || !targetId) {
+      setStatus("見送りへ変更する取引前記録が見つかりません。");
+      return false;
+    }
+
+    setPendingSkipSaving(true);
+    setStatus("");
+    try {
+      const { data, error } = await supabase
+        .from("trade_logs")
+        .update({
+          log_type: "skip",
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", targetId)
+        .eq("user_id", session.user.id)
+        .is("completed_at", null)
+        .select("id")
+        .maybeSingle();
+
+      if (error || !data) {
+        setStatus(`見送りへの変更に失敗しました: ${error?.message ?? "対象の記録を更新できませんでした"}`);
+        return false;
+      }
+
+      setPending(null);
+      setActiveLog(null);
+      setCurrentLogId(null);
+      showMascot("sessionEnd");
+      haptics.success();
+      await Promise.all([loadDailyCount(), loadHistory()]);
+      setStatus("✅ 取引しなかった判断を見送りとして記録しました。");
+      return true;
+    } finally {
+      setPendingSkipSaving(false);
+    }
   };
 
   const loadHistory = async () => {
@@ -1339,9 +1407,6 @@ export default function App() {
     if (!ruleOk) {
       return setStatus("ルール確認を完了してください。");
     }
-    if (!successProb || !expectedValue) {
-      return setStatus("仮説（成功確率・期待値）を選んでください。");
-    }
     if (!note.trim()) {
       return setStatus("仮説メモ（根拠）を入力してください。");
     }
@@ -1389,7 +1454,7 @@ export default function App() {
       .from("trade_logs")
       .insert([payload])
       .select(
-        "id, occurred_at, log_type, gate_all_ok, success_prob, expected_value, post_side, post_result, post_pl, post_rr_text, post_rule_respected, post_in_expected_range, post_good_participation, post_reference_point, post_note, voided_at, completed_at"
+        "id, occurred_at, log_type, gate_all_ok, success_prob, expected_value, currency_pair_symbol, account_balance, stop_loss_pips, take_profit_pips, calculated_lot, risk_percent, risk_reward_ratio, note, post_side, post_result, post_pl, post_rr_text, post_rule_respected, post_in_expected_range, post_good_participation, post_reference_point, post_note, voided_at, completed_at"
       )
       .single();
 
@@ -1405,15 +1470,23 @@ export default function App() {
       gate_all_ok: data.gate_all_ok ?? gateAllOk,
       success_prob: data.success_prob ?? successProb,
       expected_value: data.expected_value ?? expectedValue,
-      post_side: (data as any).post_side ?? null,
-      post_result: (data as any).post_result ?? null,
-      post_pl: (data as any).post_pl ?? null,
-      post_rr_text: (data as any).post_rr_text ?? null,
-      post_rule_respected: (data as any).post_rule_respected ?? null,
-      post_in_expected_range: (data as any).post_in_expected_range ?? null,
-      post_good_participation: (data as any).post_good_participation ?? null,
-      post_reference_point: (data as any).post_reference_point ?? null,
-      post_note: (data as any).post_note ?? null,
+      currency_pair_symbol: data.currency_pair_symbol ?? selectedPairSymbol ?? null,
+      account_balance: data.account_balance ?? (balance > 0 ? balance : null),
+      stop_loss_pips: data.stop_loss_pips ?? (slPips > 0 ? slPips : null),
+      take_profit_pips: data.take_profit_pips ?? (effectiveTpPips > 0 ? effectiveTpPips : null),
+      calculated_lot: data.calculated_lot ?? tradeMetrics?.lotSize ?? null,
+      risk_percent: data.risk_percent ?? riskPct,
+      risk_reward_ratio: data.risk_reward_ratio ?? rr,
+      note: data.note ?? note.trim(),
+      post_side: data.post_side ?? null,
+      post_result: data.post_result ?? null,
+      post_pl: data.post_pl ?? null,
+      post_rr_text: data.post_rr_text ?? null,
+      post_rule_respected: data.post_rule_respected ?? null,
+      post_in_expected_range: data.post_in_expected_range ?? null,
+      post_good_participation: data.post_good_participation ?? null,
+      post_reference_point: data.post_reference_point ?? null,
+      post_note: data.post_note ?? null,
       voided_at: data.voided_at ?? null,
       completed_at: data.completed_at ?? null,
     };
@@ -1421,7 +1494,6 @@ export default function App() {
     setActiveLog(newLog);
     setCurrentLogId(newLog.id);
     setPending(newLog);
-    setStatus("✅ 記録しました。取引後のチェックを入れてください。");
     showMascot("tradeSaved");
     haptics.success();
 
@@ -1432,75 +1504,88 @@ export default function App() {
     })();
 
     resetPre();
-    navigate("/post-trade");
-    void loadPending();
-    void loadDailyCount();
-    void loadHistory();
-    void loadMemberSettings();
+    setCurrentRate("");
+    setStopLossPrice("");
+    setPreTradeStep(1);
+    await Promise.all([loadDailyCount(), loadHistory(), loadMemberSettings()]);
+    setStatus("✅ 取引前の記録を保存しました。取引が終わったらホームから結果を記録できます。");
+    navigate("/");
   };
 
   // ----------------------
   // 保存：取引後
   // ----------------------
   const savePost = async () => {
+    if (postSaving) return false;
     setStatus("");
     const target = pending ?? activeLog;
     const targetId = target?.id ?? currentLogId;
     if (!targetId) {
-      return setStatus("未完の記録がありません（取引前を先に記録してください）。");
+      setStatus("未完の記録がありません（取引前を先に記録してください）。");
+      return false;
     }
 
     if (postSide === null || postResult === null) {
-      return setStatus("売買方向と結果を選んでください。");
+      setStatus("売買方向と結果を選んでください。");
+      setPostTradeStep(1);
+      return false;
     }
     if (postRuleRespected === null || postInExpectedRange === null || postGoodParticipation === null) {
-      return setStatus("チェック項目をすべて選んでください。");
+      setStatus("チェック項目をすべて選んでください。");
+      setPostTradeStep(2);
+      return false;
     }
 
-    const { error } = await supabase
-      .from("trade_logs")
-      .update({
-        // 新仕様
-        post_side: postSide,
-        post_result: postResult,
-        post_pl: postPl ? Number(postPl) : null,
-        post_rr_text: postRrText.trim() || null,
-        post_rule_respected: postRuleRespected,
-        post_in_expected_range: postInExpectedRange,
-        post_good_participation: postGoodParticipation,
-        post_reference_point: postReferencePoint.trim() || null,
-        post_note: postNoteValue.trim() || null,
+    setPostSaving(true);
+    try {
+      const { data, error } = await supabase
+        .from("trade_logs")
+        .update({
+          post_side: postSide,
+          post_result: postResult,
+          post_pl: postPl ? Number(postPl) : null,
+          post_rr_text: postRrText.trim() || null,
+          post_rule_respected: postRuleRespected,
+          post_in_expected_range: postInExpectedRange,
+          post_good_participation: postGoodParticipation,
+          post_reference_point: postReferencePoint.trim() || null,
+          post_note: postNoteValue.trim() || null,
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", targetId)
+        .eq("user_id", session?.user?.id ?? "")
+        .is("completed_at", null)
+        .select("id")
+        .maybeSingle();
 
-        completed_at: new Date().toISOString(),
-      })
-      .eq("id", targetId);
+      if (error || !data) {
+        reportError("取引後記録の保存に失敗", error ?? { message: "対象の記録を更新できませんでした" });
+        return false;
+      }
 
-    if (error) {
-      reportError("更新失敗", error);
-      return;
+      showMascot("sessionEnd");
+      haptics.success();
+      resetPost();
+      setPostTradeStep(1);
+      setPending(null);
+      setActiveLog(null);
+      setCurrentLogId(null);
+      await Promise.all([loadDailyCount(), loadHistory()]);
+      setStatus("✅ 取引後の事実を記録しました。本日の記録は完了です。");
+
+      void (async () => {
+        const xpRes = await updateXpAndStreak("TRADE_POST");
+        applyXpResult(xpRes);
+      })();
+
+      if (completeLogId) {
+        window.history.pushState({}, "", "/");
+      }
+      navigate("/");
+      return true;
+    } finally {
+      setPostSaving(false);
     }
-
-    setStatus("✅ 事後チェックを記録しました（感想は不要。事実だけ積み上がりました）。");
-    showMascot("sessionEnd");
-    haptics.success();
-    resetPost();
-    setPending(null);
-    setActiveLog(null);
-    setCurrentLogId(null);
-    void loadPending();
-    void loadDailyCount();
-    void loadHistory();
-
-    // XP更新
-    void (async () => {
-      const xpRes = await updateXpAndStreak("TRADE_POST");
-      applyXpResult(xpRes);
-    })();
-
-    if (completeLogId) {
-      window.history.pushState({}, "", "/");
-    }
-    navigate("/");
   };
 
   // ----------------------
@@ -2361,9 +2446,13 @@ export default function App() {
     // 2. 取引後の入力待ち
     if (pending) {
       return {
-        actionLabel: labels.tradePost + " を入力",
-        description: copy.nextAction.incomplete,
+        actionLabel: "取引が終わったので記録する",
+        description: "取引前の記録を保存済みです。取引が終わったら、結果とルール遵守を記録してください。",
         onAction: () => navigate("/post-trade"),
+        secondaryAction: {
+          label: pendingSkipSaving ? "見送りへ変更中..." : "今回は取引しなかった",
+          onAction: () => void convertPendingToSkip(),
+        },
       };
     }
 
@@ -2402,9 +2491,9 @@ export default function App() {
       style={{
         maxWidth: "100%",
         margin: "0",
-        paddingTop: session && !isAdminRoute ? "72px" : "0",
+        paddingTop: session && !isAdminRoute && !isFocusedRecordingRoute ? "72px" : "16px",
         paddingRight: location.pathname.startsWith("/learning/slides") ? "0" : "16px",
-        paddingBottom: session && !isAdminRoute ? "100px" : "var(--space-xl)",
+        paddingBottom: session && !isAdminRoute && !isFocusedRecordingRoute ? "100px" : "32px",
         paddingLeft: location.pathname.startsWith("/learning/slides") ? "0" : "16px",
         minHeight: "100dvh",
       }}
@@ -2425,8 +2514,9 @@ export default function App() {
         </div>
       )}
 
-      {/* Header */}
-      <header
+      {/* 記録中は入力に集中できるよう、グローバルナビゲーションを外す */}
+      {!isFocusedRecordingRoute && (
+        <header
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -2561,10 +2651,20 @@ export default function App() {
             </div>
           )}
         </div>
-      </header>
+        </header>
+      )}
 
       {status && (
-        <div data-testid="status-message" className="alert-danger" style={{ marginBottom: "var(--space-lg)" }}>{status}</div>
+        <div
+          data-testid="status-message"
+          role="status"
+          className={status.startsWith("✅")
+            ? "mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900"
+            : "alert-danger"}
+          style={{ marginBottom: "var(--space-lg)" }}
+        >
+          {status}
+        </div>
       )}
       {showNameModal && (
         <div
@@ -2659,201 +2759,208 @@ export default function App() {
       )}
 
       {location.pathname === "/skip" && (
-        <section className="space-y-4 max-w-md mx-auto relative pb-8">
-          {/* ヘッダー */}
-          <div className="flex items-center justify-between mb-2 px-1">
+        <section className="space-y-4 max-w-md mx-auto relative pb-4" data-testid="skip-flow">
+          <div className="flex items-center justify-between px-1">
             <button
               onClick={() => navigate("/")}
-              className="text-sm font-semibold text-zinc-600 flex items-center gap-1 hover:text-zinc-800 transition-colors"
+              className="min-h-11 rounded-lg px-2 text-sm font-semibold text-zinc-600 flex items-center gap-1 hover:text-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
             >
               ← 戻る
             </button>
-            <h3 className="text-lg font-bold m-0">見送り（15秒）</h3>
-            <div className="w-10"></div>
+            <div className="text-center">
+              <h3 className="text-lg font-bold m-0">見送り記録</h3>
+              <p className="m-0 text-xs text-zinc-500">目安15秒</p>
+            </div>
+            <div className="min-w-16" aria-hidden />
           </div>
 
-          {/* 今日の学習カード */}
-          <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white shadow-sm p-6">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-2xl">{getTodayLearningCard().emoji}</span>
-              <div className="text-sm font-bold text-blue-900">今日の学び（1分）</div>
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+            <div className="mb-5">
+              <h4 className="m-0 text-lg font-bold text-zinc-900">取引しなかったことを記録</h4>
+              <p className="m-0 mt-2 text-sm leading-relaxed text-zinc-600">
+                チャンスがなかった、または条件を満たさなかった判断も、大切な記録として残ります。
+              </p>
             </div>
-
-            <h4 className="text-base font-bold text-zinc-900 mb-3">
-              {getTodayLearningCard().title}
-            </h4>
-
-            <div className="text-sm text-zinc-700 leading-relaxed space-y-2">
-              {getTodayLearningCard().content.map((line, i) => (
-                <p key={i} className="m-0">
-                  {line}
-                </p>
-              ))}
-            </div>
-
-            {/* 詳しく見るボタン */}
             <button
               type="button"
-              onClick={() => {
-                // 今後、詳細ページへ遷移する実装を追加予定
-                alert("詳細ページは今後実装予定です");
-              }}
-              className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700 underline underline-offset-2 transition-colors"
+              data-testid="skip-save"
+              onClick={() => void saveSkipQuick()}
+              disabled={skipSaving}
+              className="btn-cta min-h-14 w-full rounded-xl px-4 text-sm font-bold disabled:cursor-wait disabled:opacity-60"
             >
-              詳しく見る →
+              {skipSaving ? "保存中..." : "見送りを記録"}
             </button>
+            <p className="m-0 mt-2 text-center text-xs text-zinc-500">保存するとホームへ戻ります。</p>
           </div>
 
-          {/* 見送り記録ボタン */}
-          <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4">
-            <div className="text-sm font-bold text-zinc-900 mb-2">今日の取引</div>
-            <div className="text-sm text-zinc-600 mb-4">
-              チャンスがなかった、またはルールを満たさなかった場合は「見送り」を記録してください。
+          <details className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
+            <summary className="min-h-11 cursor-pointer list-none py-2 text-sm font-bold text-blue-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+              今日の学びを見る（約1分）
+            </summary>
+            <div className="mt-3 border-t border-blue-100 pt-4">
+              <div className="mb-3 flex items-center gap-2">
+                <span className="text-xl" aria-hidden>{getTodayLearningCard().emoji}</span>
+                <h4 className="m-0 text-base font-bold text-zinc-900">{getTodayLearningCard().title}</h4>
+              </div>
+              <div className="space-y-2 text-sm leading-relaxed text-zinc-700">
+                {getTodayLearningCard().content.map((line, i) => (
+                  <p key={i} className="m-0">{line}</p>
+                ))}
+              </div>
             </div>
-            <button
-              data-testid="skip-save"
-              onClick={() => {
-                void saveSkipQuick();
-                navigate("/");
-              }}
-              className="w-full rounded-xl bg-zinc-600 px-4 py-3 text-white font-semibold shadow-sm hover:bg-zinc-700 active:bg-zinc-800 transition-colors"
-            >
-              見送りを記録（+5 XP）
-            </button>
-          </div>
+          </details>
         </section>
       )}
 
       {location.pathname === "/pre-trade" && (
-        <section className="space-y-4 max-w-md mx-auto relative pb-8">
-          {/* Header with Back button */}
-          <div className="flex items-center justify-between mb-2 px-1">
+        <section className="space-y-4 max-w-md mx-auto relative pb-4" data-testid="pre-trade-flow">
+          <div className="flex items-center justify-between px-1">
             <button
-              onClick={() => { resetPre(); navigate("/"); }}
-              className="text-sm font-semibold text-zinc-600 flex items-center gap-1 hover:text-zinc-800 transition-colors"
+              onClick={() => navigate("/")}
+              className="min-h-11 rounded-lg px-2 text-sm font-semibold text-zinc-600 flex items-center gap-1 hover:text-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors"
             >
               ← 戻る
             </button>
-            <h3 className="text-lg font-bold m-0">{labels.tradePre}</h3>
-            <div className="w-10"></div>
+            <div className="text-center">
+              <h3 className="text-lg font-bold m-0">取引前記録</h3>
+              <p className="m-0 text-xs text-zinc-500">目安30秒</p>
+            </div>
+            <div className="min-w-16 text-right text-sm font-semibold text-zinc-500" aria-label={`3段階中${preTradeStep}段階目`}>
+              {preTradeStep} / 3
+            </div>
           </div>
 
           {memberSettings && !memberSettings.unlocked && dailyAttempts >= memberSettings.weekly_limit && !isTestMode && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm font-medium">
-              {labels.weeklyLimitReached}
+            <div className="p-4 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl text-sm font-medium" role="status">
+              本日の取引記録は上限に達しています。見送りの記録は引き続き利用できます。
             </div>
           )}
 
-          {/* 今週残り (Orbs) */}
-          <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4">
-            <div className="text-zinc-400 text-[10px] font-bold uppercase tracking-wider mb-2 text-center">本日残り</div>
-            <div className="flex items-center justify-center gap-4 py-1">
-              {[...Array(memberSettings?.weekly_limit ?? 2)].map((_, i) => {
-                const limit = memberSettings?.weekly_limit ?? 2;
-                const remaining = Math.max(0, limit - dailyAttempts);
-                // Active if index is less than remaining count (e.g. remaining 2 -> indices 0, 1 are active)
-                const isActive = i < remaining;
-
-                return (
-                  <div
-                    key={i}
-                    className={`
-                      w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500
-                      ${isActive
-                        ? "bg-gradient-to-br from-blue-400 to-cyan-300 shadow-[0_4px_12px_rgba(56,189,248,0.4)] border border-white/50"
-                        : "bg-zinc-100 border border-zinc-200 opacity-40 grayscale"}
-                    `}
-                  >
-                    {isActive && <div className="w-3 h-3 rounded-full bg-white/40 blur-[1px]" />}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
           {/* 📊 トレード設計 Card */}
           <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4 space-y-4">
-            <div className="font-bold text-zinc-800 flex items-center gap-2">
-              <span className="text-base">📊</span> トレード設計
-            </div>
-
-            {/* 学習ポイント：なぜ2%なのか */}
-            <div className="text-[10px] text-zinc-500 bg-blue-50/60 border border-blue-100 rounded-xl p-3 leading-relaxed">
-              💡 リスク2% × RR 3:1 なら、勝率25%でプラマイゼロ。30〜40%でも資金は増える。10連敗しても資金の82%が残ります。
-            </div>
-
-            {/* 通貨ペアセレクト */}
             <div>
-              <label className="text-[10px] font-bold text-zinc-400 mb-1 block uppercase tracking-wider">通貨ペア</label>
-              <select
-                value={selectedPairSymbol}
-                onChange={(e) => setSelectedPairSymbol(e.target.value)}
-                className="w-full rounded-xl border-2 border-zinc-100 bg-zinc-50/50 px-3 py-2.5 text-sm font-bold focus:border-blue-500 focus:bg-white focus:outline-none transition-all appearance-none"
-              >
-                <option value="">選択してください</option>
-                {currencyPairs.map((p) => (
-                  <option key={p.id} value={p.symbol}>{p.symbol}</option>
-                ))}
-              </select>
+              <div className="font-bold text-zinc-900">
+                {preTradeStep === 1 ? "いつもの設定を確認" : preTradeStep === 2 ? "今回の損失ラインを決める" : "判断の根拠を残す"}
+              </div>
+              <p className="m-0 mt-1 text-sm text-zinc-500">
+                {preTradeStep === 1
+                  ? "前回値を引き継いでいます。変更がなければそのまま進めます。"
+                  : preTradeStep === 2
+                    ? "エントリー予定価格と損切り価格から、安全条件を自動確認します。"
+                    : "任意のタグと短いメモで、今回の判断を記録します。"}
+              </p>
             </div>
 
-            {/* 口座残高 */}
-            <div>
-              <label className="text-[10px] font-bold text-zinc-400 mb-1 block">余剰資金（口座残高）</label>
-              <input
-                type="text"
-                inputMode="decimal"
-                className="w-full rounded-xl border-2 border-zinc-100 bg-zinc-50/50 px-3 py-2 text-sm font-bold focus:border-blue-500 focus:bg-white focus:outline-none transition-all"
-                placeholder="例: 500000"
-                value={accountBalance}
-                onChange={(e) => setAccountBalance(e.target.value.replace(/[^0-9.]/g, ""))}
-              />
-            </div>
+            {preTradeStep === 1 && (
+              <>
+                <fieldset>
+                  <legend className="mb-2 text-sm font-semibold text-zinc-700">利用する口座</legend>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      { value: "live", label: "本番" },
+                      { value: "practice", label: "練習" },
+                    ] as const).map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        aria-pressed={mode === option.value}
+                        onClick={() => setMode(option.value)}
+                        className={`min-h-12 rounded-xl px-3 text-sm font-bold border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 transition-colors ${mode === option.value
+                          ? "bg-blue-600 text-white border-blue-600"
+                          : "bg-white border-zinc-200 text-zinc-700"
+                          }`}
+                      >
+                        {mode === option.value ? "✓ " : ""}{option.label}
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
 
-            {/* モード切替 & リスク % */}
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setMode('live')}
-                className={`flex-1 rounded-xl py-3 text-sm font-bold border-2 transition-all ${mode === 'live'
-                  ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                  : "bg-white border-zinc-100 text-zinc-400"
-                  }`}
-              >
-                本番
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode('practice')}
-                className={`flex-1 rounded-xl py-3 text-sm font-bold border-2 transition-all ${mode === 'practice'
-                  ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
-                  : "bg-white border-zinc-100 text-zinc-400"
-                  }`}
-              >
-                練習
-              </button>
-            </div>
+                <div>
+                  <label htmlFor="pre-trade-pair" className="text-sm font-semibold text-zinc-700 mb-2 block">通貨ペア</label>
+                  <select
+                    id="pre-trade-pair"
+                    value={selectedPairSymbol}
+                    onChange={(e) => {
+                      const nextPair = e.target.value;
+                      if (nextPair !== selectedPairSymbol) {
+                        setSelectedPairSymbol(nextPair);
+                        setCurrentRate("");
+                        setStopLossPrice("");
+                      }
+                    }}
+                    className="min-h-12 w-full rounded-xl border border-zinc-300 bg-white px-3 text-base font-semibold focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  >
+                    <option value="">選択してください</option>
+                    {currencyPairs.map((p) => (
+                      <option key={p.id} value={p.symbol}>{p.symbol}</option>
+                    ))}
+                  </select>
+                </div>
 
-            {/* リスク % — 固定推奨  */}
-            <div className="flex items-center justify-between bg-zinc-50 rounded-xl px-3 py-2 border border-zinc-100">
-              <span className="text-xs font-bold text-zinc-500">リスク許容</span>
-              <span className="text-sm font-black text-blue-600">2%（推奨固定）</span>
-            </div>
+                <div>
+                  <label htmlFor="pre-trade-balance" className="text-sm font-semibold text-zinc-700 mb-2 block">口座残高</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" aria-hidden>¥</span>
+                    <input
+                      id="pre-trade-balance"
+                      type="text"
+                      inputMode="numeric"
+                      className="min-h-12 w-full rounded-xl border border-zinc-300 bg-white pl-8 pr-12 text-base font-semibold focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                      placeholder="500,000"
+                      value={accountBalance ? Number(accountBalance).toLocaleString("ja-JP") : ""}
+                      onChange={(e) => setAccountBalance(e.target.value.replace(/[^0-9]/g, ""))}
+                      aria-describedby="pre-trade-balance-help"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-zinc-500" aria-hidden>円</span>
+                  </div>
+                  <p id="pre-trade-balance-help" className="m-0 mt-2 text-xs leading-relaxed text-zinc-500">
+                    {rememberedBalanceUpdatedAt
+                      ? `前回入力した金額・${new Date(rememberedBalanceUpdatedAt).toLocaleDateString("ja-JP")}更新`
+                      : "入力した金額は、この口座の次回記録にも引き継がれます。"}
+                  </p>
+                  {rememberedBalanceAgeDays !== null && rememberedBalanceAgeDays >= 7 && (
+                    <p className="m-0 mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800" role="status">
+                      前回の更新から7日以上経っています。残高に変更がないか確認してください。
+                    </p>
+                  )}
+                </div>
+
+                <div className="rounded-xl border border-blue-100 bg-blue-50 px-3 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-semibold text-zinc-700">今回の損失上限</span>
+                    <span className="text-sm font-bold text-blue-700">口座残高の2%</span>
+                  </div>
+                  <p className="m-0 mt-1 text-xs text-zinc-600">資金を守り、記録を続けるための安全設定です。</p>
+                </div>
+
+                <button
+                  type="button"
+                  data-testid="pre-trade-next"
+                  onClick={() => setPreTradeStep(2)}
+                  disabled={!selectedPairSymbol || Number(accountBalance) <= 0}
+                  className="btn-cta min-h-14 w-full rounded-xl font-bold disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  損失ラインを決める
+                </button>
+              </>
+            )}
 
             {/* 参考レートと損切り価格 */}
-            {(selectedPairSymbol) && (
+            {preTradeStep === 2 && selectedPairSymbol && (
               <div className="space-y-3">
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-3">
                   <div className="flex justify-between items-center mb-1">
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                    <label className="text-sm font-semibold text-zinc-700">
                       エントリー予定レート
                     </label>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
+                      data-testid="pre-trade-entry-rate"
                       type="text"
                       inputMode="decimal"
-                      className="flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-bold focus:outline-none focus:border-blue-500 transition-all font-mono"
+                      className="min-h-12 flex-1 rounded-lg border border-zinc-300 bg-white px-3 text-base font-bold focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 font-mono"
                       placeholder={getEntryPricePlaceholder(selectedPairSymbol)}
                       value={currentRate}
                       onChange={(e) => {
@@ -2861,17 +2968,17 @@ export default function App() {
                         setCurrentRate(val);
                       }}
                     />
-                    <span className="text-xl">✏️</span>
                   </div>
-                  <div className="text-[10px] text-zinc-400 mt-1">📍 チャートでエントリーしたい価格を入力してください</div>
+                  <div className="text-xs text-zinc-500 mt-2">チャートでエントリーを予定している価格です。</div>
                 </div>
 
                 <div className="rounded-xl border-2 border-rose-100 bg-rose-50/30 p-3">
-                  <label className="text-[10px] font-bold text-rose-500 uppercase tracking-wider mb-1 block">
-                    🎯 損切りレート（決済ライン）
+                  <label className="text-sm font-semibold text-rose-700 mb-2 block">
+                    損切りレート
                   </label>
                   <div className="flex items-center gap-2 mb-2">
                     <input
+                      data-testid="pre-trade-stop-loss-rate"
                       type="text"
                       inputMode="decimal"
                       className="w-full rounded-xl border-2 border-rose-200 bg-white px-3 py-3 text-lg font-black text-rose-700 focus:border-rose-500 focus:outline-none transition-all text-center font-mono"
@@ -2888,35 +2995,35 @@ export default function App() {
                       <span className="font-bold text-rose-600">（{stopLossPips} pips）</span>
                     </div>
                   )}
-                  <div className="text-[10px] text-rose-400 mt-1 text-center">この価格を割ったら撤退するラインです</div>
+                  <div className="text-xs text-rose-700 mt-2 text-center">この価格に達したら撤退するラインです。</div>
                 </div>
               </div>
             )}
 
             {/* 自動逆算された利確 pips */}
-            {Number(stopLossPips) > 0 && (
+            {preTradeStep === 2 && Number(stopLossPips) > 0 && (
               <div className="rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-100/50 border border-emerald-200 p-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">推奨利確（RR 3:1 逆算）</div>
+                    <div className="text-xs font-bold text-emerald-700">利確目安（RR 3:1）</div>
                     <div className="text-2xl font-black text-emerald-700 mt-1">
                       {autoTakeProfitPips} <span className="text-sm font-bold">pips</span>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-[10px] text-zinc-400">損切り</div>
+                    <div className="text-xs text-zinc-500">損切り</div>
                     <div className="text-sm font-bold text-zinc-600">{stopLossPips} pips</div>
-                    <div className="text-[10px] text-zinc-400 mt-1">× 3.0</div>
+                    <div className="text-xs text-zinc-500 mt-1">× 3.0</div>
                   </div>
                 </div>
-                <div className="text-[10px] text-emerald-600/80 mt-2">
-                  👆 この利確pips数をチャートに反映してください
+                <div className="text-xs text-emerald-700 mt-2">
+                  この利確幅をチャート上でも確認してください。
                 </div>
               </div>
             )}
 
             {/* 任意：利確pips手動調整（上級者向け） */}
-            {Number(stopLossPips) > 0 && (
+            {preTradeStep === 2 && Number(stopLossPips) > 0 && (
               <details className="text-xs">
                 <summary className="text-zinc-400 cursor-pointer hover:text-zinc-600 font-bold">利確pipsを手動調整する（上級）</summary>
                 <div className="mt-2">
@@ -2938,15 +3045,15 @@ export default function App() {
             )}
 
             {/* 自動計算結果パネル */}
-            {tradeMetrics && (
+            {preTradeStep === 2 && tradeMetrics && (
               <div className="rounded-xl bg-gradient-to-br from-zinc-50 to-blue-50/30 border border-zinc-100 p-4 space-y-3">
-                <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">計算結果</div>
+                <div className="text-xs font-bold text-zinc-500">安全設計の計算結果</div>
 
                 {/* ロット数（メイン表示） */}
                 <div className="text-center py-2">
-                  <div className="text-[10px] text-zinc-400 font-bold">適正ロット数</div>
+                  <div className="text-xs text-zinc-500 font-bold">適正ロット数</div>
                   <div className="text-3xl font-black text-zinc-900 mt-1">{tradeMetrics.lotSize}</div>
-                  <div className="text-[10px] text-zinc-400">ロット</div>
+                  <div className="text-xs text-zinc-500">ロット</div>
                 </div>
 
                 {/* 詳細数値 */}
@@ -2988,40 +3095,136 @@ export default function App() {
                 </div>
               </div>
             )}
+
+            {preTradeStep === 2 && (
+              <div className="space-y-3">
+                {!tradeEntryGatesOk && currentRate && stopLossPrice && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900" role="status">
+                    安全条件を満たしていません。価格を見直すか、今回は見送りとして記録できます。
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPreTradeStep(1)}
+                    className="min-h-12 rounded-xl border border-zinc-300 bg-white px-3 text-sm font-bold text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  >
+                    戻る
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="pre-trade-next"
+                    onClick={() => setPreTradeStep(3)}
+                    disabled={!tradeEntryGatesOk}
+                    className="btn-cta min-h-12 rounded-xl px-3 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    根拠を記録する
+                  </button>
+                </div>
+                {!tradeEntryGatesOk && (
+                  <button
+                    type="button"
+                    onClick={() => void saveSkipQuick()}
+                    className="min-h-12 w-full rounded-xl border border-zinc-300 bg-white px-4 text-sm font-bold text-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  >
+                    見送りとして記録
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
 
 
-          <div className="pt-2">
+          {preTradeStep === 3 && (
+          <div className="space-y-4 pt-2">
             {tradeEntryGatesOk ? (
               <div className="space-y-6">
+                <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+                  <div className="mb-3">
+                    <div className="text-sm font-bold text-zinc-900">今回の見立て（任意）</div>
+                    <p className="m-0 mt-1 text-xs text-zinc-500">未回答のままでも記録できます。既定値で判断を保存しません。</p>
+                  </div>
+                  <div className="space-y-4">
+                    <fieldset>
+                      <legend className="mb-2 text-sm font-semibold text-zinc-700">成功確率</legend>
+                      <div className="grid grid-cols-3 gap-2">
+                        {([
+                          { value: "low", label: "低" },
+                          { value: "mid", label: "中" },
+                          { value: "high", label: "高" },
+                        ] as const).map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            aria-pressed={successProb === option.value}
+                            onClick={() => setSuccessProb(successProb === option.value ? null : option.value)}
+                            className={`min-h-11 rounded-xl border text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${successProb === option.value
+                              ? "border-blue-600 bg-blue-600 text-white"
+                              : "border-zinc-300 bg-white text-zinc-700"
+                              }`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    </fieldset>
+                    <fieldset>
+                      <legend className="mb-2 text-sm font-semibold text-zinc-700">期待値</legend>
+                      <div className="grid grid-cols-3 gap-2">
+                        {([
+                          { value: "minus", label: "なし" },
+                          { value: "unknown", label: "不明" },
+                          { value: "plus", label: "あり" },
+                        ] as const).map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            aria-pressed={expectedValue === option.value}
+                            onClick={() => setExpectedValue(option.value)}
+                            className={`min-h-11 rounded-xl border text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${expectedValue === option.value
+                              ? "border-blue-600 bg-blue-600 text-white"
+                              : "border-zinc-300 bg-white text-zinc-700"
+                              }`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    </fieldset>
+                  </div>
+                </div>
+
                 {/* 📝 環境認識タグ（10個） */}
-                <div className="space-y-3">
-                  <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
-                    環境認識タグ（複数選択可）
+                <div className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+                  <div>
+                    <div className="text-sm font-bold text-zinc-900">
+                      環境認識タグ
+                    </div>
+                    <p className="m-0 mt-1 text-xs text-zinc-500">任意・複数選択できます。</p>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     {[
-                      { id: "preEnvSign", label: "✅ サイン点灯" },
-                      { id: "preEnvTrend4hUp", label: "📈 4Hトレンド一致" },
-                      { id: "preEnvRange4h", label: "↔️ 4Hレンジ内" },
-                      { id: "preEnvSupport15m", label: "🛡️ 15Mサポレジ" },
-                      { id: "preEnvLongWick15m", label: "🕯️ 15M長髭" },
-                      { id: "preEnvFlag", label: "🚩 フラッグ" },
-                      { id: "preEnvTriangle", label: "📐 三角持ち合い" },
-                      { id: "preEnvLondon", label: "🇬🇧 ロンドン時間" },
-                      { id: "preEnvNewyork", label: "🇺🇸 NY時間" },
-                      { id: "preEnvAsPlanned", label: "📝 シナリオ通り" },
+                      { id: "preEnvSign", label: "✅ サイン点灯", isActive: preEnvSign },
+                      { id: "preEnvTrend4hUp", label: "📈 4Hトレンド一致", isActive: preEnvTrend4hUp },
+                      { id: "preEnvRange4h", label: "↔️ 4Hレンジ内", isActive: preEnvRange4h },
+                      { id: "preEnvSupport15m", label: "🛡️ 15Mサポレジ", isActive: preEnvSupport15m },
+                      { id: "preEnvLongWick15m", label: "🕯️ 15M長髭", isActive: preEnvLongWick15m },
+                      { id: "preEnvFlag", label: "🚩 フラッグ", isActive: preEnvFlag },
+                      { id: "preEnvTriangle", label: "📐 三角持ち合い", isActive: preEnvTriangle },
+                      { id: "preEnvLondon", label: "🇬🇧 ロンドン時間", isActive: preEnvLondon },
+                      { id: "preEnvNewyork", label: "🇺🇸 NY時間", isActive: preEnvNewyork },
+                      { id: "preEnvAsPlanned", label: "📝 シナリオ通り", isActive: preEnvAsPlanned },
                     ].map((tag) => {
-                      const isActive = (useTradeStore.getState() as any)[tag.id];
                       return (
                         <button
                           key={tag.id}
                           type="button"
-                          onClick={() => setPreEnv({ [tag.id]: !isActive })}
-                          className={`rounded-xl px-3 py-2.5 text-left text-xs font-bold border-2 transition-all ${isActive
+                          aria-pressed={tag.isActive}
+                          onClick={() => setPreEnv({ [tag.id]: !tag.isActive })}
+                          className={`min-h-11 rounded-xl px-3 py-2.5 text-left text-xs font-bold border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors ${tag.isActive
                             ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                            : "bg-white border-zinc-100 text-zinc-600 hover:bg-zinc-50"
+                            : "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50"
                             }`}
                         >
                           {tag.label}
@@ -3032,15 +3235,15 @@ export default function App() {
                 </div>
 
                 {/* 📝 メモ */}
-                <div className="space-y-2">
-                  <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1">
+                <div className="space-y-2 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+                  <div className="text-sm font-bold text-zinc-900 flex items-center gap-1">
                     <span>仮説メモ（根拠）</span>
-                    <span className="text-rose-500 font-bold">*必須</span>
+                    <span className="text-xs text-rose-600 font-bold">必須</span>
                   </div>
                   <textarea
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
-                    className="w-full rounded-xl border border-zinc-200 bg-white p-4 text-sm text-zinc-800 focus:border-blue-500 focus:outline-none transition-all resize-none shadow-inner"
+                    className="w-full rounded-xl border border-zinc-300 bg-white p-4 text-base text-zinc-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none"
                     rows={3}
                     placeholder="なぜここでエントリーするのか？根拠を記入してください..."
                   />
@@ -3056,17 +3259,30 @@ export default function App() {
                   />
                 </div>
 
-                <button
-                  data-testid="pre-trade-save"
-                  onClick={() => void savePre()}
-                  disabled={(dailyLocked && !isTestMode) || !note.trim() || !gateHelp.rule}
-                  className={`btn-cta w-full h-14 rounded-xl font-bold transition-all duration-700 ${!note.trim() || !gateHelp.rule || (dailyLocked && !isTestMode)
-                    ? "opacity-50 pointer-events-none grayscale"
-                    : "animate-pulse shadow-[0_0_20px_rgba(37,99,235,0.6)]"
-                    }`}
-                >
-                  {labels.tradePre} を記録する
-                </button>
+                <div className="sticky bottom-[calc(0.5rem+env(safe-area-inset-bottom))] z-20 space-y-2 rounded-2xl border border-white/80 bg-white/95 p-3 shadow-[0_-8px_30px_rgba(15,23,42,0.12)] backdrop-blur">
+                  {(!note.trim() || !gateHelp.rule) && (
+                    <p className="m-0 text-center text-xs text-zinc-600" role="status">
+                      {!note.trim() ? "根拠メモを入力してください。" : "ルール確認を完了してください。"}
+                    </p>
+                  )}
+                  <div className="grid grid-cols-[0.7fr_1.3fr] gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPreTradeStep(2)}
+                      className="min-h-14 rounded-xl border border-zinc-300 bg-white px-3 text-sm font-bold text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    >
+                      戻る
+                    </button>
+                    <button
+                      data-testid="pre-trade-save"
+                      onClick={() => void savePre()}
+                      disabled={(dailyLocked && !isTestMode) || !note.trim() || !gateHelp.rule}
+                      className="btn-cta min-h-14 rounded-xl px-3 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      取引前記録を保存
+                    </button>
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="space-y-4">
@@ -3084,29 +3300,33 @@ export default function App() {
               </div>
             )}
           </div>
+          )}
         </section>
       )
       }
 
       {
         location.pathname === "/post-trade" && (
-          <section className="space-y-4 max-w-md mx-auto relative pb-8">
-            {/* Header with Back button */}
-            <div className="flex items-center justify-between mb-2 px-1">
+          <section className="space-y-4 max-w-md mx-auto relative pb-4" data-testid="post-trade-flow">
+            <div className="flex items-center justify-between px-1">
               <button
                 onClick={() => {
-                  resetPost();
                   if (completeLogId) {
                     window.history.pushState({}, "", "/");
                   }
                   navigate("/");
                 }}
-                className="text-sm font-semibold text-zinc-600 flex items-center gap-1 hover:text-zinc-800 transition-colors"
+                className="min-h-11 rounded-lg px-2 text-sm font-semibold text-zinc-600 flex items-center gap-1 hover:text-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               >
                 ← 戻る
               </button>
-              <h3 className="text-lg font-bold m-0">{labels.tradePost}</h3>
-              <div className="w-10"></div>
+              <div className="text-center">
+                <h3 className="text-lg font-bold m-0">取引後記録</h3>
+                <p className="m-0 text-xs text-zinc-500">目安60秒</p>
+              </div>
+              <div className="min-w-16 text-right text-sm font-semibold text-zinc-500" aria-label={`2段階中${postTradeStep}段階目`}>
+                {postTradeStep} / 2
+              </div>
             </div>
 
             {!pending ? (
@@ -3126,183 +3346,288 @@ export default function App() {
               </div>
             ) : (
               <>
-                {/* 1) 対象情報をカード化 */}
-                <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4 space-y-2">
-                  <div className="text-sm font-bold text-zinc-900">対象</div>
-                  <div className="text-sm text-zinc-600 space-y-1">
-                    <div>日時：{new Date(pending.occurred_at).toLocaleString()}</div>
-                    <div>仮説：{labelProb(pending.success_prob)}</div>
-                    <div>期待値：{labelEV(pending.expected_value)}</div>
-                    <div>終値率：不明</div>
+                <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="m-0 text-xs font-semibold text-zinc-500">取引前の計画</p>
+                      <p className="mt-1 mb-0 text-base font-bold text-zinc-900">
+                        {pending.currency_pair_symbol || "通貨ペア未設定"}
+                      </p>
+                    </div>
+                    <p className="m-0 text-right text-xs text-zinc-500">
+                      {new Date(pending.occurred_at).toLocaleString()}
+                    </p>
                   </div>
+                  <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                    <div className="rounded-xl bg-zinc-50 px-3 py-2">
+                      <dt className="text-xs text-zinc-500">損切り</dt>
+                      <dd className="mt-1 mb-0 font-semibold text-zinc-800">
+                        {pending.stop_loss_pips != null ? `${pending.stop_loss_pips} pips` : "未設定"}
+                      </dd>
+                    </div>
+                    <div className="rounded-xl bg-zinc-50 px-3 py-2">
+                      <dt className="text-xs text-zinc-500">利確</dt>
+                      <dd className="mt-1 mb-0 font-semibold text-zinc-800">
+                        {pending.take_profit_pips != null ? `${pending.take_profit_pips} pips` : "未設定"}
+                      </dd>
+                    </div>
+                    <div className="rounded-xl bg-zinc-50 px-3 py-2">
+                      <dt className="text-xs text-zinc-500">ロット</dt>
+                      <dd className="mt-1 mb-0 font-semibold text-zinc-800">
+                        {pending.calculated_lot != null ? pending.calculated_lot : "未設定"}
+                      </dd>
+                    </div>
+                    <div className="rounded-xl bg-zinc-50 px-3 py-2">
+                      <dt className="text-xs text-zinc-500">計画RR</dt>
+                      <dd className="mt-1 mb-0 font-semibold text-zinc-800">
+                        {pending.risk_reward_ratio != null ? `1:${pending.risk_reward_ratio}` : "未設定"}
+                      </dd>
+                    </div>
+                  </dl>
+                  {pending.note && (
+                    <details className="mt-3 rounded-xl border border-zinc-200 bg-white">
+                      <summary className="min-h-11 cursor-pointer px-3 py-3 text-sm font-semibold text-zinc-700">
+                        取引前の根拠を見る
+                      </summary>
+                      <p className="m-0 border-t border-zinc-100 px-3 py-3 text-sm leading-relaxed text-zinc-600">
+                        {pending.note}
+                      </p>
+                    </details>
+                  )}
                 </div>
 
-                {/* 2) 振り返りフォーム */}
-                <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4 space-y-6">
-                  <div className="text-base font-bold text-zinc-900">振り返り（事実だけを記録）</div>
+                {postTradeStep === 1 ? (
+                  <div className="space-y-4">
+                    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm space-y-5">
+                      <div>
+                        <h4 className="m-0 text-base font-bold text-zinc-900">結果を事実で記録</h4>
+                        <p className="mt-1 mb-0 text-xs leading-relaxed text-zinc-500">
+                          まずは方向と結果だけ。損益とRRは分かる場合だけで構いません。
+                        </p>
+                      </div>
 
-                  {/* 売買方向 & 結果 */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">売買方向</div>
-                      <div className="flex gap-1 bg-zinc-100 p-1 rounded-xl">
-                        <button
-                          type="button"
-                          onClick={() => setPostSide('long')}
-                          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${postSide === 'long' ? "bg-white text-blue-600 shadow-sm" : "text-zinc-400"
-                            }`}
-                        >
-                          ロング
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPostSide('short')}
-                          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${postSide === 'short' ? "bg-white text-rose-600 shadow-sm" : "text-zinc-400"
-                            }`}
-                        >
-                          ショート
-                        </button>
+                      <fieldset className="space-y-2">
+                        <legend className="text-sm font-semibold text-zinc-700">売買方向</legend>
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            { value: "long" as const, label: "ロング" },
+                            { value: "short" as const, label: "ショート" },
+                          ].map((item) => (
+                            <button
+                              key={item.value}
+                              type="button"
+                              data-testid={`post-side-${item.value}`}
+                              aria-pressed={postSide === item.value}
+                              onClick={() => setPostSide(item.value)}
+                              className={`min-h-11 rounded-xl border px-3 text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                                postSide === item.value
+                                  ? "border-blue-600 bg-blue-50 text-blue-700"
+                                  : "border-zinc-200 bg-white text-zinc-600"
+                              }`}
+                            >
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                      </fieldset>
+
+                      <fieldset className="space-y-2">
+                        <legend className="text-sm font-semibold text-zinc-700">取引結果</legend>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            { value: "win" as const, label: "利益" },
+                            { value: "loss" as const, label: "損失" },
+                            { value: "be" as const, label: "建値" },
+                          ].map((item) => (
+                            <button
+                              key={item.value}
+                              type="button"
+                              data-testid={`post-result-${item.value}`}
+                              aria-pressed={postResult === item.value}
+                              onClick={() => setPostResult(item.value)}
+                              className={`min-h-11 rounded-xl border px-2 text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                                postResult === item.value
+                                  ? "border-blue-600 bg-blue-600 text-white"
+                                  : "border-zinc-200 bg-white text-zinc-600"
+                              }`}
+                            >
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                      </fieldset>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <label className="space-y-2 text-sm font-semibold text-zinc-700">
+                          損益（任意）
+                          <input
+                            data-testid="post-pl"
+                            type="text"
+                            inputMode="decimal"
+                            value={postPl}
+                            onChange={(e) => setPostPl(e.target.value.replace(/[^0-9.-]/g, ""))}
+                            placeholder="例: 5000"
+                            className="min-h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-base font-semibold text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                          />
+                        </label>
+                        <label className="space-y-2 text-sm font-semibold text-zinc-700">
+                          実際のRR（任意）
+                          <input
+                            data-testid="post-rr"
+                            type="text"
+                            inputMode="decimal"
+                            value={postRrText}
+                            onChange={(e) => setPostRrText(e.target.value.replace(/[^0-9.:/-]/g, ""))}
+                            placeholder="例: 1:3.2"
+                            className="min-h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-base font-semibold text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                          />
+                        </label>
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">結果</div>
-                      <div className="flex gap-1 bg-zinc-100 p-1 rounded-xl">
-                        <button
-                          type="button"
-                          onClick={() => setPostResult('win')}
-                          className={`flex-1 py-1 text-[10px] font-bold rounded-lg transition-all ${postResult === 'win' ? "bg-emerald-500 text-white shadow-sm" : "text-zinc-400"
-                            }`}
-                        >
-                          勝
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPostResult('loss')}
-                          className={`flex-1 py-1 text-[10px] font-bold rounded-lg transition-all ${postResult === 'loss' ? "bg-rose-500 text-white shadow-sm" : "text-zinc-400"
-                            }`}
-                        >
-                          負
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPostResult('be')}
-                          className={`flex-1 py-1 text-[10px] font-bold rounded-lg transition-all ${postResult === 'be' ? "bg-zinc-500 text-white shadow-sm" : "text-zinc-400"
-                            }`}
-                        >
-                          分
-                        </button>
+
+                    <div className="sticky bottom-[calc(0.5rem+env(safe-area-inset-bottom))] z-20 space-y-2 rounded-2xl border border-white/80 bg-white/95 p-3 shadow-[0_-8px_30px_rgba(15,23,42,0.12)] backdrop-blur">
+                      {(!postSide || !postResult) && (
+                        <p className="m-0 text-center text-xs text-zinc-600" role="status">
+                          売買方向と取引結果を選んでください。
+                        </p>
+                      )}
+                      <button
+                        type="button"
+                        data-testid="post-trade-next"
+                        disabled={!postSide || !postResult}
+                        onClick={() => setPostTradeStep(2)}
+                        className="btn-cta min-h-14 w-full rounded-xl px-4 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        ルールを振り返る
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm space-y-4">
+                      <div>
+                        <h4 className="m-0 text-base font-bold text-zinc-900">計画どおりだったか確認</h4>
+                        <p className="mt-1 mb-0 text-xs leading-relaxed text-zinc-500">
+                          良し悪しではなく、事前に決めた内容と照らして回答します。
+                        </p>
                       </div>
-                    </div>
-                  </div>
 
-                  {/* 損益 & RR */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">損益 (JPY)</div>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        value={postPl}
-                        onChange={(e) => setPostPl(e.target.value.replace(/[^0-9.-]/g, ""))}
-                        placeholder="例: 5000"
-                        className="w-full rounded-xl border-2 border-zinc-100 bg-zinc-50/50 px-3 py-2 text-sm font-bold focus:border-blue-500 focus:outline-none transition-all"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">実際のRR</div>
-                      <input
-                        type="text"
-                        value={postRrText}
-                        onChange={(e) => setPostRrText(e.target.value)}
-                        placeholder="例: 1:3.2"
-                        className="w-full rounded-xl border-2 border-zinc-100 bg-zinc-50/50 px-3 py-2 text-sm font-bold focus:border-blue-500 focus:outline-none transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  {/* チェック項目 */}
-                  <div className="space-y-3">
-                    <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">チェック項目</div>
-                    <div className="space-y-2">
                       {[
-                        { id: "postRuleRespected", label: "📏 ルールを遵守したか", value: postRuleRespected, setter: setPostRuleRespected },
-                        { id: "postInExpectedRange", label: "🎯 想定内の動きだったか", value: postInExpectedRange, setter: setPostInExpectedRange },
-                        { id: "postGoodParticipation", label: "🤝 納得のいく参入だったか", value: postGoodParticipation, setter: setPostGoodParticipation },
+                        {
+                          id: "postRuleRespected",
+                          label: "取引前に決めたルールを守った",
+                          value: postRuleRespected,
+                          setter: setPostRuleRespected,
+                        },
+                        {
+                          id: "postInExpectedRange",
+                          label: "想定した範囲内の値動きだった",
+                          value: postInExpectedRange,
+                          setter: setPostInExpectedRange,
+                        },
+                        {
+                          id: "postGoodParticipation",
+                          label: "取引前に記録した条件で参入した",
+                          value: postGoodParticipation,
+                          setter: setPostGoodParticipation,
+                        },
                       ].map((item) => (
-                        <div key={item.id} className="flex items-center justify-between bg-zinc-50 rounded-xl p-3 border border-zinc-100">
-                          <span className="text-xs font-bold text-zinc-700">{item.label}</span>
-                          <div className="flex gap-1 bg-zinc-200 p-0.5 rounded-lg">
+                        <fieldset key={item.id} className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+                          <legend className="px-1 text-sm font-semibold leading-relaxed text-zinc-800">
+                            {item.label}
+                          </legend>
+                          <div className="mt-2 grid grid-cols-2 gap-2">
                             <button
                               type="button"
+                              data-testid={`${item.id}-yes`}
+                              aria-pressed={item.value === true}
                               onClick={() => item.setter(true)}
-                              className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${item.value === true ? "bg-white text-blue-600 shadow-sm" : "text-zinc-500"
-                                }`}
+                              className={`min-h-11 rounded-xl border px-3 text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                                item.value === true
+                                  ? "border-blue-600 bg-blue-600 text-white"
+                                  : "border-zinc-200 bg-white text-zinc-600"
+                              }`}
                             >
-                              YES
+                              はい
                             </button>
                             <button
                               type="button"
+                              data-testid={`${item.id}-no`}
+                              aria-pressed={item.value === false}
                               onClick={() => item.setter(false)}
-                              className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${item.value === false ? "bg-white text-rose-600 shadow-sm" : "text-zinc-500"
-                                }`}
+                              className={`min-h-11 rounded-xl border px-3 text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                                item.value === false
+                                  ? "border-rose-600 bg-rose-50 text-rose-700"
+                                  : "border-zinc-200 bg-white text-zinc-600"
+                              }`}
                             >
-                              NO
+                              いいえ
                             </button>
                           </div>
-                        </div>
+                        </fieldset>
                       ))}
+
+                      <details className="rounded-xl border border-zinc-200 bg-white">
+                        <summary className="min-h-11 cursor-pointer px-3 py-3 text-sm font-semibold text-zinc-700">
+                          メモを追加（任意）
+                        </summary>
+                        <div className="space-y-4 border-t border-zinc-100 p-3">
+                          <label className="block space-y-2 text-sm font-semibold text-zinc-700">
+                            次回確認したいこと
+                            <textarea
+                              value={postReferencePoint}
+                              onChange={(e) => setPostReferencePoint(e.target.value)}
+                              className="w-full resize-none rounded-xl border border-zinc-200 bg-white p-3 text-base font-normal text-zinc-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                              rows={2}
+                              placeholder="次回に活かす確認事項"
+                            />
+                          </label>
+                          <label className="block space-y-2 text-sm font-semibold text-zinc-700">
+                            事実メモ
+                            <textarea
+                              value={postNoteValue}
+                              onChange={(e) => setPostNote(e.target.value)}
+                              className="w-full resize-none rounded-xl border border-zinc-200 bg-white p-3 text-base font-normal text-zinc-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                              rows={2}
+                              placeholder="記録しておきたい事実"
+                            />
+                          </label>
+                        </div>
+                      </details>
+                    </div>
+
+                    <div className="sticky bottom-[calc(0.5rem+env(safe-area-inset-bottom))] z-20 space-y-2 rounded-2xl border border-white/80 bg-white/95 p-3 shadow-[0_-8px_30px_rgba(15,23,42,0.12)] backdrop-blur">
+                      {(postRuleRespected === null || postInExpectedRange === null || postGoodParticipation === null) && (
+                        <p className="m-0 text-center text-xs text-zinc-600" role="status">
+                          3つの項目をすべて回答してください。
+                        </p>
+                      )}
+                      <div className="grid grid-cols-[0.7fr_1.3fr] gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setPostTradeStep(1)}
+                          className="min-h-14 rounded-xl border border-zinc-300 bg-white px-3 text-sm font-bold text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                        >
+                          戻る
+                        </button>
+                        <button
+                          type="button"
+                          data-testid="post-trade-save"
+                          disabled={
+                            postSaving ||
+                            postRuleRespected === null ||
+                            postInExpectedRange === null ||
+                            postGoodParticipation === null
+                          }
+                          onClick={() => void savePost()}
+                          className="btn-cta min-h-14 rounded-xl px-3 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {postSaving ? "保存中..." : "取引後記録を保存"}
+                        </button>
+                      </div>
                     </div>
                   </div>
-
-                  {/* 参考ポイント */}
-                  <div className="space-y-2">
-                    <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">参考ポイント（次回への活かし等）</div>
-                    <textarea
-                      value={postReferencePoint}
-                      onChange={(e) => setPostReferencePoint(e.target.value)}
-                      className="w-full rounded-xl border border-zinc-200 bg-white p-3 text-xs text-zinc-800 focus:border-blue-500 focus:outline-none transition-all resize-none shadow-inner"
-                      rows={2}
-                      placeholder="よかった点、改善点など..."
-                    />
-                  </div>
-
-                  {/* 事後メモ */}
-                  <div className="space-y-2">
-                    <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">事後メモ</div>
-                    <textarea
-                      value={postNoteValue}
-                      onChange={(e) => setPostNote(e.target.value)}
-                      className="w-full rounded-xl border border-zinc-200 bg-white p-3 text-xs text-zinc-800 focus:border-blue-500 focus:outline-none transition-all resize-none shadow-inner"
-                      rows={2}
-                      placeholder="その他記録しておきたいこと..."
-                    />
-                  </div>
-                </div>
-
-                {/* 3) ボタンを下部に大きく配置 */}
-                <div className="flex flex-col gap-3">
-                  <button
-                    type="button"
-                    data-testid="post-trade-save"
-                    onClick={() => void savePost()}
-                    className="btn-cta w-full rounded-xl px-4 py-3 font-semibold"
-                  >
-                    保存（取引後）
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      resetPost();
-                      if (completeLogId) {
-                        window.history.pushState({}, "", "/");
-                      }
-                      navigate("/");
-                    }}
-                    className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 hover:bg-zinc-50 transition-colors"
-                  >
-                    戻る
-                  </button>
-                </div>
+                )}
               </>
             )}
           </section>
@@ -3355,7 +3680,7 @@ export default function App() {
       }
 
       {
-        session && !isAdminRoute && !isAnalysisRoute && (
+        session && !isAdminRoute && !isAnalysisRoute && !isFocusedRecordingRoute && (
           <>
             <NotificationPrompt />
             <BottomTabBar />
