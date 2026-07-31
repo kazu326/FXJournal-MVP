@@ -21,6 +21,7 @@ const today = () => new Date().toISOString();
 
 type E2EState = {
   inserts: unknown[];
+  updates: unknown[];
   checkinSubmitted: boolean;
   supportOpened: boolean;
   supportResolved: boolean;
@@ -47,6 +48,7 @@ const ensureState = () => {
   if (typeof window === "undefined") {
     return {
       inserts: [],
+      updates: [],
       checkinSubmitted: false,
       supportOpened: false,
       supportResolved: false,
@@ -57,10 +59,14 @@ const ensureState = () => {
   const current = (
     window as typeof window & { __FXJ_E2E_STATE__?: E2EState }
   ).__FXJ_E2E_STATE__;
-  if (current) return current;
+  if (current) {
+    current.updates ??= [];
+    return current;
+  }
 
   const next: E2EState = {
     inserts: [],
+    updates: [],
     checkinSubmitted: false,
     supportOpened: false,
     supportResolved: false,
@@ -88,7 +94,6 @@ class MockQuery {
   }
 
   select(_columns?: string, options?: { count?: string; head?: boolean }) {
-    this.operation = "select";
     this.wantCount = options?.count === "exact";
     return this;
   }
@@ -170,8 +175,50 @@ class MockQuery {
       return { data: this.singleResult ? data : [data], error: null };
     }
 
-    if (this.operation === "upsert" || this.operation === "update") {
-      return { data: this.singleResult ? this.rows[0] : this.rows, error: null };
+    if (this.operation === "update") {
+      if (scenario === "update-error") {
+        return { data: null, error: { message: "E2E update failure" } };
+      }
+
+      ensureState().updates.push({
+        table: this.table,
+        rows: this.rows,
+        filters: this.filters,
+      });
+      const data = {
+        id: this.filters.id ?? `e2e-${this.table}-updated`,
+        ...((this.rows[0] ?? {}) as Record<string, unknown>),
+      };
+      return {
+        data: this.singleResult || this.maybeSingleResult ? data : [data],
+        error: null,
+      };
+    }
+
+    if (this.operation === "upsert") {
+      return {
+        data:
+          this.singleResult || this.maybeSingleResult
+            ? this.rows[0]
+            : this.rows,
+        error: null,
+      };
+    }
+
+    if (this.table === "currency_pairs") {
+      return {
+        data: [{
+          id: "pair-usd-jpy",
+          symbol: "USD/JPY",
+          base_currency: "USD",
+          quote_currency: "JPY",
+          pip_position: 2,
+          contract_size: 100000,
+          min_lot: 0.01,
+          is_active: true,
+        }],
+        error: null,
+      };
     }
 
     if (this.table === "profiles") {
@@ -609,6 +656,14 @@ class MockQuery {
             gate_all_ok: true,
             success_prob: "mid",
             expected_value: "plus",
+            currency_pair_symbol: "USD/JPY",
+            account_balance: 500000,
+            stop_loss_pips: 10,
+            take_profit_pips: 30,
+            calculated_lot: 1,
+            risk_percent: 2,
+            risk_reward_ratio: 3,
+            note: "押し目を待ち、条件がそろってから参入",
             completed_at: null,
             voided_at: null,
           }],

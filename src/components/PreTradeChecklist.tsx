@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Check } from "lucide-react";
 import { haptics } from "../lib/haptics";
 import type { GateState } from "../store/tradeStore";
@@ -23,14 +23,18 @@ function ChecklistItem({
     checked: boolean;
     onChange: (checked: boolean) => void;
 }) {
+    const shouldReduceMotion = useReducedMotion();
+
     const handleToggle = () => {
         haptics.light();
         onChange(!checked);
     };
 
     return (
-        <div
-            className="flex items-center gap-3 p-3 rounded-xl border border-zinc-200 bg-white shadow-sm cursor-pointer transition-colors hover:bg-zinc-50"
+        <button
+            type="button"
+            aria-pressed={checked}
+            className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-zinc-200 bg-white p-3 text-left shadow-sm transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
             onClick={handleToggle}
         >
             <div
@@ -39,8 +43,8 @@ function ChecklistItem({
             >
                 <motion.div
                     initial={false}
-                    animate={{ scale: checked ? [0.8, 1.2, 1] : 0, opacity: checked ? 1 : 0 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    animate={{ scale: checked ? (shouldReduceMotion ? 1 : [0.8, 1.2, 1]) : 0, opacity: checked ? 1 : 0 }}
+                    transition={shouldReduceMotion ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 20 }}
                 >
                     {checked && <Check className="size-4 text-white font-bold" strokeWidth={3} />}
                 </motion.div>
@@ -51,7 +55,7 @@ function ChecklistItem({
             >
                 {label}
             </span>
-        </div>
+        </button>
     );
 }
 
