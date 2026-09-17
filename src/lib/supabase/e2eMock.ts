@@ -738,7 +738,21 @@ export const e2eSupabase = {
     signOut: async () => ({ error: null }),
   },
   from: (table: string) => new MockQuery(table),
-  rpc: async (functionName: string, params?: Record<string, unknown>) => {
+  // Declared as a method, not an arrow, so `this` is the receiver. supabase-js
+  // reads this.rest inside rpc(), so a caller that pulls `rpc` off the client
+  // into a local breaks in production while an arrow-function mock would happily
+  // keep working. Failing loudly here keeps that class of bug visible in e2e.
+  async rpc(
+    this: unknown,
+    functionName: string,
+    params?: Record<string, unknown>,
+  ) {
+    if (this === undefined) {
+      throw new TypeError(
+        "supabase.rpc was called detached from the client. Call it as client.rpc(...) so `this` is preserved.",
+      );
+    }
+
     const scenario = getScenario();
     const state = ensureState();
 

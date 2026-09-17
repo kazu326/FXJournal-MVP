@@ -76,14 +76,19 @@ const METRICS_WINDOW_DAYS = 30;
 // src/lib/supabase/database.types.ts predates public.admin_trade_metrics, so the
 // generated client has no signature for it. Narrow the call here rather than
 // widening it to `any`; regenerating the types removes the need for this.
-type AdminTradeMetricsRpc = (
-  fn: 'admin_trade_metrics',
-  args: { p_days: number },
-) => Promise<{ data: TradeMetrics | null; error: { message: string } | null }>;
-
-type AdminUserMetricsRpc = (
-  fn: 'admin_user_metrics',
-) => Promise<{ data: UserMetricsRow[] | null; error: { message: string } | null }>;
+// The cast targets the client, not the method. Pulling `rpc` off the client into
+// a local detaches it from its receiver, and supabase-js reads `this.rest`
+// inside rpc(), so the call fails at runtime with "Cannot read properties of
+// undefined". Keep these method calls on the client.
+type AdminMetricsClient = {
+  rpc(
+    fn: 'admin_trade_metrics',
+    args: { p_days: number },
+  ): Promise<{ data: TradeMetrics | null; error: { message: string } | null }>;
+  rpc(
+    fn: 'admin_user_metrics',
+  ): Promise<{ data: UserMetricsRow[] | null; error: { message: string } | null }>;
+};
 
 // ------------------------------------------------------------------
 // Main Component
@@ -114,20 +119,18 @@ export default function AdminDashboard() {
         // Aggregating in the database keeps this a single row: the raw logs are
         // never shipped to the browser, so the Data API row cap cannot silently
         // truncate the numbers as the member count grows.
-        const callMetrics = supabase.rpc as unknown as AdminTradeMetricsRpc;
-        const { data: metricsData, error: metricsError } = await callMetrics(
-          'admin_trade_metrics',
-          { p_days: METRICS_WINDOW_DAYS },
-        );
+        const { data: metricsData, error: metricsError } = await (
+          supabase as unknown as AdminMetricsClient
+        ).rpc('admin_trade_metrics', { p_days: METRICS_WINDOW_DAYS });
 
         if (metricsError) throw metricsError;
         setMetrics(metricsData ?? EMPTY_METRICS);
 
         // 3. Fetch per-member trade figures for the summary table. One row per
         // member, so this is bounded by member count rather than log count.
-        const callUserMetrics = supabase.rpc as unknown as AdminUserMetricsRpc;
-        const { data: userMetricsData, error: userMetricsError } =
-          await callUserMetrics('admin_user_metrics');
+        const { data: userMetricsData, error: userMetricsError } = await (
+          supabase as unknown as AdminMetricsClient
+        ).rpc('admin_user_metrics');
 
         if (userMetricsError) throw userMetricsError;
         setUserMetrics(userMetricsData ?? []);

@@ -12,9 +12,16 @@ import { supabase } from "../lib/supabase";
 
 // src/lib/supabase/database.types.ts does not carry a signature for is_staff(),
 // so the call is narrowed here rather than widened to `any`.
-type IsStaffRpc = (
-  fn: "is_staff",
-) => Promise<{ data: boolean | null; error: { message: string } | null }>;
+//
+// The cast targets the client, not the method. Pulling `rpc` off the client into
+// a local detaches it from its receiver, and supabase-js reads `this.rest`
+// inside rpc(), so the call fails at runtime with "Cannot read properties of
+// undefined". Keep this a method call on the client.
+type IsStaffClient = {
+  rpc(
+    fn: "is_staff",
+  ): Promise<{ data: boolean | null; error: { message: string } | null }>;
+};
 
 const navItems = [
   {
@@ -87,8 +94,9 @@ export default function AdminLayout() {
       //
       // Staff membership is therefore granted by inserting into
       // public.staff_users, not by editing profiles.role.
-      const callIsStaff = supabase.rpc as unknown as IsStaffRpc;
-      const staffCheck = await callIsStaff("is_staff");
+      const staffCheck = await (supabase as unknown as IsStaffClient).rpc(
+        "is_staff",
+      );
 
       if (cancelled) return;
 
