@@ -17,17 +17,22 @@ import type { TimeZoneData } from "./components/TimeZoneBiasChart";
 // Types
 // ------------------------------------------------------------------
 
+// Only the columns v_behavior_compliance_report actually has. The trade figures
+// it was previously assumed to carry come from admin_user_metrics instead.
 type AdminUserStatsRow = {
   user_id: string;
   username: string | null;
   avatar_url: string | null;
   email: string | null;
+  learning_completion_rate: number | null;
+  subscription_status: string | null;
+};
+
+type UserMetricsRow = {
+  user_id: string;
   total_trades: number | null;
   win_rate: number | null;
-  avg_risk_reward: number | null;
-  learning_progress: number | null;
-  last_trade_date: string | null;
-  subscription_status: string | null;
+  last_activity_at: string | null;
 };
 
 // Shape returned by the public.admin_trade_metrics RPC. The aggregation runs in
@@ -76,12 +81,17 @@ type AdminTradeMetricsRpc = (
   args: { p_days: number },
 ) => Promise<{ data: TradeMetrics | null; error: { message: string } | null }>;
 
+type AdminUserMetricsRpc = (
+  fn: 'admin_user_metrics',
+) => Promise<{ data: UserMetricsRow[] | null; error: { message: string } | null }>;
+
 // ------------------------------------------------------------------
 // Main Component
 // ------------------------------------------------------------------
 
 export default function AdminDashboard() {
   const [userStats, setUserStats] = useState<AdminUserStatsRow[]>([]);
+  const [userMetrics, setUserMetrics] = useState<UserMetricsRow[]>([]);
   const [metrics, setMetrics] = useState<TradeMetrics>(EMPTY_METRICS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -112,6 +122,15 @@ export default function AdminDashboard() {
 
         if (metricsError) throw metricsError;
         setMetrics(metricsData ?? EMPTY_METRICS);
+
+        // 3. Fetch per-member trade figures for the summary table. One row per
+        // member, so this is bounded by member count rather than log count.
+        const callUserMetrics = supabase.rpc as unknown as AdminUserMetricsRpc;
+        const { data: userMetricsData, error: userMetricsError } =
+          await callUserMetrics('admin_user_metrics');
+
+        if (userMetricsError) throw userMetricsError;
+        setUserMetrics(userMetricsData ?? []);
 
       } catch (err: any) {
         console.error("Error fetching admin data:", err);
@@ -146,6 +165,11 @@ export default function AdminDashboard() {
     { name: '条件不一致', value: metrics.skip_reason_rate, color: '#3b82f6' },
     { name: '理由なし/その他', value: metrics.skip_no_reason_rate, color: '#ef4444' },
   ]), [metrics]);
+
+  const metricsByUser = useMemo(
+    () => new Map(userMetrics.map((m) => [m.user_id, m])),
+    [userMetrics],
+  );
 
   // Aggregates for KPI Cards
   const activeUsers = userStats.filter(u => u.subscription_status === 'active').length;
@@ -313,7 +337,9 @@ export default function AdminDashboard() {
                   </td>
                 </tr>
               ) : (
-                userStats.slice(0, 10).map((user) => (
+                userStats.slice(0, 10).map((user) => {
+                  const trade = metricsByUser.get(user.user_id);
+                  return (
                   <tr key={user.user_id} className="hover:bg-slate-800/30 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -345,18 +371,18 @@ export default function AdminDashboard() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right font-mono text-slate-300">
-                      {user.total_trades || 0}
+                      {trade?.total_trades ?? 0}
                     </td>
                     <td className="px-6 py-4 text-right font-mono text-slate-300">
-                      {user.win_rate ? `${Number(user.win_rate).toFixed(1)}%` : '-'}
+                      {trade?.win_rate != null ? `${Number(trade.win_rate).toFixed(1)}%` : '-'}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      {user.learning_progress ? (
+                      {user.learning_completion_rate ? (
                         <div className="flex items-center justify-end gap-2">
-                          <span className="font-mono text-slate-300">{Number(user.learning_progress).toFixed(0)}%</span>
-                          {Number(user.learning_progress) >= 80 ? (
+                          <span className="font-mono text-slate-300">{Number(user.learning_completion_rate).toFixed(0)}%</span>
+                          {Number(user.learning_completion_rate) >= 80 ? (
                             <GraduationCap className="w-4 h-4 text-emerald-400" />
-                          ) : Number(user.learning_progress) > 0 ? (
+                          ) : Number(user.learning_completion_rate) > 0 ? (
                             <Flame className="w-4 h-4 text-amber-400" />
                           ) : (
                             <div className="w-4 h-4" />
@@ -365,10 +391,11 @@ export default function AdminDashboard() {
                       ) : '-'}
                     </td>
                     <td className="px-6 py-4 text-right text-slate-500 text-xs">
-                      {user.last_trade_date ? new Date(user.last_trade_date).toLocaleDateString() : '-'}
+                      {trade?.last_activity_at ? new Date(trade.last_activity_at).toLocaleDateString() : '-'}
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>
