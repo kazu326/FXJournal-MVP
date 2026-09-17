@@ -10,6 +10,12 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
 
+// src/lib/supabase/database.types.ts does not carry a signature for is_staff(),
+// so the call is narrowed here rather than widened to `any`.
+type IsStaffRpc = (
+  fn: "is_staff",
+) => Promise<{ data: boolean | null; error: { message: string } | null }>;
+
 const navItems = [
   {
     to: "/admin",
@@ -72,38 +78,26 @@ export default function AdminLayout() {
       setAdminCheckError(null);
       setAdminAccessScope(null);
 
-      const isPlatformAdmin = await supabase
-        .from("platform_admins")
-        .select("user_id")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      // Ask the database who counts as staff instead of re-deriving it here.
+      // public.is_staff() is the same helper the RLS policies consult, so the
+      // guard and the data access can no longer disagree. They used to: this
+      // granted entry from platform_admins or profiles.role while RLS resolved
+      // staff membership from staff_users, which let an "authorized" admin open
+      // the dashboard and then read nothing but their own row.
+      //
+      // Staff membership is therefore granted by inserting into
+      // public.staff_users, not by editing profiles.role.
+      const callIsStaff = supabase.rpc as unknown as IsStaffRpc;
+      const staffCheck = await callIsStaff("is_staff");
 
       if (cancelled) return;
 
-      if (isPlatformAdmin.data?.user_id) {
-        setAdminAccessScope("full");
-        setAdminCheckStatus("authorized");
-        return;
+      if (staffCheck.error) {
+        console.warn("[admin-guard] is_staff lookup failed", staffCheck.error);
+        setAdminCheckError("管理画面のアクセス権限を確認できませんでした。");
       }
 
-      if (isPlatformAdmin.error && isPlatformAdmin.error.code !== "PGRST116") {
-        console.warn("[admin-guard] platform_admins lookup failed", isPlatformAdmin.error);
-      }
-
-      const profileRole = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (cancelled) return;
-
-      if (profileRole.error && profileRole.error.code !== "PGRST116") {
-        console.warn("[admin-guard] profiles.role lookup failed", profileRole.error);
-      }
-
-      const role = profileRole.data?.role;
-      if (role === "admin" || role === "platform_admin" || role === "teacher") {
+      if (staffCheck.data === true) {
         setAdminAccessScope("full");
         setAdminCheckStatus("authorized");
         return;
@@ -172,7 +166,7 @@ export default function AdminLayout() {
             <p className="text-sm text-slate-400 mt-2">
               {adminAccessScope === "messages-only"
                 ? "所属組織のスタッフは、相談対応と月次レビューのみ利用できます。"
-                : "このページは platform admin、管理者、教師のみ利用できます。"}
+                : "このページはスタッフとして登録された管理者・教師のみ利用できます。"}
             </p>
             {adminCheckError && (
               <p className="text-sm text-amber-300 mt-2">{adminCheckError}</p>

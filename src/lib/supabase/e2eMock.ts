@@ -858,6 +858,39 @@ export const e2eSupabase = {
       };
     }
 
+    // The admin route guard resolves staff membership through is_staff() rather
+    // than reading platform_admins/profiles directly, so the mock has to answer
+    // it or every /admin route renders as unauthorized.
+    if (functionName === "is_staff") {
+      return { data: true, error: null };
+    }
+
+    if (functionName === "admin_trade_metrics") {
+      return {
+        data: {
+          window_days: Number(params?.p_days ?? 30),
+          total_logs: 0,
+          high_risk_count: 0,
+          short_interval_count: 0,
+          no_trade_rate: 0,
+          skip_reason_rate: 0,
+          skip_no_reason_rate: 0,
+          avg_continuity: 0,
+          win_rate_before: 0,
+          win_rate_after: 0,
+          night_ratio: 0,
+          by_weekday: [],
+          by_time_bucket: [],
+          by_week: [],
+        },
+        error: null,
+      };
+    }
+
+    if (functionName === "admin_user_metrics") {
+      return { data: [], error: null };
+    }
+
     return {
       data: { level: 1, currentXp: 0, xpGained: 0 },
       error: null,
