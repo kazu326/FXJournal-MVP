@@ -97,12 +97,51 @@ Supabase MCP 用の `SUPABASE_ACCESS_TOKEN` は **アプリの env ではなく 
 - マイグレーションは `supabase/migrations/` にタイムスタンプ付きで追加する（既存ファイルを書き換えない）
 - Edge Functions は `supabase/functions/` 配下。セットアップ手順は [docs/edge-functions-setup.md](docs/edge-functions-setup.md)
 
+### スタッフ権限（管理画面）
+
+**唯一の正は `public.staff_users` です。** 管理画面の入場判定（`src/layouts/AdminLayout.tsx`）も
+RLS ポリシーも、すべて `public.is_staff()` を経由してこのテーブルを見ます。
+
+```sql
+-- スタッフを追加する（role は 'admin' か 'teacher'）
+insert into public.staff_users (user_id, role) values ('<user_id>', 'admin');
+```
+
+- **`profiles.role` を編集しても管理権限は付きません。** 表示用のロールであって認可には使いません
+- `public.platform_admins` は現在空で、`subscriptions` / `payments` のポリシーだけが参照しています。
+  管理画面の認可には使いません
+- `org_staff` は例外で、`/admin/messages` のみのスコープ（messages-only）に使われます
+- 権限判定を増やすときは、必ず `is_staff()` に寄せること。判定をその場で書くと下記の事故が再発します
+
+> **経緯（2026-09 の障害）**
+> 入場判定が `platform_admins` / `profiles.role` を見る一方、RLS は `staff_users` を見ていました。
+> 結果「管理画面には入れるが、RLS 上は一般会員なので自分の行しか見えない」という状態になり、
+> エラーも出ないため長期間気づかれませんでした。
+> 加えて `public.users` には staff 用ポリシーが存在せず、`security_invoker` のビューが
+> `FROM users` 駆動だったため、ビュー全体が1行に潰れていました。
+
+### 管理画面の集計
+
+管理画面の集計は **DB 側の関数**で行います。生ログをブラウザに落として集計しないこと。
+
+| 関数 | 用途 |
+| --- | --- |
+| `public.admin_trade_metrics(p_days)` | 概要画面の KPI とチャート（JSON 1行） |
+| `public.admin_user_metrics()` | ユーザー別のトレード数・勝率・最終活動（1ユーザー1行） |
+
+理由は Data API の行数上限です。既定 1000 行を超えると**エラーなく静かに切り捨てられ**、
+指標が過小表示されます。生ログを取得する実装では、1人が平日2回記録する前提で
+**25人程度で上限に達します**。DB 側で集計すれば返る行数が固定されるため、この上限は無関係になります。
+
+いずれの関数も `SECURITY DEFINER` ではありません。呼び出し元の RLS で動くため、
+staff は全件、一般会員は自分の分のみが集計されます。
+
 ### `.mcp.json` の接続手順
 
-1. `.mcp.json` の `<YOUR_SUPABASE_PROJECT_REF>` を実際の project ref に置き換える。
+1. `.mcp.json` の `--project-ref` は設定済み（`supabase/.temp/project-ref` と同じ値）。
+   別プロジェクトに向ける場合のみ書き換える。
    - 確認方法: Supabase ダッシュボード URL `https://supabase.com/dashboard/project/<project_ref>`、
      または Project Settings → General。
-   - 参考: このリポジトリには Supabase CLI がリンクした ref が `supabase/.temp/project-ref` にコミット済み。
 2. Supabase の Personal Access Token を発行し、**OS の環境変数** `SUPABASE_ACCESS_TOKEN` に設定する。
    - 発行元: Supabase ダッシュボード → Account → Access Tokens
    - `.mcp.json` はコミットされるため、トークンを直書きしない。
