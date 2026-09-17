@@ -30,218 +30,51 @@ type AdminUserStatsRow = {
   subscription_status: string | null;
 };
 
-type TradeLog = {
-  id: string;
-  user_id: string;
-  occurred_at: string;
-  log_type: 'valid' | 'skip';
-  gate_risk_ok: boolean | null;
-  post_within_hypothesis: boolean | null;
-  completed_at: string | null;
-  unexpected_reason: string | null;
+// Shape returned by the public.admin_trade_metrics RPC. The aggregation runs in
+// the database so this stays a fixed-size payload no matter how many logs exist.
+type TradeMetrics = {
+  window_days: number;
+  total_logs: number;
+  high_risk_count: number;
+  short_interval_count: number;
+  no_trade_rate: number;
+  skip_reason_rate: number;
+  skip_no_reason_rate: number;
+  avg_continuity: number;
+  win_rate_before: number;
+  win_rate_after: number;
+  night_ratio: number;
+  by_weekday: { day: string; high_risk: number; short_interval: number }[];
+  by_time_bucket: { time: string; count: number }[];
+  by_week: { week: string; rate: number }[];
 };
 
-// ------------------------------------------------------------------
-// Helper Functions
-// ------------------------------------------------------------------
+const EMPTY_METRICS: TradeMetrics = {
+  window_days: 30,
+  total_logs: 0,
+  high_risk_count: 0,
+  short_interval_count: 0,
+  no_trade_rate: 0,
+  skip_reason_rate: 0,
+  skip_no_reason_rate: 0,
+  avg_continuity: 0,
+  win_rate_before: 0,
+  win_rate_after: 0,
+  night_ratio: 0,
+  by_weekday: [],
+  by_time_bucket: [],
+  by_week: [],
+};
 
-function processRiskData(logs: TradeLog[]): RiskAlertData {
-  // Sort by time ascending
-  const sorted = [...logs].sort((a, b) => new Date(a.occurred_at).getTime() - new Date(b.occurred_at).getTime());
+const METRICS_WINDOW_DAYS = 30;
 
-  let highRiskCount = 0;
-  let shortIntervalCount = 0;
-
-  // Initialize daily counters for the chart (Mon-Fri)
-  const daysMap = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const lotDataMap = new Map<string, number>();
-  const revengeDataMap = new Map<string, number>();
-
-  // Initialize with 0 for Mon-Fri
-  daysMap.slice(1, 6).forEach(day => {
-    lotDataMap.set(day, 0);
-    revengeDataMap.set(day, 0);
-  });
-
-  for (let i = 0; i < sorted.length; i++) {
-    const log = sorted[i];
-    const date = new Date(log.occurred_at);
-    const dayName = daysMap[date.getDay()];
-
-    // 1. High Risk (gate_risk_ok === false)
-    // "Lot Increase" chart proxies for "High Risk"
-    if (log.gate_risk_ok === false) {
-      highRiskCount++;
-      if (lotDataMap.has(dayName)) {
-        lotDataMap.set(dayName, (lotDataMap.get(dayName) || 0) + 1);
-      }
-    }
-
-    // 2. Short Interval (Revenge Trade proxy)
-    // If trade is within 60 mins of previous trade by SAME user
-    if (i > 0) {
-      const prev = sorted[i - 1];
-      if (prev.user_id === log.user_id) {
-        const diffMs = date.getTime() - new Date(prev.occurred_at).getTime();
-        const diffMins = diffMs / (1000 * 60);
-        if (diffMins < 60) {
-          shortIntervalCount++;
-          if (revengeDataMap.has(dayName)) {
-            revengeDataMap.set(dayName, (revengeDataMap.get(dayName) || 0) + 1);
-          }
-        }
-      }
-    }
-  }
-
-  const lotData = Array.from(lotDataMap.entries()).map(([day, count]) => ({ day, count }));
-  const revengeData = Array.from(revengeDataMap.entries()).map(([day, count]) => ({ day, count }));
-
-  return {
-    lotData,
-    revengeData,
-    lotIncreaseCount: highRiskCount,
-    revengeTradeCount: shortIntervalCount,
-  };
-}
-
-function processAdherenceData(logs: TradeLog[]): { data: AdherenceData[]; avgContinuity: number } {
-  // Group by week (last 4 weeks)
-  // Simplified logic: Group by "days ago" buckets: 0-7, 7-14, 14-21, 21-28
-  const now = new Date();
-  const buckets = [0, 0, 0, 0]; // 4 weeks
-  const counts = [0, 0, 0, 0]; // Total logs per week
-
-  logs.forEach(log => {
-    const date = new Date(log.occurred_at);
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    const weekIndex = Math.floor((diffDays - 1) / 7);
-    if (weekIndex >= 0 && weekIndex < 4) {
-      counts[3 - weekIndex]++; // 0 is oldest, 3 is newest in chart usually? 
-      // Chart expects: 0週 (oldest?) -> 4週 (newest?)
-      // CheckAdherenceChart data: week: '0週', rate: 60
-      // Let's assume index 0 = 3 weeks ago, index 3 = this week
-
-      if (log.completed_at) {
-        buckets[3 - weekIndex]++;
-      }
-    }
-  });
-
-  const chartData: AdherenceData[] = buckets.map((completed, index) => {
-    const total = counts[index];
-    const rate = total === 0 ? 0 : Math.round((completed / total) * 100);
-    return { week: `${index + 1}週`, rate };
-  });
-
-  // Avg Continuity: Mock calculation based on recent adherence
-  // Valid logic: consecutive days with logs? Too complex for now.
-  // Use "Adherence Rate of Last 30 Days" converted to days
-  const totalLogs = logs.length;
-  const completedLogs = logs.filter(l => l.completed_at).length;
-  const avgContinuity = totalLogs > 0 ? Math.round((completedLogs / totalLogs) * 30) : 0;
-
-  return { data: chartData, avgContinuity };
-}
-
-function processLearningData(logs: TradeLog[]): { winRateBefore: number; winRateAfter: number } {
-  // Only valid trades for win rate
-  const validTrades = logs.filter(l => l.log_type === 'valid');
-  if (validTrades.length < 2) return { winRateBefore: 0, winRateAfter: 0 };
-
-  // Sort by date
-  validTrades.sort((a, b) => new Date(a.occurred_at).getTime() - new Date(b.occurred_at).getTime());
-
-  const midPoint = Math.floor(validTrades.length / 2);
-  const firstHalf = validTrades.slice(0, midPoint);
-  const secondHalf = validTrades.slice(midPoint);
-
-  const calcWinRate = (arr: TradeLog[]) => {
-    if (arr.length === 0) return 0;
-    const wins = arr.filter(l => l.post_within_hypothesis === true).length;
-    return Math.round((wins / arr.length) * 100);
-  };
-
-  return {
-    winRateBefore: calcWinRate(firstHalf),
-    winRateAfter: calcWinRate(secondHalf),
-  };
-}
-
-function processNoTradeData(logs: TradeLog[]): { data: NoTradeReason[]; totalNoTradeRate: number; successRateAfterLoss: number } {
-  const total = logs.length;
-  if (total === 0) return { data: [], totalNoTradeRate: 0, successRateAfterLoss: 0 };
-
-  const skips = logs.filter(l => l.log_type === 'skip');
-  // const valid = logs.filter(l => l.log_type === 'valid'); // Unused
-
-  const skipRate = Math.round((skips.length / total) * 100);
-
-  // Categorize Skips
-  // Since we don't have detailed skip reasons in the simplified logs,
-  // we'll categorize by "Has Note" vs "No Note" or similar if possible.
-  // For now, map 'unexpected_reason' if present, otherwise 'No Reason'.
-
-  let reason1 = 0; // 条件不一致 (Proxy: Has unexpected_reason)
-  let reason2 = 0; // 条件外 (Proxy: No reason)
-  // let reason3 = 0; // なんとなく (Proxy: Random split for visual) // Unused
-
-  skips.forEach(l => {
-    if (l.unexpected_reason) reason1++;
-    else reason2++;
-  });
-
-  // Normalize for chart (total 100%)
-  const skipTotal = skips.length || 1;
-  const p1 = Math.round((reason1 / skipTotal) * 100);
-  const p2 = Math.round((reason2 / skipTotal) * 100);
-  // Adjust to make sure it sums to 100 if needed, but Recharts handles it.
-
-  // Default fallbacks if no skips
-  const chartData: NoTradeReason[] = [
-    { name: '条件不一致', value: p1 || 0, color: '#3b82f6' },
-    { name: '理由なし/その他', value: p2 || 0, color: '#ef4444' },
-    // { name: 'その他', value: 0, color: '#10b981' }, 
-  ];
-
-  if (skips.length === 0) {
-    // Show "Trade Only" state or empty
-    chartData[0].value = 0;
-    chartData[1].value = 0;
-  }
-
-  // Mock "Success Rate After Loss" as we discussed it needs complex logic
-  const successRateAfterLoss = 0; // Placeholder until we have P/L data
-
-  return { data: chartData, totalNoTradeRate: skipRate, successRateAfterLoss };
-}
-
-function processTimeZoneData(logs: TradeLog[]): { data: TimeZoneData[]; nightShiftRatio: number } {
-  // Buckets: 0-4, 4-8, 8-12, 12-16, 16-20, 20-24
-  const buckets = [0, 0, 0, 0, 0, 0];
-  const bucketLabels = ['0-4', '4-8', '8-12', '12-16', '16-20', '20-24'];
-
-  logs.forEach(log => {
-    const hour = new Date(log.occurred_at).getHours();
-    const index = Math.floor(hour / 4);
-    if (index >= 0 && index < 6) buckets[index]++;
-  });
-
-  const data: TimeZoneData[] = buckets.map((count, i) => ({
-    time: bucketLabels[i],
-    count,
-  }));
-
-  // Night Shift Ratio (20:00 - 04:00) -> Buckets 5 (20-24) and 0 (0-4)
-  const total = logs.length;
-  const nightCount = buckets[5] + buckets[0];
-  const nightShiftRatio = total > 0 ? Math.round((nightCount / total) * 100) : 0;
-
-  return { data, nightShiftRatio };
-}
-
+// src/lib/supabase/database.types.ts predates public.admin_trade_metrics, so the
+// generated client has no signature for it. Narrow the call here rather than
+// widening it to `any`; regenerating the types removes the need for this.
+type AdminTradeMetricsRpc = (
+  fn: 'admin_trade_metrics',
+  args: { p_days: number },
+) => Promise<{ data: TradeMetrics | null; error: { message: string } | null }>;
 
 // ------------------------------------------------------------------
 // Main Component
@@ -249,7 +82,7 @@ function processTimeZoneData(logs: TradeLog[]): { data: TimeZoneData[]; nightShi
 
 export default function AdminDashboard() {
   const [userStats, setUserStats] = useState<AdminUserStatsRow[]>([]);
-  const [tradeLogs, setTradeLogs] = useState<TradeLog[]>([]);
+  const [metrics, setMetrics] = useState<TradeMetrics>(EMPTY_METRICS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -267,18 +100,18 @@ export default function AdminDashboard() {
         if (statsError) throw statsError;
         setUserStats(statsData || []);
 
-        // 2. Fetch Trade Logs (Last 30 Days)
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        // 2. Fetch pre-aggregated trade metrics.
+        // Aggregating in the database keeps this a single row: the raw logs are
+        // never shipped to the browser, so the Data API row cap cannot silently
+        // truncate the numbers as the member count grows.
+        const callMetrics = supabase.rpc as unknown as AdminTradeMetricsRpc;
+        const { data: metricsData, error: metricsError } = await callMetrics(
+          'admin_trade_metrics',
+          { p_days: METRICS_WINDOW_DAYS },
+        );
 
-        const { data: logsData, error: logsError } = await supabase
-          .from('trade_logs')
-          .select('id, user_id, occurred_at, log_type, gate_risk_ok, post_within_hypothesis, completed_at, unexpected_reason')
-          .gte('occurred_at', thirtyDaysAgo.toISOString())
-          .order('occurred_at', { ascending: true }); // Oldest first for learning curve
-
-        if (logsError) throw logsError;
-        setTradeLogs(logsData || []);
+        if (metricsError) throw metricsError;
+        setMetrics(metricsData ?? EMPTY_METRICS);
 
       } catch (err: any) {
         console.error("Error fetching admin data:", err);
@@ -291,16 +124,31 @@ export default function AdminDashboard() {
     fetchAllData();
   }, []);
 
-  // Process Data for Charts using useMemo
-  const riskData = useMemo(() => processRiskData(tradeLogs), [tradeLogs]);
-  const adherenceData = useMemo(() => processAdherenceData(tradeLogs), [tradeLogs]);
-  const learningData = useMemo(() => processLearningData(tradeLogs), [tradeLogs]);
-  const noTradeData = useMemo(() => processNoTradeData(tradeLogs), [tradeLogs]);
-  const timeZoneData = useMemo(() => processTimeZoneData(tradeLogs), [tradeLogs]);
+  // Map the aggregated payload onto the shapes the chart components expect.
+  const riskData = useMemo<RiskAlertData>(() => ({
+    lotData: metrics.by_weekday.map((d) => ({ day: d.day, count: d.high_risk })),
+    revengeData: metrics.by_weekday.map((d) => ({ day: d.day, count: d.short_interval })),
+    lotIncreaseCount: metrics.high_risk_count,
+    revengeTradeCount: metrics.short_interval_count,
+  }), [metrics]);
+
+  const adherenceData = useMemo<AdherenceData[]>(
+    () => metrics.by_week,
+    [metrics],
+  );
+
+  const timeZoneData = useMemo<TimeZoneData[]>(
+    () => metrics.by_time_bucket,
+    [metrics],
+  );
+
+  const noTradeData = useMemo<NoTradeReason[]>(() => ([
+    { name: '条件不一致', value: metrics.skip_reason_rate, color: '#3b82f6' },
+    { name: '理由なし/その他', value: metrics.skip_no_reason_rate, color: '#ef4444' },
+  ]), [metrics]);
 
   // Aggregates for KPI Cards
   const activeUsers = userStats.filter(u => u.subscription_status === 'active').length;
-  const recentLogsCount = tradeLogs.length;
 
   const handleExportComplianceReport = async () => {
     try {
@@ -361,7 +209,7 @@ export default function AdminDashboard() {
         />
         <DashboardSummaryCard
           title="月間ログ総数"
-          value={`${recentLogsCount}件`}
+          value={`${metrics.total_logs}件`}
           subValue="(30日)"
           subLabel="ユーザー活動量"
           trend="up"
@@ -372,7 +220,7 @@ export default function AdminDashboard() {
         />
         <DashboardSummaryCard
           title="平均継続日数"
-          value={`${adherenceData.avgContinuity}日`}
+          value={`${metrics.avg_continuity}日`}
           subLabel="事後検証完了ベース"
           trend="neutral"
           icon={Bell}
@@ -402,15 +250,15 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-1">
               <NoTradeChart
-                data={noTradeData.data}
-                totalNoTradeRate={noTradeData.totalNoTradeRate}
-                successRateAfterLoss={noTradeData.successRateAfterLoss}
+                data={noTradeData}
+                totalNoTradeRate={metrics.no_trade_rate}
+                successRateAfterLoss={0}
               />
             </div>
             <div className="lg:col-span-2">
               <CheckAdherenceChart
-                data={adherenceData.data}
-                avgContinuityDays={adherenceData.avgContinuity}
+                data={adherenceData}
+                avgContinuityDays={metrics.avg_continuity}
               />
             </div>
           </div>
@@ -419,8 +267,8 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-1">
               <LearningEffectChart
-                winRateBefore={learningData.winRateBefore}
-                winRateAfter={learningData.winRateAfter}
+                winRateBefore={metrics.win_rate_before}
+                winRateAfter={metrics.win_rate_after}
               />
             </div>
             <div className="lg:col-span-1">
@@ -428,8 +276,8 @@ export default function AdminDashboard() {
             </div>
             <div className="lg:col-span-1">
               <TimeZoneBiasChart
-                data={timeZoneData.data}
-                nightShiftRatio={timeZoneData.nightShiftRatio}
+                data={timeZoneData}
+                nightShiftRatio={metrics.night_ratio}
               />
             </div>
           </div>
