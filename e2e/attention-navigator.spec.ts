@@ -7,8 +7,12 @@ type MutationRecord = {
 
 const loadAttention = async (page: Page, scenario = "default") => {
   await page.addInitScript((selectedScenario) => {
+    if (window.sessionStorage.getItem("fxj_attention_e2e_initialized")) {
+      return;
+    }
     window.localStorage.clear();
     window.sessionStorage.clear();
+    window.sessionStorage.setItem("fxj_attention_e2e_initialized", "true");
     window.localStorage.setItem("fxj_e2e_scenario", selectedScenario);
     window.localStorage.setItem("fxj_test_mode", "0");
     window.localStorage.setItem("hasSeenInstallPrompt", "true");
@@ -36,7 +40,7 @@ const answerYes = async (page: Page, count: number) => {
   }
 };
 
-const reachExistingTradeSave = async (page: Page) => {
+const enterExistingPreTrade = async (page: Page) => {
   await answerYes(page, 4);
   await expect(page.getByText("ブレイク後の価格位置は許容範囲ですか？")).toBeVisible();
   await answerYes(page, 7);
@@ -44,6 +48,9 @@ const reachExistingTradeSave = async (page: Page) => {
 
   await expect(page.getByTestId("pre-trade-flow")).toBeVisible();
   await expect(page.getByLabel("通貨ペア")).toHaveValue("XAU/USD");
+};
+
+const saveExistingPreTrade = async (page: Page) => {
   await page.getByLabel("口座残高").fill("100000");
   await page.getByTestId("pre-trade-next").click();
   await page.getByTestId("pre-trade-entry-rate").fill("4500");
@@ -53,6 +60,21 @@ const reachExistingTradeSave = async (page: Page) => {
   await page.getByText("Rule OK", { exact: true }).click();
   await page.getByTestId("pre-trade-save").click();
 };
+
+const reachExistingTradeSave = async (page: Page) => {
+  await enterExistingPreTrade(page);
+  await saveExistingPreTrade(page);
+};
+
+const pendingAttentionSessionId = (page: Page) =>
+  page.evaluate(() => {
+    const rawState = window.localStorage.getItem("fxj-attention-navigator");
+    if (!rawState) return null;
+    const persisted = JSON.parse(rawState) as {
+      state?: { pendingTradeSessionId?: string | null };
+    };
+    return persisted.state?.pendingTradeSessionId ?? null;
+  });
 
 test("STOP stores only an Attention session using the existing XAU/USD identifier", async ({ page }) => {
   await loadAttention(page);
@@ -104,6 +126,49 @@ test("trade consideration enters the existing 4-Gate and links the trade log", a
     table: "attention_sessions",
     rows: [expect.objectContaining({ trade_log_id: expect.any(String) })],
   });
+});
+
+test("reload keeps the current Attention pre-trade link", async ({ page }) => {
+  await loadAttention(page);
+  await enterExistingPreTrade(page);
+
+  const sessionId = await pendingAttentionSessionId(page);
+  expect(sessionId).toBeTruthy();
+  await page.reload();
+  await expect(page.getByTestId("pre-trade-flow")).toBeVisible();
+  await expect.poll(() => pendingAttentionSessionId(page)).toBe(sessionId);
+
+  await saveExistingPreTrade(page);
+  await expect.poll(async () => {
+    const updates = await mutations(page, "updates");
+    return updates.some(
+      (record) =>
+        record.table === "attention_sessions" &&
+        typeof record.rows[0]?.trade_log_id === "string",
+    );
+  }).toBe(true);
+});
+
+test("leaving without saving clears the pending session before a normal pre-trade", async ({ page }) => {
+  await loadAttention(page);
+  await enterExistingPreTrade(page);
+
+  await page.getByRole("button", { name: "← 戻る" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect.poll(() => pendingAttentionSessionId(page)).toBeNull();
+
+  await page.getByTestId("next-action-primary").click();
+  await expect(page).toHaveURL(/\/pre-trade$/);
+  await saveExistingPreTrade(page);
+
+  const updates = await mutations(page, "updates");
+  expect(
+    updates.filter(
+      (record) =>
+        record.table === "attention_sessions" &&
+        typeof record.rows[0]?.trade_log_id === "string",
+    ),
+  ).toHaveLength(0);
 });
 
 test("link failure keeps the trade log and shows an explicit warning without a retry queue", async ({ page }) => {

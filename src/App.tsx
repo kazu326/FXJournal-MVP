@@ -368,6 +368,32 @@ export default function App() {
   const setPendingTradeSessionId = useAttentionNavigatorStore(
     (state) => state.setPendingTradeSessionId,
   );
+  const attentionPreTradeSessionId =
+    location.pathname === "/pre-trade" &&
+    typeof location.state === "object" &&
+    location.state !== null &&
+    "attentionSessionId" in location.state &&
+    typeof location.state.attentionSessionId === "string"
+      ? location.state.attentionSessionId
+      : null;
+
+  useEffect(() => {
+    const routePendingSessionId =
+      useAttentionNavigatorStore.getState().pendingTradeSessionId;
+    if (!routePendingSessionId) return;
+
+    const isCurrentAttentionPreTrade =
+      location.pathname === "/pre-trade" &&
+      attentionPreTradeSessionId === routePendingSessionId;
+    if (!isCurrentAttentionPreTrade) {
+      setPendingTradeSessionId(null);
+    }
+  }, [
+    attentionPreTradeSessionId,
+    location.key,
+    location.pathname,
+    setPendingTradeSessionId,
+  ]);
   // currentLogId は上記で展開済み
   const [profileDisplayName, setProfileDisplayName] = useState<string | null>(null);
   const [level, setLevel] = useState(1);
@@ -2470,6 +2496,11 @@ export default function App() {
     );
   }
 
+  const startNormalPreTrade = () => {
+    setPendingTradeSessionId(null);
+    navigate("/pre-trade", { state: null });
+  };
+
   const nextAction = (() => {
     // 1. 日次制限（最優先）
     if (dailyLocked) {
@@ -2508,7 +2539,7 @@ export default function App() {
     return {
       actionLabel: labels.tradePre + " を記録",
       description: "取引チャンスを待機中。見送る場合は「見送り」ボタンから。",
-      onAction: () => navigate("/pre-trade"),
+      onAction: startNormalPreTrade,
       secondaryAction: {
         label: "見送りを記録する（+5 XP）",
         onAction: () => navigate("/skip"),
@@ -2800,12 +2831,15 @@ export default function App() {
           userId={session.user.id}
           currencyPairs={currencyPairs}
           onBack={() => navigate("/")}
-          onStartTrade={(attentionPair) => {
+          onStartTrade={(attentionPair, attentionSessionId) => {
             setSelectedPairSymbol(attentionPair.symbol);
             setCurrentRate("");
             setStopLossPrice("");
             setPreTradeStep(1);
-            navigate("/pre-trade");
+            navigate("/pre-trade", {
+              state: { attentionSessionId },
+            });
+            setPendingTradeSessionId(attentionSessionId);
           }}
         />
       )}

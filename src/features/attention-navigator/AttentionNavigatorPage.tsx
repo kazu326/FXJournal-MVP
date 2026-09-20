@@ -31,7 +31,7 @@ type AttentionNavigatorPageProps = {
   userId: string;
   currencyPairs: CurrencyPair[];
   onBack: () => void;
-  onStartTrade: (pair: CurrencyPair) => void;
+  onStartTrade: (pair: CurrencyPair, sessionId: string) => void;
 };
 
 export function AttentionNavigatorPage({
@@ -73,7 +73,6 @@ export function AttentionNavigatorPage({
     setSessionId,
     setPhase,
     completeDecision,
-    setPendingTradeSessionId,
     resetWizard,
   } = useAttentionNavigatorStore();
 
@@ -225,9 +224,8 @@ export function AttentionNavigatorPage({
       });
 
       if (decision === "consider_trade" && selectedTradePair) {
-        setPendingTradeSessionId(sessionId);
         resetWizard();
-        onStartTrade(selectedTradePair);
+        onStartTrade(selectedTradePair, sessionId);
         return;
       }
 

@@ -154,9 +154,6 @@ describe("AttentionNavigatorPage", () => {
         hardVeto: false,
       }),
     );
-    expect(onStartTrade).toHaveBeenCalledWith(pair);
-    expect(
-      useAttentionNavigatorStore.getState().pendingTradeSessionId,
-    ).toBe("attention-session-1");
+    expect(onStartTrade).toHaveBeenCalledWith(pair, "attention-session-1");
   });
 });
