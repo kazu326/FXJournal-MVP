@@ -29,6 +29,87 @@ export type Database = {
         }
         Relationships: []
       }
+      attention_sessions: {
+        Row: {
+          chart_tf: string
+          created_at: string
+          currency_pair_id: string
+          final_decision: string | null
+          finished_at: string | null
+          gate_answers: Json
+          gate_result: string | null
+          gate_seconds: number | null
+          hard_veto: boolean
+          htf: string
+          id: string
+          judgment_answers: Json
+          judgment_seconds: number | null
+          started_at: string
+          symbol: string
+          total_seconds: number | null
+          trade_log_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          chart_tf: string
+          created_at?: string
+          currency_pair_id: string
+          final_decision?: string | null
+          finished_at?: string | null
+          gate_answers?: Json
+          gate_result?: string | null
+          gate_seconds?: number | null
+          hard_veto?: boolean
+          htf?: string
+          id?: string
+          judgment_answers?: Json
+          judgment_seconds?: number | null
+          started_at: string
+          symbol: string
+          total_seconds?: number | null
+          trade_log_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          chart_tf?: string
+          created_at?: string
+          currency_pair_id?: string
+          final_decision?: string | null
+          finished_at?: string | null
+          gate_answers?: Json
+          gate_result?: string | null
+          gate_seconds?: number | null
+          hard_veto?: boolean
+          htf?: string
+          id?: string
+          judgment_answers?: Json
+          judgment_seconds?: number | null
+          started_at?: string
+          symbol?: string
+          total_seconds?: number | null
+          trade_log_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attention_sessions_currency_pair_id_fkey"
+            columns: ["currency_pair_id"]
+            isOneToOne: false
+            referencedRelation: "currency_pairs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attention_sessions_trade_log_id_fkey"
+            columns: ["trade_log_id"]
+            isOneToOne: true
+            referencedRelation: "trade_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       announcements: {
         Row: {
           body: string
