@@ -85,6 +85,11 @@ export const JUDGMENT_QUESTIONS: AttentionQuestion<JudgmentQuestionId>[] = [
     guidance: [
       "下ヒゲや安値の切り上げなど、下げ止まっている材料があるか確認します。",
     ],
+    learningAid: {
+      videoUrl:
+        "https://youtu.be/Od1iAoV37WM?si=EsZKEegAFxMoWv5G&t=180",
+      videoLabel: "「底堅さの考えかた」の参考動画",
+    },
   },
   {
     id: "retest_integrity",

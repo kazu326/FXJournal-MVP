@@ -90,7 +90,9 @@ export function QuestionStep({
             data-testid={`attention-learning-aid-${question.id}`}
           >
             <p className="m-0 text-sm leading-relaxed text-zinc-700">
-              判断に迷う場合は、参考画像または講師の解説動画で確認できます。
+              {question.learningAid.imageSrc
+                ? "判断に迷う場合は、参考画像または講師の解説動画で確認できます。"
+                : "判断に迷う場合は、参考動画で確認できます。"}
             </p>
             {question.learningAid.imageSrc && question.learningAid.imageAlt && (
               <details>

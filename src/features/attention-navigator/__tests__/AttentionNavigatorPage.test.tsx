@@ -298,6 +298,25 @@ describe("AttentionNavigatorPage", () => {
       expect(screen.getByText(question.prompt)).toBeInTheDocument();
       expect(screen.getByText(question.guidance)).toBeInTheDocument();
       expect(screen.queryByText("参考画像を見る")).not.toBeInTheDocument();
+      const bottomQualityVideo = screen.queryByRole("link", {
+        name: "「底堅さの考えかた」の参考動画",
+      });
+      if (question.number === "③") {
+        expect(
+          screen.getByText("判断に迷う場合は、参考動画で確認できます。"),
+        ).toBeInTheDocument();
+        expect(bottomQualityVideo).toHaveAttribute(
+          "href",
+          "https://youtu.be/Od1iAoV37WM?si=EsZKEegAFxMoWv5G&t=180",
+        );
+        expect(bottomQualityVideo).toHaveAttribute("target", "_blank");
+        expect(bottomQualityVideo).toHaveAttribute(
+          "rel",
+          "noopener noreferrer",
+        );
+      } else {
+        expect(bottomQualityVideo).not.toBeInTheDocument();
+      }
       if (index < questions.length - 1) {
         fireEvent.click(screen.getByTestId("attention-answer-yes"));
       }
