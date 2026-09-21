@@ -38,6 +38,10 @@ import VideoListPage from "./pages/VideoListPage";
 import ImportPage from "./pages/ImportPage";
 import MessagesPage from "./pages/MessagesPage";
 import AnalysisPage from "./pages/AnalysisPage";
+import { AttentionNavigatorPage } from "./features/attention-navigator/AttentionNavigatorPage";
+import { AttentionStartCard } from "./features/attention-navigator/AttentionStartCard";
+import { linkAttentionSessionToTradeLog } from "./features/attention-navigator/api";
+import { useAttentionNavigatorStore } from "./features/attention-navigator/store";
 
 // Mode型はtradeStoreで管理（ここでの宣言は不要）
 
@@ -358,6 +362,38 @@ export default function App() {
     activeLog, setActiveLog,
     currentLogId, setCurrentLogId,
   } = useTradeStore();
+  const pendingTradeSessionId = useAttentionNavigatorStore(
+    (state) => state.pendingTradeSessionId,
+  );
+  const setPendingTradeSessionId = useAttentionNavigatorStore(
+    (state) => state.setPendingTradeSessionId,
+  );
+  const attentionPreTradeSessionId =
+    location.pathname === "/pre-trade" &&
+    typeof location.state === "object" &&
+    location.state !== null &&
+    "attentionSessionId" in location.state &&
+    typeof location.state.attentionSessionId === "string"
+      ? location.state.attentionSessionId
+      : null;
+
+  useEffect(() => {
+    const routePendingSessionId =
+      useAttentionNavigatorStore.getState().pendingTradeSessionId;
+    if (!routePendingSessionId) return;
+
+    const isCurrentAttentionPreTrade =
+      location.pathname === "/pre-trade" &&
+      attentionPreTradeSessionId === routePendingSessionId;
+    if (!isCurrentAttentionPreTrade) {
+      setPendingTradeSessionId(null);
+    }
+  }, [
+    attentionPreTradeSessionId,
+    location.key,
+    location.pathname,
+    setPendingTradeSessionId,
+  ]);
   // currentLogId は上記で展開済み
   const [profileDisplayName, setProfileDisplayName] = useState<string | null>(null);
   const [level, setLevel] = useState(1);
@@ -622,7 +658,12 @@ export default function App() {
   const gateAllOk = tradeEntryGatesOk && gateHelp.rule;
   const dailyLimit = memberSettings?.weekly_limit ?? 2;
   const dailyLocked = !memberSettings?.unlocked && dailyAttempts >= dailyLimit && !isTestMode;
-  const isFocusedRecordingRoute = ["/pre-trade", "/post-trade", "/skip"].includes(location.pathname);
+  const isFocusedRecordingRoute = [
+    "/attention-navigator",
+    "/pre-trade",
+    "/post-trade",
+    "/skip",
+  ].includes(location.pathname);
   const rememberedBalanceUpdatedAt = rememberedPreTradeInputs[mode].accountBalanceUpdatedAt;
   const rememberedBalanceAgeDays = rememberedBalanceUpdatedAt
     ? Math.floor((Date.now() - new Date(rememberedBalanceUpdatedAt).getTime()) / 86_400_000)
@@ -1463,6 +1504,25 @@ export default function App() {
       return;
     }
 
+    let attentionLinkError: string | null = null;
+    if (pendingTradeSessionId) {
+      try {
+        await linkAttentionSessionToTradeLog(
+          pendingTradeSessionId,
+          session.user.id,
+          data.id,
+        );
+      } catch (linkError) {
+        attentionLinkError =
+          linkError instanceof Error
+            ? linkError.message
+            : "Attentionセッションとの関連付けに失敗しました。";
+      } finally {
+        // MVPでは次回ロード時の再試行キューを持たない。
+        setPendingTradeSessionId(null);
+      }
+    }
+
     const newLog: TradeLogLite = {
       id: data.id,
       occurred_at: data.occurred_at,
@@ -1508,7 +1568,11 @@ export default function App() {
     setStopLossPrice("");
     setPreTradeStep(1);
     await Promise.all([loadDailyCount(), loadHistory(), loadMemberSettings()]);
-    setStatus("✅ 取引前の記録を保存しました。取引が終わったらホームから結果を記録できます。");
+    setStatus(
+      attentionLinkError
+        ? `⚠️ 取引前の記録は保存しましたが、Attentionログの関連付けに失敗しました: ${attentionLinkError}`
+        : "✅ 取引前の記録を保存しました。取引が終わったらホームから結果を記録できます。",
+    );
     navigate("/");
   };
 
@@ -2432,6 +2496,11 @@ export default function App() {
     );
   }
 
+  const startNormalPreTrade = () => {
+    setPendingTradeSessionId(null);
+    navigate("/pre-trade", { state: null });
+  };
+
   const nextAction = (() => {
     // 1. 日次制限（最優先）
     if (dailyLocked) {
@@ -2470,7 +2539,7 @@ export default function App() {
     return {
       actionLabel: labels.tradePre + " を記録",
       description: "取引チャンスを待機中。見送る場合は「見送り」ボタンから。",
-      onAction: () => navigate("/pre-trade"),
+      onAction: startNormalPreTrade,
       secondaryAction: {
         label: "見送りを記録する（+5 XP）",
         onAction: () => navigate("/skip"),
@@ -2725,6 +2794,9 @@ export default function App() {
                 disabled={nextAction.disabled}
                 secondaryAction={nextAction.secondaryAction}
               />
+              <AttentionStartCard
+                onStart={() => navigate("/attention-navigator")}
+              />
               <HomeNavigator
                 key={homeNavigatorMode}
                 mode={homeNavigatorMode}
@@ -2750,6 +2822,24 @@ export default function App() {
           onLectureComplete={(res: unknown) => {
             applyXpResult(res as XpResult | null);
             showMascot("lessonComplete");
+          }}
+        />
+      )}
+
+      {location.pathname === "/attention-navigator" && session && (
+        <AttentionNavigatorPage
+          userId={session.user.id}
+          currencyPairs={currencyPairs}
+          onBack={() => navigate("/")}
+          onStartTrade={(attentionPair, attentionSessionId) => {
+            setSelectedPairSymbol(attentionPair.symbol);
+            setCurrentRate("");
+            setStopLossPrice("");
+            setPreTradeStep(1);
+            navigate("/pre-trade", {
+              state: { attentionSessionId },
+            });
+            setPendingTradeSessionId(attentionSessionId);
           }}
         />
       )}

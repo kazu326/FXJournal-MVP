@@ -176,7 +176,12 @@ class MockQuery {
     }
 
     if (this.operation === "update") {
-      if (scenario === "update-error") {
+      const firstUpdateRow = (this.rows[0] ?? {}) as Record<string, unknown>;
+      const isAttentionLinkFailure =
+        scenario === "attention-link-error" &&
+        this.table === "attention_sessions" &&
+        typeof firstUpdateRow.trade_log_id === "string";
+      if (scenario === "update-error" || isAttentionLinkFailure) {
         return { data: null, error: { message: "E2E update failure" } };
       }
 
@@ -207,16 +212,28 @@ class MockQuery {
 
     if (this.table === "currency_pairs") {
       return {
-        data: [{
-          id: "pair-usd-jpy",
-          symbol: "USD/JPY",
-          base_currency: "USD",
-          quote_currency: "JPY",
-          pip_position: 2,
-          contract_size: 100000,
-          min_lot: 0.01,
-          is_active: true,
-        }],
+        data: [
+          {
+            id: "pair-usd-jpy",
+            symbol: "USD/JPY",
+            base_currency: "USD",
+            quote_currency: "JPY",
+            pip_position: 2,
+            contract_size: 100000,
+            min_lot: 0.01,
+            is_active: true,
+          },
+          {
+            id: "pair-xau-usd",
+            symbol: "XAU/USD",
+            base_currency: "XAU",
+            quote_currency: "USD",
+            pip_position: 2,
+            contract_size: 100,
+            min_lot: 0.01,
+            is_active: true,
+          },
+        ],
         error: null,
       };
     }
