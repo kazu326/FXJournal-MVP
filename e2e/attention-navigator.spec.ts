@@ -42,7 +42,11 @@ const answerYes = async (page: Page, count: number) => {
 
 const enterExistingPreTrade = async (page: Page) => {
   await answerYes(page, 4);
-  await expect(page.getByText("ブレイク後の価格位置は許容範囲ですか？")).toBeVisible();
+  await expect(
+    page.getByText(
+      "ブレイク後、今の価格はまだ狙える位置ですか？（価格位置）",
+    ),
+  ).toBeVisible();
   await answerYes(page, 7);
   await page.getByTestId("attention-decision-trade").click();
 
@@ -99,7 +103,11 @@ test("STOP stores only an Attention session using the existing XAU/USD identifie
 test("Hard veto prevents the trade decision", async ({ page }) => {
   await loadAttention(page);
   await answerYes(page, 4);
-  await expect(page.getByText("ブレイク後の価格位置は許容範囲ですか？")).toBeVisible();
+  await expect(
+    page.getByText(
+      "ブレイク後、今の価格はまだ狙える位置ですか？（価格位置）",
+    ),
+  ).toBeVisible();
   await answerYes(page, 5);
   await page.getByTestId("attention-answer-no").click();
 

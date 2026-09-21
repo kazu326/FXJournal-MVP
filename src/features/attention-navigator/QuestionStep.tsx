@@ -21,17 +21,17 @@ const ANSWERS: Array<{
 }> = [
   {
     value: "yes",
-    label: "YES",
+    label: "はい",
     className: "border-emerald-500 bg-emerald-50 text-emerald-800 hover:bg-emerald-100",
   },
   {
     value: "no",
-    label: "NO",
+    label: "いいえ",
     className: "border-rose-500 bg-rose-50 text-rose-800 hover:bg-rose-100",
   },
   {
     value: "unknown",
-    label: "?",
+    label: "わからない",
     className: "border-amber-500 bg-amber-50 text-amber-900 hover:bg-amber-100",
   },
 ];
@@ -83,14 +83,49 @@ export function QuestionStep({
           ))}
         </ul>
 
+        {question.learningAid && (
+          <div
+            key={question.id}
+            className="mt-4 space-y-3 rounded-xl border border-blue-100 bg-blue-50 p-3"
+            data-testid={`attention-learning-aid-${question.id}`}
+          >
+            <p className="m-0 text-sm leading-relaxed text-zinc-700">
+              判断に迷う場合は、参考画像または講師の解説動画で確認できます。
+            </p>
+            {question.learningAid.imageSrc && question.learningAid.imageAlt && (
+              <details>
+                <summary className="min-h-11 cursor-pointer py-2 text-sm font-bold text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                  参考画像を見る
+                </summary>
+                <img
+                  src={question.learningAid.imageSrc}
+                  alt={question.learningAid.imageAlt}
+                  loading="lazy"
+                  className="mt-2 h-auto w-full max-w-full rounded-xl border border-blue-100 bg-white"
+                />
+              </details>
+            )}
+            {question.learningAid.videoUrl && question.learningAid.videoLabel && (
+              <a
+                href={question.learningAid.videoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-11 items-center font-bold text-blue-700 underline decoration-blue-300 underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              >
+                {question.learningAid.videoLabel}
+              </a>
+            )}
+          </div>
+        )}
+
         <label className="mt-4 block text-sm font-semibold text-zinc-700">
-          理由メモ（任意）
+          気づいたこと（任意）
           <textarea
             value={reason}
             onChange={(event) => onReasonChange(event.target.value)}
             maxLength={500}
             rows={3}
-            placeholder="確認した事実を短く残せます"
+            placeholder="確認したことや迷った点を短く残せます"
             className="mt-2 w-full resize-none rounded-xl border border-zinc-300 bg-white p-3 text-base font-normal text-zinc-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
           />
         </label>
@@ -115,4 +150,3 @@ export function QuestionStep({
     </div>
   );
 }
-

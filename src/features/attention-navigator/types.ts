@@ -31,6 +31,12 @@ export type AttentionQuestion<TId extends AttentionQuestionId> = {
   title: string;
   prompt: string;
   guidance: string[];
+  learningAid?: {
+    imageSrc?: string;
+    imageAlt?: string;
+    videoUrl?: string;
+    videoLabel?: string;
+  };
 };
 
 export type AttentionAnswerRecord = {
@@ -44,4 +50,3 @@ export type AttentionPair = {
   id: string;
   symbol: string;
 };
-
