@@ -25,4 +25,3 @@ export function JudgmentNavigator(props: JudgmentNavigatorProps) {
     />
   );
 }
-

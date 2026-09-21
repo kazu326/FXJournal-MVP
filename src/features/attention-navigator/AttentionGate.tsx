@@ -24,4 +24,3 @@ export function AttentionGate(props: AttentionGateProps) {
     />
   );
 }
-

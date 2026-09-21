@@ -73,4 +73,3 @@ describe("Attention Navigator state machine", () => {
     ).toBe(2);
   });
 });
-
