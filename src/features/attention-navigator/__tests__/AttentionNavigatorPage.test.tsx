@@ -10,12 +10,14 @@ import { AttentionNavigatorPage } from "../AttentionNavigatorPage";
 import {
   createAttentionSession,
   finishAttentionSession,
+  startJevQ1Q2Evaluation,
 } from "../api";
 import { useAttentionNavigatorStore } from "../store";
 
 jest.mock("../api", () => ({
   createAttentionSession: jest.fn(),
   finishAttentionSession: jest.fn(),
+  startJevQ1Q2Evaluation: jest.fn(),
 }));
 
 const pair: CurrencyPair = {
@@ -34,6 +36,9 @@ const mockedCreate = createAttentionSession as jest.MockedFunction<
 >;
 const mockedFinish = finishAttentionSession as jest.MockedFunction<
   typeof finishAttentionSession
+>;
+const mockedStartJev = startJevQ1Q2Evaluation as jest.MockedFunction<
+  typeof startJevQ1Q2Evaluation
 >;
 
 function renderPage(onStartTrade = jest.fn()) {
@@ -68,6 +73,7 @@ describe("AttentionNavigatorPage", () => {
     useAttentionNavigatorStore.getState().setPendingTradeSessionId(null);
     mockedCreate.mockReset().mockResolvedValue("attention-session-1");
     mockedFinish.mockReset().mockResolvedValue(undefined);
+    mockedStartJev.mockReset();
   });
 
   test("stores an existing currency_pairs value and ends on STOP", async () => {
@@ -101,6 +107,18 @@ describe("AttentionNavigatorPage", () => {
       }),
     );
     expect(mockedFinish).not.toHaveBeenCalled();
+    expect(mockedStartJev).toHaveBeenCalledWith("attention-session-1");
+  });
+
+  test("continues the existing STOP flow when Jev startup fails", async () => {
+    mockedStartJev.mockImplementation(() => {
+      throw new Error("Jev unavailable");
+    });
+    renderPage();
+    fireEvent.click(screen.getByTestId("attention-answer-no"));
+
+    expect(await screen.findByTestId("attention-result")).toHaveTextContent("STOP");
+    expect(screen.queryByText("Jev unavailable")).not.toBeInTheDocument();
   });
 
   test("stores unknown as HOLD without showing Judgment", async () => {

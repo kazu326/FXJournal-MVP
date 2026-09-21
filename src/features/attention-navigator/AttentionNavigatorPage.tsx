@@ -4,6 +4,7 @@ import { AttentionGate } from "./AttentionGate";
 import {
   createAttentionSession,
   finishAttentionSession,
+  startJevQ1Q2Evaluation,
 } from "./api";
 import { JudgmentNavigator } from "./JudgmentNavigator";
 import {
@@ -145,6 +146,12 @@ export function AttentionNavigatorPage({
         gateSeconds: elapsedSeconds(startedAt, now),
         totalSeconds: isFinished ? elapsedSeconds(startedAt, now) : null,
       });
+
+      try {
+        startJevQ1Q2Evaluation(createdSessionId);
+      } catch {
+        // The comparison experiment must never alter the established Gate flow.
+      }
 
       addGateAnswer(answerRecord);
       completeGate(transition.result, now);
