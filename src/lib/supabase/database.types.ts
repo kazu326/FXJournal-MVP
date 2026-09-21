@@ -110,6 +110,83 @@ export type Database = {
           },
         ]
       }
+      jev_runs: {
+        Row: {
+          attention_session_id: string
+          completed_at: string | null
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          feature_version: string
+          id: string
+          latency_ms: number | null
+          model: string
+          prompt_version: string
+          q1_comparison: string | null
+          q1_input: Json | null
+          q1_output: Json | null
+          q2_comparison: string | null
+          q2_input: Json | null
+          q2_output: Json | null
+          scope: string
+          snapshot_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          attention_session_id: string
+          completed_at?: string | null
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          feature_version?: string
+          id?: string
+          latency_ms?: number | null
+          model?: string
+          prompt_version?: string
+          q1_comparison?: string | null
+          q1_input?: Json | null
+          q1_output?: Json | null
+          q2_comparison?: string | null
+          q2_input?: Json | null
+          q2_output?: Json | null
+          scope?: string
+          snapshot_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          attention_session_id?: string
+          completed_at?: string | null
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          feature_version?: string
+          id?: string
+          latency_ms?: number | null
+          model?: string
+          prompt_version?: string
+          q1_comparison?: string | null
+          q1_input?: Json | null
+          q1_output?: Json | null
+          q2_comparison?: string | null
+          q2_input?: Json | null
+          q2_output?: Json | null
+          scope?: string
+          snapshot_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jev_runs_attention_session_id_fkey"
+            columns: ["attention_session_id"]
+            isOneToOne: true
+            referencedRelation: "attention_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       announcements: {
         Row: {
           body: string

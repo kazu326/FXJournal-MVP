@@ -62,6 +62,20 @@ export async function createAttentionSession(
   return data.id as string;
 }
 
+export function startJevQ1Q2Evaluation(attentionSessionId: string) {
+  // Best-effort sidecar experiment: never await this from the Attention flow and
+  // never surface its failure as a Gate save error.
+  try {
+    void supabase.functions
+      .invoke("evaluate-attention-q1q2", {
+        body: { attentionSessionId },
+      })
+      .catch(() => undefined);
+  } catch {
+    // Some client/bootstrap failures can throw before a Promise is returned.
+  }
+}
+
 export async function finishAttentionSession(
   input: FinishAttentionSessionInput,
 ) {
