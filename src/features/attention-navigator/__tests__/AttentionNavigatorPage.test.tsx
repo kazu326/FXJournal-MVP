@@ -243,52 +243,60 @@ describe("AttentionNavigatorPage", () => {
         number: "①",
         title: "ブレイク後の価格位置",
         prompt: "ブレイク後、今の価格はまだ狙える位置ですか？（価格位置）",
-        guidance:
+        guidance: [
           "すでに大きく伸びた後ではないか、追いかける位置になっていないかを確認します。",
+        ],
       },
       {
         number: "③",
         title: "底堅さ・押し目の質",
         prompt: "押し目は底堅く見えますか？（底堅さ・押し目の質）",
-        guidance:
+        guidance: [
           "下ヒゲや安値の切り上げなど、下げ止まっている材料があるか確認します。",
+        ],
       },
       {
         number: "②",
-        title: "押し戻し・再テスト",
-        prompt: "ブレイク後の押し戻しで、形が崩れていませんか？（再テスト）",
-        guidance: "ブレイクした根拠がまだ保たれているかを確認します。",
+        title: "ブレイク後の維持確認",
+        prompt: "ブレイクした動きは維持されていますか？",
+        guidance: [
+          "上に抜けたあと、すぐ元の持ち合いの中へ戻っていないか確認します。",
+          "これはエントリー前の確認です。",
+        ],
       },
       {
         number: "⑥",
-        title: "下位足との整合",
-        prompt:
-          "下位足の値動きは、4時間足の方向と大きく矛盾していませんか？（下位足PA）",
-        guidance:
-          "短期の値動きが、上位足の方向に強く逆らっていないか確認します。",
+        title: "下位足の方向",
+        prompt: "下位足も上方向を向いていますか？",
+        guidance: [
+          "15分足や5分足など、エントリー判断に使う下位足の方向を確認します。",
+        ],
       },
       {
         number: "④",
-        title: "利確の置き方",
-        prompt: "利確の置き方は、今の相場に合っていますか？",
-        guidance:
-          "取れそうな値幅や、近くの高値・抵抗帯を見て確認します。",
+        title: "損切りと利確のバランス",
+        prompt: "その損切り幅で、無理なく狙える利幅がありますか？",
+        guidance: [
+          "RRは目安の一つです。自分で決めた基準に対して、必要な上昇幅が今の値動きでは現実的でないと感じる場合は見送ります。",
+        ],
       },
       {
         number: "⑤",
         title: "ボラティリティ",
         prompt:
           "今の値動きは、ポジションを考えられる範囲ですか？（ボラティリティ）",
-        guidance:
+        guidance: [
           "値動きが荒れすぎていたり、急激に拡大していないか確認します。",
+        ],
       },
       {
         number: "⑦",
         title: "損切り・リスク・無効化条件",
         prompt:
           "入る前に、損切り位置・許容リスク・判断が崩れる条件を言えますか？",
-        guidance:
+        guidance: [
           "どこで間違いと判断するかを、ポジションを考える前に確認します。",
+        ],
       },
     ];
 
@@ -296,8 +304,9 @@ describe("AttentionNavigatorPage", () => {
       expect(screen.getByText(question.number)).toBeInTheDocument();
       expect(screen.getByText(question.title)).toBeInTheDocument();
       expect(screen.getByText(question.prompt)).toBeInTheDocument();
-      expect(screen.getByText(question.guidance)).toBeInTheDocument();
-      expect(screen.queryByText("参考画像を見る")).not.toBeInTheDocument();
+      for (const guidance of question.guidance) {
+        expect(screen.getByText(guidance)).toBeInTheDocument();
+      }
       const bottomQualityVideo = screen.queryByRole("link", {
         name: "「底堅さの考えかた」の参考動画",
       });
@@ -317,6 +326,49 @@ describe("AttentionNavigatorPage", () => {
       } else {
         expect(bottomQualityVideo).not.toBeInTheDocument();
       }
+
+      const memoSummary = screen.queryByText("メモ例を見る");
+      const referenceImageSummary = screen.queryByText("参考画像を見る");
+      if (question.number === "④") {
+        const memoDetails = memoSummary?.closest("details");
+        expect(memoDetails).not.toHaveAttribute("open");
+
+        const memoExamples = [
+          "SL 8、目標 2R（16）。直近の抵抗まで30以上あり、無理なく狙えそうなので候補。",
+          "SL 12、目標 3R（36）。直近高値まで20しかない。必要な値幅が大きく現実的でないので見送り。",
+          "SL 10、目標 2R（20）。上には余裕がありそうだが途中に抵抗がある。もう少し様子を見て判断。",
+        ].map((example) => screen.getByText(example));
+        for (const example of memoExamples) {
+          expect(example).not.toBeVisible();
+        }
+        fireEvent.click(memoSummary!);
+        expect(memoDetails).toHaveAttribute("open");
+        for (const example of memoExamples) {
+          expect(example).toBeVisible();
+        }
+
+        expect(
+          screen.getByText("判断に迷う場合は、参考画像で確認できます。"),
+        ).toBeInTheDocument();
+        const imageDetails = referenceImageSummary?.closest("details");
+        expect(imageDetails).not.toHaveAttribute("open");
+        const image = screen.getByAltText(
+          "損切り幅と狙う利幅のバランスをYes・No・わからないのメモ例で示した参考図",
+        );
+        expect(image).toHaveAttribute(
+          "src",
+          "/attention-navigator/risk-reward-balance-mobile.png",
+        );
+        expect(image).toHaveAttribute("loading", "lazy");
+        expect(image).not.toBeVisible();
+        fireEvent.click(referenceImageSummary!);
+        expect(imageDetails).toHaveAttribute("open");
+        expect(image).toBeVisible();
+      } else {
+        expect(memoSummary).not.toBeInTheDocument();
+        expect(referenceImageSummary).not.toBeInTheDocument();
+      }
+
       if (index < questions.length - 1) {
         fireEvent.click(screen.getByTestId("attention-answer-yes"));
       }

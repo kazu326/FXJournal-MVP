@@ -45,6 +45,12 @@ export function QuestionStep({
   onReasonChange,
   onAnswer,
 }: QuestionStepProps) {
+  const learningAidMessage = question.learningAid?.imageSrc
+    ? question.learningAid.videoUrl
+      ? "判断に迷う場合は、参考画像または講師の解説動画で確認できます。"
+      : "判断に迷う場合は、参考画像で確認できます。"
+    : "判断に迷う場合は、参考動画で確認できます。";
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between text-xs font-semibold text-zinc-500">
@@ -90,9 +96,7 @@ export function QuestionStep({
             data-testid={`attention-learning-aid-${question.id}`}
           >
             <p className="m-0 text-sm leading-relaxed text-zinc-700">
-              {question.learningAid.imageSrc
-                ? "判断に迷う場合は、参考画像または講師の解説動画で確認できます。"
-                : "判断に迷う場合は、参考動画で確認できます。"}
+              {learningAidMessage}
             </p>
             {question.learningAid.imageSrc && question.learningAid.imageAlt && (
               <details>
@@ -118,6 +122,23 @@ export function QuestionStep({
               </a>
             )}
           </div>
+        )}
+
+        {question.memoExamples && question.memoExamples.length > 0 && (
+          <details
+            key={`memo-examples-${question.id}`}
+            className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 px-3"
+            data-testid={`attention-memo-examples-${question.id}`}
+          >
+            <summary className="min-h-11 cursor-pointer py-3 text-sm font-bold text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+              メモ例を見る
+            </summary>
+            <ul className="mb-3 mt-0 space-y-3 pl-5 text-sm leading-relaxed text-zinc-700">
+              {question.memoExamples.map((example) => (
+                <li key={example}>{example}</li>
+              ))}
+            </ul>
+          </details>
         )}
 
         <label className="mt-4 block text-sm font-semibold text-zinc-700">

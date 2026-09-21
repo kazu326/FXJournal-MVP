@@ -31,6 +31,7 @@ export type AttentionQuestion<TId extends AttentionQuestionId> = {
   title: string;
   prompt: string;
   guidance: string[];
+  memoExamples?: string[];
   learningAid?: {
     imageSrc?: string;
     imageAlt?: string;

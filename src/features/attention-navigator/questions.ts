@@ -94,28 +94,40 @@ export const JUDGMENT_QUESTIONS: AttentionQuestion<JudgmentQuestionId>[] = [
   {
     id: "retest_integrity",
     displayNumber: "②",
-    title: "押し戻し・再テスト",
-    prompt: "ブレイク後の押し戻しで、形が崩れていませんか？（再テスト）",
-    guidance: ["ブレイクした根拠がまだ保たれているかを確認します。"],
+    title: "ブレイク後の維持確認",
+    prompt: "ブレイクした動きは維持されていますか？",
+    guidance: [
+      "上に抜けたあと、すぐ元の持ち合いの中へ戻っていないか確認します。",
+      "これはエントリー前の確認です。",
+    ],
   },
   {
     id: "lower_timeframe_alignment",
     displayNumber: "⑥",
-    title: "下位足との整合",
-    prompt:
-      "下位足の値動きは、4時間足の方向と大きく矛盾していませんか？（下位足PA）",
+    title: "下位足の方向",
+    prompt: "下位足も上方向を向いていますか？",
     guidance: [
-      "短期の値動きが、上位足の方向に強く逆らっていないか確認します。",
+      "15分足や5分足など、エントリー判断に使う下位足の方向を確認します。",
     ],
   },
   {
     id: "take_profit_fit",
     displayNumber: "④",
-    title: "利確の置き方",
-    prompt: "利確の置き方は、今の相場に合っていますか？",
+    title: "損切りと利確のバランス",
+    prompt: "その損切り幅で、無理なく狙える利幅がありますか？",
     guidance: [
-      "取れそうな値幅や、近くの高値・抵抗帯を見て確認します。",
+      "RRは目安の一つです。自分で決めた基準に対して、必要な上昇幅が今の値動きでは現実的でないと感じる場合は見送ります。",
     ],
+    memoExamples: [
+      "SL 8、目標 2R（16）。直近の抵抗まで30以上あり、無理なく狙えそうなので候補。",
+      "SL 12、目標 3R（36）。直近高値まで20しかない。必要な値幅が大きく現実的でないので見送り。",
+      "SL 10、目標 2R（20）。上には余裕がありそうだが途中に抵抗がある。もう少し様子を見て判断。",
+    ],
+    learningAid: {
+      imageSrc: "/attention-navigator/risk-reward-balance-mobile.png",
+      imageAlt:
+        "損切り幅と狙う利幅のバランスをYes・No・わからないのメモ例で示した参考図",
+    },
   },
   {
     id: "volatility_sufficient",
